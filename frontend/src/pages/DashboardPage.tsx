@@ -13,6 +13,7 @@ import {
   Bell
 } from 'lucide-react'
 import { DashboardLabels } from '@/types/configuration'
+import { ChartSelector, useChartTypes } from '@/components/charts/ChartSelector'
 
 export interface DashboardStats {
   id: string
@@ -104,6 +105,7 @@ export const DashboardPage = ({
   usePageTitle('Dashboard')
 
   const { user } = useAuth()
+  const { availableCharts, getChartByCategory } = useChartTypes()
 
   // Default labels
   const defaultLabels: DashboardLabels = {
@@ -221,6 +223,25 @@ export const DashboardPage = ({
       { name: 'Entretenimento', amount: 234.50, icon: '🎯' }
     ]
   }
+
+  // Sample chart data for financial analysis
+  const chartData = [
+    { name: 'Jan', value: 4200, income: 6400, expenses: 4200, trend: 4200, change: 0 },
+    { name: 'Fev', value: 3800, income: 5800, expenses: 3800, trend: 3800, change: -9.5 },
+    { name: 'Mar', value: 4500, income: 6200, expenses: 4500, trend: 4500, change: 18.4 },
+    { name: 'Abr', value: 3200, income: 5500, expenses: 3200, trend: 3200, change: -28.9 },
+    { name: 'Mai', value: 4800, income: 6800, expenses: 4800, trend: 4800, change: 50.0 },
+    { name: 'Jun', value: 4100, income: 6100, expenses: 4100, trend: 4100, change: -14.6 }
+  ]
+
+  const expensesCategoryData = [
+    { name: 'Alimentação', value: 1234.56, color: '#ef4444' },
+    { name: 'Transporte', value: 567.89, color: '#3b82f6' },
+    { name: 'Entretenimento', value: 234.50, color: '#8b5cf6' },
+    { name: 'Saúde', value: 189.30, color: '#10b981' },
+    { name: 'Educação', value: 156.90, color: '#f59e0b' },
+    { name: 'Outros', value: 298.75, color: '#6b7280' }
+  ]
 
   // Use external data or fallback to defaults
   const finalStats = externalStats && externalStats.length > 0 ? externalStats : defaultStats
@@ -373,6 +394,28 @@ export const DashboardPage = ({
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="mb-8">
+          <ChartSelector
+            title="Análise Financeira"
+            description="Visualize seus dados financeiros de diferentes formas"
+            chartTypes={availableCharts}
+            defaultChartType="bar"
+            data={chartData}
+            className="w-full"
+          />
+        </div>
+
+        <div className="mb-8">
+          <ChartSelector
+            title="Distribuição de Gastos por Categoria"
+            description="Veja como seus gastos estão distribuídos"
+            chartTypes={getChartByCategory('expenses')}
+            defaultChartType="pie"
+            data={expensesCategoryData}
+            className="w-full"
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
