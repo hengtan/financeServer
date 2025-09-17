@@ -1,49 +1,50 @@
 import 'reflect-metadata'
 import { Container } from 'typedi'
 import { FastifyServer } from './infrastructure/http/FastifyServer'
-import { RedisService } from './infrastructure/cache/RedisService'
-import { QueueService, JobTypes } from './infrastructure/jobs/QueueService'
-import { MetricsService } from './infrastructure/monitoring/MetricsService'
+// import { RedisService } from './infrastructure/cache/RedisService'
+// import { QueueService, JobTypes } from './infrastructure/jobs/QueueService'
+// import { MetricsService } from './infrastructure/monitoring/MetricsService'
 import { ProcessTransactionUseCase } from './core/usecases/ProcessTransactionUseCase'
 
 class Application {
   private server: FastifyServer
-  private redisService: RedisService
-  private queueService: QueueService
-  private metricsService: MetricsService
+  // private redisService: RedisService
+  // private queueService: QueueService
+  // private metricsService: MetricsService
 
   constructor() {
     this.server = new FastifyServer()
-    this.redisService = Container.get(RedisService)
-    this.queueService = Container.get(QueueService)
-    this.metricsService = Container.get(MetricsService)
+    // Temporarily disable Redis/Queue services for basic integration
+    // this.redisService = Container.get(RedisService)
+    // this.queueService = Container.get(QueueService)
+    // this.metricsService = Container.get(MetricsService)
   }
 
   async start(): Promise<void> {
     try {
       console.log('🚀 Starting FinanceServer Enterprise Backend...')
 
-      // Setup metrics endpoint
-      this.server.getInstance().get('/metrics', async (request, reply) => {
-        const metrics = await this.metricsService.getMetrics()
-        return reply.type('text/plain').send(metrics)
-      })
+      // Setup metrics endpoint (temporarily disabled)
+      // this.server.getInstance().get('/metrics', async (request, reply) => {
+      //   const metrics = await this.metricsService.getMetrics()
+      //   return reply.type('text/plain').send(metrics)
+      // })
 
-      // Setup queue monitoring endpoint
-      this.server.getInstance().get('/admin/queues', async (request, reply) => {
-        const stats = await this.queueService.getAllQueueStats()
-        return reply.send({
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          queues: stats
-        })
-      })
+      // Setup queue monitoring endpoint (temporarily disabled)
+      // this.server.getInstance().get('/admin/queues', async (request, reply) => {
+      //   const stats = await this.queueService.getAllQueueStats()
+      //   return reply.send({
+      //     status: 'ok',
+      //     timestamp: new Date().toISOString(),
+      //     queues: stats
+      //   })
+      // })
 
       // Setup health check with comprehensive status
       this.server.getInstance().get('/health/detailed', async (request, reply) => {
-        const redisHealth = await this.redisService.getHealth()
-        const metricsHealth = this.metricsService.getHealth()
-        const queueStats = await this.queueService.getAllQueueStats()
+        // const redisHealth = await this.redisService.getHealth()
+        // const metricsHealth = this.metricsService.getHealth()
+        // const queueStats = await this.queueService.getAllQueueStats()
 
         return reply.send({
           status: 'ok',
@@ -51,9 +52,10 @@ class Application {
           version: process.env.npm_package_version || '1.0.0',
           environment: process.env.NODE_ENV || 'development',
           services: {
-            redis: redisHealth,
-            metrics: metricsHealth,
-            queues: queueStats
+            // redis: redisHealth,
+            // metrics: metricsHealth,
+            // queues: queueStats
+            api: { status: 'connected' }
           },
           system: {
             uptime: process.uptime(),
@@ -69,8 +71,8 @@ class Application {
         })
       })
 
-      // Initialize workers for async job processing
-      this.initializeWorkers()
+      // Initialize workers for async job processing (temporarily disabled)
+      // this.initializeWorkers()
 
       // Start the server
       const port = parseInt(process.env.PORT || '3001')
@@ -96,6 +98,8 @@ class Application {
 
   private initializeWorkers(): void {
     console.log('🔧 Initializing async job workers...')
+    // Temporarily disabled until Redis/Queue setup is complete
+    /*
 
     // High-priority transaction processing worker
     this.queueService.createWorker('high-priority', async (job) => {
@@ -185,13 +189,14 @@ class Application {
     })
 
     console.log('✅ Job workers initialized successfully')
+    */
   }
 
   async stop(): Promise<void> {
     console.log('🔄 Shutting down FinanceServer Enterprise Backend...')
 
     try {
-      await this.queueService.shutdown()
+      // await this.queueService.shutdown()
       await this.server.stop()
       console.log('✅ Application stopped gracefully')
     } catch (error) {

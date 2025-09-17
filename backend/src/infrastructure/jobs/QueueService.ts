@@ -31,8 +31,17 @@ export class QueueService {
   }
 
   private initializeQueues(): void {
+    const redisConfig = {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      db: parseInt(process.env.REDIS_DB || '0'),
+      maxRetriesPerRequest: 3,
+    }
+
     const queueConfig: QueueOptions = {
-      connection: this.redisService.getClient(),
+      connection: redisConfig,
+      prefix: 'financeserver',
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 50,
@@ -125,8 +134,17 @@ export class QueueService {
     queueName: string,
     processor: (job: Job<JobData>) => Promise<any>
   ): Worker {
+    const redisConfig = {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      db: parseInt(process.env.REDIS_DB || '0'),
+      maxRetriesPerRequest: 3,
+    }
+
     const workerConfig: WorkerOptions = {
-      connection: this.redisService.getClient(),
+      connection: redisConfig,
+      prefix: 'financeserver',
       concurrency: parseInt(process.env.QUEUE_CONCURRENCY || '5'),
       maxStalledCount: 1,
       stalledInterval: 30000

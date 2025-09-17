@@ -10,7 +10,7 @@ import { RedisService } from '../cache/RedisService'
 
 export class FastifyServer {
   private app: FastifyInstance
-  private redisService: RedisService
+  // private redisService: RedisService
 
   constructor() {
     this.app = fastify({
@@ -30,8 +30,8 @@ export class FastifyServer {
       trustProxy: true
     })
 
-    this.redisService = Container.get(RedisService)
-    this.setupPlugins()
+    // Temporarily disable Redis for basic integration
+    // this.redisService = Container.get(RedisService)
     this.setupRoutes()
   }
 
@@ -48,7 +48,7 @@ export class FastifyServer {
     })
 
     await this.app.register(cors, {
-      origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'],
+      origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
     })
@@ -56,7 +56,7 @@ export class FastifyServer {
     await this.app.register(rateLimit, {
       max: 100,
       timeWindow: '1 minute',
-      redis: this.redisService.getClient(),
+      // redis: this.redisService.getClient(),
       nameSpace: 'rate-limit:',
       addHeaders: {
         'x-ratelimit-limit': true,
@@ -65,10 +65,11 @@ export class FastifyServer {
       }
     })
 
-    await this.app.register(redisPlugin, {
-      client: this.redisService.getClient(),
-      namespace: 'redis'
-    })
+    // Temporarily disable Redis plugin
+    // await this.app.register(redisPlugin, {
+    //   client: this.redisService.getClient(),
+    //   namespace: 'redis'
+    // })
 
     if (process.env.NODE_ENV !== 'production') {
       await this.app.register(swagger, {
@@ -103,11 +104,22 @@ export class FastifyServer {
         transformStaticCSP: (header) => header
       })
     }
+
+    // Register API routes
+    const transactionRoutes = await import('../../routes/fastify/transactions')
+    const authRoutes = await import('../../routes/fastify/auth')
+    const reportRoutes = await import('../../routes/fastify/reports')
+
+    await this.app.register(transactionRoutes.default)
+    await this.app.register(authRoutes.default)
+    await this.app.register(reportRoutes.default)
+
+    this.app.log.info('✅ API routes registered successfully')
   }
 
   private setupRoutes(): void {
     this.app.get('/health', async (request, reply) => {
-      const redisHealth = await this.redisService.getHealth()
+      // const redisHealth = await this.redisService.getHealth()
 
       return {
         status: 'ok',
@@ -115,7 +127,8 @@ export class FastifyServer {
         version: process.env.npm_package_version || '1.0.0',
         environment: process.env.NODE_ENV || 'development',
         services: {
-          redis: redisHealth
+          api: { status: 'connected' }
+          // redis: redisHealth
         },
         uptime: process.uptime(),
         memory: {
@@ -160,8 +173,12 @@ export class FastifyServer {
     })
   }
 
+
   public async start(port = 3001, host = '0.0.0.0'): Promise<void> {
     try {
+      // Setup plugins and routes before starting
+      await this.setupPlugins()
+
       await this.app.listen({ port, host })
       this.app.log.info(`🚀 Server running on http://${host}:${port}`)
 
@@ -177,7 +194,7 @@ export class FastifyServer {
   public async stop(): Promise<void> {
     try {
       await this.app.close()
-      await this.redisService.disconnect()
+      // await this.redisService.disconnect()
       this.app.log.info('Server stopped gracefully')
     } catch (error) {
       this.app.log.error('Error stopping server:', error)

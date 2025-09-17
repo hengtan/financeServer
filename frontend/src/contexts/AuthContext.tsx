@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { User } from '@/types'
+import { User, authService, AuthResponse } from '@/services/auth'
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<{ success: boolean; requires2FA?: boolean; email?: string }>
-  logout: () => void
+  logout: () => Promise<void>
   verify2FA: (code: string) => Promise<boolean>
   isLoading: boolean
   isAuthenticated: boolean
@@ -33,78 +33,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('financeServer_user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const initAuth = async () => {
+      const token = authService.getToken()
+      if (token) {
+        try {
+          const response = await authService.getMe()
+          if (response.success) {
+            setUser(response.data)
+          } else {
+            authService.clearTokens()
+            authService.clearCurrentUser()
+          }
+        } catch (error) {
+          console.error('Failed to validate token:', error)
+          authService.clearTokens()
+          authService.clearCurrentUser()
+        }
+      }
+      setIsLoading(false)
     }
-    setIsLoading(false)
+
+    initAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<{ success: boolean; requires2FA?: boolean; email?: string }> => {
     setIsLoading(true)
 
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    try {
+      const response = await authService.login({ email, password })
 
-    if (email === 'admin@financeserver.com' && password === '123456') {
-      // Verificar se 2FA está habilitado para este usuário
-      const stored2FA = localStorage.getItem('financeServer_2fa')
-      const twoFactorSettings = stored2FA ? JSON.parse(stored2FA) : { enabled: false }
-
-      if (twoFactorSettings.enabled) {
-        setPending2FA(true)
-        setPendingEmail(email)
-        setIsLoading(false)
-        return { success: false, requires2FA: true, email }
-      } else {
-        const mockUser: User = {
-          id: '1',
-          name: 'João Silva',
-          email: email,
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-        }
-
-        setUser(mockUser)
-        localStorage.setItem('financeServer_user', JSON.stringify(mockUser))
+      if (response.success) {
+        setUser(response.data.user)
+        authService.setCurrentUser(response.data.user)
         setIsLoading(false)
         return { success: true }
+      } else {
+        setIsLoading(false)
+        return { success: false }
       }
+    } catch (error) {
+      console.error('Login failed:', error)
+      setIsLoading(false)
+      return { success: false }
     }
-
-    setIsLoading(false)
-    return { success: false }
   }
 
   const verify2FA = async (code: string): Promise<boolean> => {
-    setIsLoading(true)
-
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Simular verificação 2FA - em produção seria verificado no backend
-    const isValid = code === '123456' || code.length === 6
-
-    if (isValid) {
-      const mockUser: User = {
-        id: '1',
-        name: 'João Silva',
-        email: pendingEmail || '',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-      }
-
-      setUser(mockUser)
-      localStorage.setItem('financeServer_user', JSON.stringify(mockUser))
-      setPending2FA(false)
-      setPendingEmail(null)
-    }
-
-    setIsLoading(false)
-    return isValid
+    // 2FA não implementado no backend atual - retorna false por enquanto
+    return false
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authService.logout()
+    } catch (error) {
+      console.warn('Logout request failed, but clearing local state anyway', error)
+    }
+
     setUser(null)
     setPending2FA(false)
     setPendingEmail(null)
-    localStorage.removeItem('financeServer_user')
+    authService.clearTokens()
+    authService.clearCurrentUser()
   }
 
   const value = {

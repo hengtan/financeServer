@@ -128,25 +128,27 @@ export const SettingsPage = ({
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+          <TabsList className="grid grid-cols-5 w-full max-w-full lg:max-w-2xl">
+            <TabsTrigger value="profile" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm">
+              <User className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notificações</span>
+            <TabsTrigger value="notifications" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm">
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden md:inline">Notificações</span>
+              <span className="inline md:hidden">Notif.</span>
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Aparência</span>
+            <TabsTrigger value="appearance" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm">
+              <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden md:inline">Aparência</span>
+              <span className="inline md:hidden">Tema</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
+            <TabsTrigger value="security" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm">
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Segurança</span>
             </TabsTrigger>
-            <TabsTrigger value="data" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
+            <TabsTrigger value="data" className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Dados</span>
             </TabsTrigger>
           </TabsList>

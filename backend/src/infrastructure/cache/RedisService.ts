@@ -15,7 +15,6 @@ export class RedisService {
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
-      keyPrefix: 'financeserver:',
       connectTimeout: 10000,
       commandTimeout: 5000
     })

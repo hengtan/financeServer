@@ -18,12 +18,25 @@ import {
   Donut,
   Settings
 } from 'lucide-react'
-import { BarChart as BarChartComponent } from './BarChart'
+// import { BarChart as BarChartComponent } from './BarChart'
 import { LineChart as LineChartComponent } from './LineChart'
 import { PieChart as PieChartComponent } from './PieChart'
 import { DonutChart as DonutChartComponent } from './DonutChart'
-import { AreaChart as AreaChartComponent } from './AreaChart'
+// import { AreaChart as AreaChartComponent } from './AreaChart'
 import { TrendChart as TrendChartComponent } from './TrendChart'
+
+// Temporary placeholder components
+const PlaceholderChart = ({ title }: { title: string }) => (
+  <div className="p-8 text-center border border-dashed border-gray-300 rounded-lg">
+    <div className="text-gray-500">
+      <p className="font-medium">{title}</p>
+      <p className="text-sm">Em desenvolvimento...</p>
+    </div>
+  </div>
+)
+
+const BarChartComponent = () => <PlaceholderChart title="Gráfico de Barras" />
+const AreaChartComponent = () => <PlaceholderChart title="Gráfico de Área" />
 
 export interface ChartType {
   id: string

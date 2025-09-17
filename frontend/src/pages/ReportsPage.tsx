@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { TimelineChart } from '@/components/TimelineChart'
 import { PeriodComparison } from '@/components/PeriodComparison'
+import { TrendForecast } from '@/components/TrendForecast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BarChart3,
@@ -121,10 +122,11 @@ export const ReportsPage = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="comparison">Comparação</TabsTrigger>
             <TabsTrigger value="breakdown">Detalhamento</TabsTrigger>
+            <TabsTrigger value="forecasts">Previsões</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
@@ -378,6 +380,10 @@ export const ReportsPage = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="forecasts" className="space-y-6">
+            <TrendForecast />
           </TabsContent>
 
           <TabsContent value="insights" className="space-y-6">

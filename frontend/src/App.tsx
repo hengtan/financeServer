@@ -27,6 +27,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage'
 import { CustomDashboardPage } from '@/pages/CustomDashboardPage'
 import { MultiDashboardPage } from '@/pages/MultiDashboardPage'
 import { AlertsPage } from '@/pages/AlertsPage'
+import { CalculatorsPage } from '@/pages/CalculatorsPage'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -206,6 +207,14 @@ function App() {
             <ProtectedRoute>
               <AppLayout showFooter={false}>
                 <AlertsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/calculadoras" element={
+            <ProtectedRoute>
+              <AppLayout showFooter={false}>
+                <CalculatorsPage />
               </AppLayout>
             </ProtectedRoute>
           } />

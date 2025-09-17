@@ -65,17 +65,17 @@ export const Header = ({
       id: 'dashboard',
       label: 'Dashboard',
       href: '/dashboard',
-      icon: '📊',
       children: [
-        { id: 'dashboard-main', label: 'Dashboard Principal', href: '/dashboard', icon: '🏠' },
-        { id: 'dashboard-custom', label: 'Dashboard Customizável', href: '/dashboard/customizado', icon: '🎛️' },
-        { id: 'dashboard-specialized', label: 'Dashboards Especializados', href: '/dashboard/especializados', icon: '🎯' }
+        { id: 'dashboard-main', label: 'Dashboard Principal', href: '/dashboard' },
+        { id: 'dashboard-custom', label: 'Dashboard Customizável', href: '/dashboard/customizado' },
+        { id: 'dashboard-specialized', label: 'Dashboards Especializados', href: '/dashboard/especializados' }
       ]
     },
-    { id: 'transactions', label: 'Transações', href: '/transacoes', icon: '💰' },
-    { id: 'reports', label: 'Relatórios', href: '/relatorios', icon: '📈' },
-    { id: 'goals', label: 'Metas', href: '/metas', icon: '🎯' },
-    { id: 'alerts', label: 'Alertas', href: '/alertas', icon: '🔔' }
+    { id: 'transactions', label: 'Transações', href: '/transacoes' },
+    { id: 'reports', label: 'Relatórios', href: '/relatorios' },
+    { id: 'goals', label: 'Metas', href: '/metas' },
+    { id: 'alerts', label: 'Alertas', href: '/alertas' },
+    { id: 'calculators', label: 'Calculadoras', href: '/calculadoras' }
   ]
 
   // Default navigation items for unauthenticated users
@@ -87,9 +87,9 @@ export const Header = ({
 
   // Default user menu items
   const defaultUserMenuItems: UserMenuItem[] = [
-    { id: 'settings', label: 'Configurações', href: '/configuracoes', icon: '⚙️' },
+    { id: 'settings', label: 'Configurações', href: '/configuracoes' },
     { id: 'divider', label: '', divider: true },
-    { id: 'logout', label: 'Sair', action: 'logout', icon: '🚪' }
+    { id: 'logout', label: 'Sair', action: 'logout' }
   ]
 
   // Use provided data or fallback to defaults
@@ -202,7 +202,10 @@ export const Header = ({
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to={finalBrand.urls?.website || "/"} className="flex items-center space-x-2">
+          <Link
+            to={isAuthenticated ? "/dashboard" : (finalBrand.urls?.website || "/")}
+            className="flex items-center space-x-2"
+          >
             {finalBrand.logo ? (
               <img
                 src={finalBrand.logo}

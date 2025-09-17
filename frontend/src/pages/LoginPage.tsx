@@ -187,11 +187,20 @@ export const LoginPage = () => {
               </p>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-2">Dados de Demonstração:</h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Email:</strong> admin@financeserver.com</p>
-                <p><strong>Senha:</strong> 123456</p>
+            <div className="mt-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Usuário Sandbox</h3>
+              <div className="text-xs sm:text-sm text-gray-600 space-y-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                  <span className="font-medium text-gray-700">Email:</span>
+                  <span className="break-all">sandbox@financeserver.dev</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                  <span className="font-medium text-gray-700">Senha:</span>
+                  <span>sandbox</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                  💡 Use qualquer email contendo "sandbox" com senha "sandbox"
+                </p>
               </div>
             </div>
           </CardContent>
