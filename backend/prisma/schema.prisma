@@ -1,0 +1,345 @@
+// Enterprise-grade Prisma schema with ACID compliance and optimizations
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User management with security features
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+  passwordHash      String
+  role              UserRole  @default(USER)
+  status            UserStatus @default(PENDING_VERIFICATION)
+
+  // Profile information
+  avatarUrl         String?
+  phoneNumber       String?
+
+  // Security features
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  lastLoginAt       DateTime?
+  emailVerifiedAt   DateTime?
+
+  // Audit fields
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  metadata          Json?
+
+  // Relations
+  accounts          Account[]
+  transactions      Transaction[]
+  categories        Category[]
+  goals             Goal[]
+  budgets           Budget[]
+
+  // Indexes for performance
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  PREMIUM
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+// Financial accounts with precise decimal handling
+model Account {
+  id              String        @id @default(cuid())
+  userId          String
+  name            String
+  type            AccountType
+  balance         Decimal       @db.Decimal(15, 2) // High precision for financial data
+  currency        String        @default("USD")
+
+  // Bank information
+  bankName        String?
+  accountNumber   String?
+  routingNumber   String?
+
+  // Account settings
+  status          AccountStatus @default(ACTIVE)
+  isDefault       Boolean       @default(false)
+  creditLimit     Decimal?      @db.Decimal(15, 2)
+  interestRate    Decimal?      @db.Decimal(5, 4)
+  description     String?
+  color           String?
+
+  // Audit fields
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  metadata        Json?
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[] @relation("AccountTransactions")
+  transfersFrom   Transaction[] @relation("TransferFrom")
+  transfersTo     Transaction[] @relation("TransferTo")
+
+  // Indexes for performance and constraints
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([currency])
+  @@unique([userId, name]) // Prevent duplicate account names per user
+  @@map("accounts")
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  INVESTMENT
+  CREDIT_CARD
+  LOAN
+  OTHER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+  FROZEN
+}
+
+// Transaction categories with hierarchical support
+model Category {
+  id                String         @id @default(cuid())
+  userId            String
+  name              String
+  description       String?
+  type              CategoryType
+  color             String?
+  icon              String?
+  parentCategoryId  String?
+  status            CategoryStatus @default(ACTIVE)
+  isDefault         Boolean        @default(false)
+  isSystem          Boolean        @default(false)
+  tags              String[]
+
+  // Audit fields
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  metadata          Json?
+
+  // Relations
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentCategory    Category?      @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subcategories     Category[]     @relation("CategoryHierarchy")
+  transactions      Transaction[]
+  budgets           Budget[]
+
+  // Indexes for performance
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([parentCategoryId])
+  @@unique([userId, name]) // Prevent duplicate category names per user
+  @@map("categories")
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+// Financial transactions with ACID compliance
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  description     String
+  amount          Decimal           @db.Decimal(15, 2) // High precision financial amount
+  type            TransactionType
+  categoryId      String
+  accountId       String
+  toAccountId     String?           // For transfers
+  status          TransactionStatus @default(PENDING)
+  date            DateTime          @default(now())
+  reference       String?
+
+  // Audit fields - critical for financial compliance
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  metadata        Json?
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Restrict)
+  fromAccount     Account?          @relation("TransferFrom", fields: [accountId], references: [id])
+  toAccount       Account?          @relation("TransferTo", fields: [toAccountId], references: [id])
+
+  // Indexes for high-performance queries
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([type])
+  @@index([status])
+  @@index([date])
+  @@index([userId, date]) // Composite index for user transaction history
+  @@index([accountId, date]) // Composite index for account transaction history
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+// Financial goals with progress tracking
+model Goal {
+  id              String      @id @default(cuid())
+  userId          String
+  name            String
+  description     String?
+  targetAmount    Decimal     @db.Decimal(15, 2)
+  currentAmount   Decimal     @default(0) @db.Decimal(15, 2)
+  currency        String      @default("USD")
+  targetDate      DateTime?
+  status          GoalStatus  @default(ACTIVE)
+  color           String?
+
+  // Audit fields
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  metadata        Json?
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([userId])
+  @@index([status])
+  @@index([targetDate])
+  @@map("goals")
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+// Budget management
+model Budget {
+  id              String       @id @default(cuid())
+  userId          String
+  categoryId      String
+  name            String
+  amount          Decimal      @db.Decimal(15, 2)
+  spent           Decimal      @default(0) @db.Decimal(15, 2)
+  currency        String       @default("USD")
+  period          BudgetPeriod @default(MONTHLY)
+  startDate       DateTime
+  endDate         DateTime
+  status          BudgetStatus @default(ACTIVE)
+
+  // Audit fields
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  metadata        Json?
+
+  // Relations
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  // Indexes
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("budgets")
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum BudgetStatus {
+  ACTIVE
+  COMPLETED
+  EXCEEDED
+  CANCELLED
+}
+
+// Audit log for compliance and security
+model AuditLog {
+  id              String      @id @default(cuid())
+  userId          String?
+  action          String
+  entityType      String
+  entityId        String
+  oldValues       Json?
+  newValues       Json?
+  ipAddress       String?
+  userAgent       String?
+  timestamp       DateTime    @default(now())
+  metadata        Json?
+
+  // Indexes for audit queries
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// Session management for security
+model Session {
+  id              String      @id @default(cuid())
+  userId          String
+  token           String      @unique
+  refreshToken    String      @unique
+  expiresAt       DateTime
+  ipAddress       String?
+  userAgent       String?
+  isActive        Boolean     @default(true)
+
+  // Audit fields
+  createdAt       DateTime    @default(now())
+  lastAccessedAt  DateTime    @default(now())
+
+  // Indexes
+  @@index([userId])
+  @@index([token])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
+}

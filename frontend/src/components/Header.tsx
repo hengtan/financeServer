@@ -1,0 +1,721 @@
+import { Button } from "@/components/ui/button"
+import { TrendingUp, Menu, X, User, LogOut, BarChart3, Settings } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Link, useNavigate, useLocation } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { BrandConfig, NavigationItem, UserMenuItem } from "@/types/configuration"
+import { NotificationDropdown } from "@/components/NotificationDropdown"
+import { useNotifications } from "@/contexts/NotificationContext"
+
+export interface HeaderProps {
+  brand?: BrandConfig
+  navigationItems?: NavigationItem[]
+  userMenuItems?: UserMenuItem[]
+  showThemeToggle?: boolean
+  mobileMenuEnabled?: boolean
+  onNavigate?: (href: string) => void
+  customActions?: {
+    onLogin?: () => void
+    onRegister?: () => void
+    onLogout?: () => void
+  }
+}
+
+export const Header = ({
+  brand,
+  navigationItems,
+  userMenuItems,
+  showThemeToggle = true,
+  mobileMenuEnabled = true,
+  onNavigate,
+  customActions
+}: HeaderProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  const { user, logout, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Notifications
+  const { notifications, markAsRead, markAllAsRead, clearNotification } = useNotifications()
+
+  // Default brand configuration
+  const defaultBrand: BrandConfig = {
+    name: 'FinanceServer',
+    colors: {
+      primary: '#3b82f6',
+      secondary: '#8b5cf6',
+      accent: '#10b981'
+    },
+    urls: {
+      website: '/',
+      support: '/suporte',
+      documentation: '/docs'
+    }
+  }
+
+  // Default navigation items for authenticated users
+  const defaultAuthenticatedNavigation: NavigationItem[] = [
+    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    { id: 'transactions', label: 'Transações', href: '/transacoes', icon: '💰' },
+    { id: 'reports', label: 'Relatórios', href: '/relatorios', icon: '📈' },
+    { id: 'goals', label: 'Metas', href: '/metas', icon: '🎯' }
+  ]
+
+  // Default navigation items for unauthenticated users
+  const defaultPublicNavigation: NavigationItem[] = [
+    { id: 'about', label: 'Sobre', href: '/sobre' },
+    { id: 'contact', label: 'Contato', href: '/contato' },
+    { id: 'demo', label: 'Demonstração', href: '/demonstracao' }
+  ]
+
+  // Default user menu items
+  const defaultUserMenuItems: UserMenuItem[] = [
+    { id: 'settings', label: 'Configurações', href: '/configuracoes', icon: '⚙️' },
+    { id: 'divider', label: '', divider: true },
+    { id: 'logout', label: 'Sair', action: 'logout', icon: '🚪' }
+  ]
+
+  // Use provided data or fallback to defaults
+  const finalBrand = brand || defaultBrand
+  const finalNavigation = navigationItems || (isAuthenticated ? defaultAuthenticatedNavigation : defaultPublicNavigation)
+  const finalUserMenu = userMenuItems || defaultUserMenuItems
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+  const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen)
+
+  const handleNavigation = (href: string) => {
+    if (onNavigate) {
+      onNavigate(href)
+    } else {
+      navigate(href)
+    }
+  }
+
+  const handleLogout = () => {
+    if (customActions?.onLogout) {
+      customActions.onLogout()
+    } else {
+      logout()
+      navigate('/')
+    }
+  }
+
+  const handleUserMenuAction = (action: string) => {
+    switch (action) {
+      case 'logout':
+        handleLogout()
+        break
+      case 'profile':
+        handleNavigation('/perfil')
+        break
+      case 'settings':
+        handleNavigation('/configuracoes')
+        break
+      case 'theme-toggle':
+        // Theme toggle is handled by the ThemeToggle component
+        break
+    }
+  }
+
+  const handleNotificationClick = (notification: any) => {
+    if (notification.actionUrl) {
+      handleNavigation(notification.actionUrl)
+    } else {
+      // Navegar baseado no tipo de notificação
+      switch (notification.type) {
+        case 'transaction':
+          handleNavigation('/transacoes')
+          break
+        case 'goal':
+          handleNavigation('/metas')
+          break
+        case 'achievement':
+          handleNavigation('/perfil')
+          break
+        case 'reminder':
+          handleNavigation('/dashboard')
+          break
+        case 'system':
+          handleNavigation('/configuracoes')
+          break
+        default:
+          handleNavigation('/dashboard')
+      }
+    }
+  }
+
+  const isActiveRoute = (href: string) => {
+    return location.pathname === href
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    setIsMenuOpen(false)
+    setIsUserMenuOpen(false)
+  }, [location.pathname])
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Link to={finalBrand.urls?.website || "/"} className="flex items-center space-x-2">
+            {finalBrand.logo ? (
+              <img
+                src={finalBrand.logo}
+                alt={finalBrand.logoAlt || finalBrand.name}
+                className="w-10 h-10 object-contain"
+              />
+            ) : (
+              <div
+                className="flex items-center justify-center w-10 h-10 rounded-lg"
+                style={{
+                  background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`
+                }}
+              >
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+            )}
+            <span
+              className="text-2xl font-bold bg-clip-text text-transparent"
+              style={{
+                background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`,
+                WebkitBackgroundClip: 'text'
+              }}
+            >
+              {finalBrand.name}
+            </span>
+          </Link>
+
+          {isAuthenticated ? (
+            <>
+              <nav className="hidden md:flex items-center space-x-8">
+                {finalNavigation.map((item) => {
+                  if (item.roles && !item.roles.some(role => user?.roles?.includes(role))) {
+                    return null
+                  }
+
+                  const isActive = isActiveRoute(item.href)
+
+                  if (item.external) {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-muted-foreground hover:text-primary transition-colors font-medium ${
+                          item.badge ? 'relative' : ''
+                        }`}
+                      >
+                        {item.icon && <span className="mr-1">{item.icon}</span>}
+                        {item.label}
+                        {item.badge && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {item.badge}
+                          </span>
+                        )}
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`transition-colors font-medium relative ${
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-primary'
+                      } ${item.badge ? 'relative' : ''}`}
+                    >
+                      {item.icon && <span className="mr-1">{item.icon}</span>}
+                      {item.label}
+                      {item.badge && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="hidden md:flex items-center space-x-4">
+                {showThemeToggle && <ThemeToggle />}
+                {isAuthenticated && (
+                  <NotificationDropdown
+                    notifications={notifications}
+                    onMarkAsRead={markAsRead}
+                    onMarkAllAsRead={markAllAsRead}
+                    onClearNotification={clearNotification}
+                    onNotificationClick={handleNotificationClick}
+                  />
+                )}
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={toggleUserMenu}
+                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-accent transition-colors"
+                  >
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{
+                          background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`
+                        }}
+                      >
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    <span className="text-foreground font-medium">{user?.name?.split(' ')[0]}</span>
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-popover rounded-lg shadow-lg border border-border py-2">
+                      <div className="px-4 py-2 border-b border-border">
+                        <p className="text-sm font-medium text-popover-foreground">{user?.name}</p>
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      </div>
+                      {finalUserMenu.map((menuItem) => {
+                        if (menuItem.divider) {
+                          return <div key={menuItem.id} className="border-t border-border my-2" />
+                        }
+
+                        if (menuItem.action) {
+                          return (
+                            <button
+                              key={menuItem.id}
+                              onClick={() => handleUserMenuAction(menuItem.action!)}
+                              className={`flex items-center w-full px-4 py-2 text-sm transition-colors ${
+                                menuItem.action === 'logout'
+                                  ? 'text-destructive hover:bg-destructive/10'
+                                  : 'text-popover-foreground hover:bg-accent'
+                              }`}
+                            >
+                              {menuItem.icon && <span className="mr-3">{menuItem.icon}</span>}
+                              {menuItem.label}
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <Link
+                            key={menuItem.id}
+                            to={menuItem.href!}
+                            onClick={() => handleNavigation(menuItem.href!)}
+                            className="flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent transition-colors"
+                          >
+                            {menuItem.icon && <span className="mr-3">{menuItem.icon}</span>}
+                            {menuItem.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <nav className="hidden md:flex items-center space-x-8">
+                {finalNavigation.map((item) => {
+                  const isActive = isActiveRoute(item.href)
+
+                  if (item.external) {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-muted-foreground hover:text-primary transition-colors font-medium ${
+                          item.badge ? 'relative' : ''
+                        }`}
+                      >
+                        {item.icon && <span className="mr-1">{item.icon}</span>}
+                        {item.label}
+                        {item.badge && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {item.badge}
+                          </span>
+                        )}
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`transition-colors font-medium ${
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
+                      {item.icon && <span className="mr-1">{item.icon}</span>}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="hidden md:flex items-center space-x-4">
+                {showThemeToggle && <ThemeToggle />}
+                <Link to="/login">
+                  <Button
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-primary"
+                    onClick={() => customActions?.onLogin?.()}
+                  >
+                    Entrar
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button
+                    className="text-white"
+                    style={{
+                      background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`
+                    }}
+                    onClick={() => customActions?.onRegister?.()}
+                  >
+                    Começar Grátis
+                  </Button>
+                </Link>
+              </div>
+            </>
+          )}
+
+          {mobileMenuEnabled && (
+            <button
+              onClick={toggleMenu}
+              className="md:hidden p-2 text-muted-foreground hover:text-primary"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          )}
+        </div>
+
+        {isMenuOpen && mobileMenuEnabled && (
+          <div className="md:hidden mt-4 py-4 border-t border-border">
+            {isAuthenticated ? (
+              <nav className="flex flex-col space-y-4">
+                {finalNavigation.map((item) => {
+                  if (item.roles && !item.roles.some(role => user?.roles?.includes(role))) {
+                    return null
+                  }
+
+                  const isActive = isActiveRoute(item.href)
+
+                  if (item.external) {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-muted-foreground hover:text-primary transition-colors font-medium ${
+                          item.badge ? 'relative' : ''
+                        }`}
+                      >
+                        {item.icon && <span className="mr-2">{item.icon}</span>}
+                        {item.label}
+                        {item.badge && (
+                          <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                            {item.badge}
+                          </span>
+                        )}
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`transition-colors font-medium ${
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
+                      {item.icon && <span className="mr-2">{item.icon}</span>}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+                <div className="flex flex-col space-y-2 pt-4 border-t border-border">
+                  <div className="flex items-center space-x-2 px-2 py-2">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{
+                          background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`
+                        }}
+                      >
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </div>
+                  {finalUserMenu.map((menuItem) => {
+                    if (menuItem.divider) {
+                      return <div key={menuItem.id} className="border-t border-border my-2" />
+                    }
+
+                    if (menuItem.action) {
+                      return (
+                        <Button
+                          key={menuItem.id}
+                          onClick={() => handleUserMenuAction(menuItem.action!)}
+                          variant="ghost"
+                          className={`w-full justify-start ${
+                            menuItem.action === 'logout'
+                              ? 'text-destructive hover:text-destructive hover:bg-destructive/10'
+                              : 'text-muted-foreground hover:text-primary'
+                          }`}
+                        >
+                          {menuItem.icon && <span className="mr-2">{menuItem.icon}</span>}
+                          {menuItem.label}
+                        </Button>
+                      )
+                    }
+
+                    return (
+                      <Link key={menuItem.id} to={menuItem.href!}>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-muted-foreground hover:text-primary"
+                          onClick={() => handleNavigation(menuItem.href!)}
+                        >
+                          {menuItem.icon && <span className="mr-2">{menuItem.icon}</span>}
+                          {menuItem.label}
+                        </Button>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </nav>
+            ) : (
+              <nav className="flex flex-col space-y-4">
+                {finalNavigation.map((item) => {
+                  const isActive = isActiveRoute(item.href)
+
+                  if (item.external) {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors font-medium"
+                      >
+                        {item.icon && <span className="mr-2">{item.icon}</span>}
+                        {item.label}
+                      </a>
+                    )
+                  }
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      onClick={() => handleNavigation(item.href)}
+                      className={`transition-colors font-medium ${
+                        isActive
+                          ? 'text-primary font-semibold'
+                          : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
+                      {item.icon && <span className="mr-2">{item.icon}</span>}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+                <div className="flex flex-col space-y-2 pt-4">
+                  <Link to="/login">
+                    <Button
+                      variant="ghost"
+                      className="w-full text-muted-foreground hover:text-primary justify-start"
+                      onClick={() => customActions?.onLogin?.()}
+                    >
+                      Entrar
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button
+                      className="w-full text-white"
+                      style={{
+                        background: `linear-gradient(to right, ${finalBrand.colors.primary}, ${finalBrand.colors.secondary})`
+                      }}
+                      onClick={() => customActions?.onRegister?.()}
+                    >
+                      Começar Grátis
+                    </Button>
+                  </Link>
+                </div>
+              </nav>
+            )}
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}
+
+/*
+EXEMPLO DE USO AVANÇADO COM MICROSERVIÇOS:
+
+// 1. Uso básico (mantém compatibilidade)
+<Header />
+
+// 2. Uso com configuração personalizada de marca
+const customBrand: BrandConfig = {
+  name: 'MinhaEmpresa Financeiro',
+  logo: '/logo-empresa.png',
+  logoAlt: 'Logo da Minha Empresa',
+  colors: {
+    primary: '#1e40af',
+    secondary: '#7c3aed',
+    accent: '#059669'
+  },
+  urls: {
+    website: 'https://minhaempresa.com',
+    support: 'https://suporte.minhaempresa.com',
+    documentation: 'https://docs.minhaempresa.com'
+  }
+}
+
+<Header brand={customBrand} />
+
+// 3. Navegação personalizada com dados do microserviço
+const navigationFromAPI: NavigationItem[] = [
+  { id: 'dashboard', label: 'Painel', href: '/painel', icon: '📊' },
+  { id: 'transactions', label: 'Movimentações', href: '/movimentacoes', icon: '💰', badge: '3' },
+  { id: 'reports', label: 'Análises', href: '/analises', icon: '📈' },
+  { id: 'goals', label: 'Objetivos', href: '/objetivos', icon: '🎯' },
+  { id: 'external', label: 'Blog', href: 'https://blog.empresa.com', external: true, icon: '📝' }
+]
+
+const userMenuFromAPI: UserMenuItem[] = [
+  { id: 'profile', label: 'Meu Perfil', href: '/meu-perfil', icon: '👤' },
+  { id: 'billing', label: 'Faturamento', href: '/faturamento', icon: '💳' },
+  { id: 'divider', label: '', divider: true },
+  { id: 'settings', label: 'Configurações', href: '/config', icon: '⚙️' },
+  { id: 'logout', label: 'Sair', action: 'logout', icon: '🚪' }
+]
+
+<Header
+  brand={customBrand}
+  navigationItems={navigationFromAPI}
+  userMenuItems={userMenuFromAPI}
+  showThemeToggle={true}
+  mobileMenuEnabled={true}
+  onNavigate={(href) => {
+    console.log('Navegando para:', href)
+    // Lógica personalizada de navegação
+  }}
+  customActions={{
+    onLogin: () => {
+      console.log('Login personalizado')
+      // Lógica personalizada de login
+    },
+    onRegister: () => {
+      console.log('Registro personalizado')
+      // Lógica personalizada de registro
+    },
+    onLogout: () => {
+      console.log('Logout personalizado')
+      // Lógica personalizada de logout
+    }
+  }}
+/>
+
+// 4. Configuração com controle de acesso por função
+const navigationWithRoles: NavigationItem[] = [
+  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: '📊' },
+  { id: 'users', label: 'Usuários', href: '/usuarios', icon: '👥', roles: ['admin'] },
+  { id: 'reports', label: 'Relatórios', href: '/relatorios', icon: '📈', roles: ['admin', 'manager'] },
+  { id: 'transactions', label: 'Transações', href: '/transacoes', icon: '💰' }
+]
+
+<Header
+  navigationItems={navigationWithRoles}
+  // Só mostra itens se o usuário tem as funções necessárias
+/>
+
+// 5. Configuração mínima para landing page
+<Header
+  navigationItems={[
+    { id: 'about', label: 'Sobre', href: '/sobre' },
+    { id: 'pricing', label: 'Preços', href: '/precos' },
+    { id: 'contact', label: 'Contato', href: '/contato' }
+  ]}
+  showThemeToggle={false}
+  mobileMenuEnabled={true}
+/>
+
+// 6. Configuração empresarial completa
+<Header
+  brand={{
+    name: 'Enterprise Finance',
+    logo: '/enterprise-logo.svg',
+    colors: {
+      primary: '#0f172a',
+      secondary: '#334155',
+      accent: '#0ea5e9'
+    },
+    urls: {
+      website: 'https://enterprise.finance.com',
+      support: 'https://support.enterprise.finance.com'
+    }
+  }}
+  navigationItems={[
+    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    { id: 'analytics', label: 'Analytics', href: '/analytics', icon: '📈', roles: ['analyst', 'admin'] },
+    { id: 'compliance', label: 'Compliance', href: '/compliance', icon: '⚖️', roles: ['compliance', 'admin'] },
+    { id: 'audit', label: 'Auditoria', href: '/auditoria', icon: '🔍', roles: ['auditor', 'admin'] }
+  ]}
+  userMenuItems={[
+    { id: 'profile', label: 'Profile', href: '/profile', icon: '👤' },
+    { id: 'admin', label: 'Admin Panel', href: '/admin', icon: '⚙️', roles: ['admin'] },
+    { id: 'divider', label: '', divider: true },
+    { id: 'logout', label: 'Sign Out', action: 'logout', icon: '🚪' }
+  ]}
+  showThemeToggle={true}
+  mobileMenuEnabled={true}
+/>
+*/

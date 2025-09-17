@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
+
+    /* Financial specific colors for light mode */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+    --success-background: 142 76% 96%;
+    --warning: 48 96% 53%;
+    --warning-foreground: 0 0% 9%;
+    --warning-background: 48 96% 95%;
+    --info: 217 91% 65%;
+    --info-foreground: 0 0% 98%;
+    --info-background: 217 91% 96%;
+    --destructive-background: 0 84% 97%;
+  }
+
+  .dark {
+    /* Backgrounds - Lighter dark palette */
+    --background: 222 47% 8%;        /* Lighter dark blue-gray */
+    --foreground: 213 31% 91%;       /* Soft white */
+
+    /* Cards and surfaces */
+    --card: 222 47% 10%;             /* Lighter than background */
+    --card-foreground: 213 31% 91%;
+
+    /* Popover and modals */
+    --popover: 222 47% 11%;          /* Lighter overlays */
+    --popover-foreground: 213 31% 91%;
+
+    /* Primary colors - Keep brand blue but adjusted for dark */
+    --primary: 217 91% 65%;          /* Bright blue for CTAs */
+    --primary-foreground: 222 47% 8%;
+
+    /* Secondary surfaces */
+    --secondary: 222 47% 12%;        /* Lighter elevation */
+    --secondary-foreground: 213 31% 91%;
+
+    /* Muted elements */
+    --muted: 222 47% 14%;            /* Lighter input backgrounds */
+    --muted-foreground: 213 13% 65%; /* Secondary text - better contrast */
+
+    /* Accent for hovers and highlights */
+    --accent: 222 47% 16%;           /* Lighter hover states */
+    --accent-foreground: 213 31% 91%;
+
+    /* Destructive actions */
+    --destructive: 0 84% 60%;        /* Bright red for visibility */
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders and inputs */
+    --border: 222 47% 18%;           /* More visible borders */
+    --input: 222 47% 14%;            /* Lighter input backgrounds */
+    --ring: 217 91% 65%;             /* Focus rings match primary */
+
+    /* Financial specific colors for dark mode */
+    --success: 142 76% 36%;          /* Green for profits/income */
+    --success-foreground: 0 0% 98%;
+    --success-background: 142 30% 20%;
+    --warning: 48 96% 53%;           /* Amber for warnings */
+    --warning-foreground: 222 47% 8%;
+    --warning-background: 48 30% 8%;
+    --info: 217 91% 65%;             /* Blue for information */
+    --info-foreground: 222 47% 8%;
+    --info-background: 217 30% 8%;
+    --destructive-background: 0 30% 8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}

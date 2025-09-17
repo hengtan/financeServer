@@ -1,0 +1,88 @@
+# GitAttributes for FinanceServer
+# Configure how Git handles different file types
+
+# Text files
+*.md text
+*.txt text
+*.json text
+*.js text
+*.ts text
+*.tsx text
+*.jsx text
+*.css text
+*.scss text
+*.sass text
+*.less text
+*.html text
+*.xml text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.cfg text
+*.conf text
+
+# Ensure line endings are LF for source files
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.7z binary
+*.rar binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Font files
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+
+# Package manager lock files
+package-lock.json linguist-generated=true
+yarn.lock linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+
+# Generated/compiled files
+dist/ linguist-generated=true
+build/ linguist-generated=true
+coverage/ linguist-generated=true
+
+# Documentation files should be treated as docs
+*.md linguist-documentation
+docs/** linguist-documentation
+documentation/** linguist-documentation
+
+# Config files
+*.env.example linguist-language=Shell
+.gitignore linguist-language=Git-Attributes
+.gitattributes linguist-language=Git-Attributes
+
+# Prisma files
+*.prisma linguist-language=Prisma
+
+# SQL files
+*.sql linguist-language=SQL
+
+# Environment files (no language detection)
+.env linguist-generated=true
+.env.* linguist-generated=true
