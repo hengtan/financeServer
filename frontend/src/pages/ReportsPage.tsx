@@ -2,6 +2,8 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TimelineChart } from '@/components/TimelineChart'
+import { PeriodComparison } from '@/components/PeriodComparison'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BarChart3,
   PieChart,
@@ -118,234 +120,283 @@ export const ReportsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2" />
-                Evolução Financeira
-              </CardTitle>
-              <CardDescription>
-                Comparativo de receitas, despesas e economia ao longo do tempo
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {monthlyData.map((month, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-foreground">{month.month}</span>
-                      <span className="text-sm text-muted-foreground">
-                        Economia: R$ {month.savings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <div className="flex h-8 bg-gray-200 rounded-lg overflow-hidden">
-                        <div
-                          className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
-                          style={{ width: `${(month.income / (month.income + month.expenses)) * 100}%` }}
-                        >
-                          {month.income > month.expenses * 2 && `R$ ${month.income.toLocaleString()}`}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="comparison">Comparação</TabsTrigger>
+            <TabsTrigger value="breakdown">Detalhamento</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-8">
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <BarChart3 className="h-5 w-5 mr-2" />
+                    Evolução Financeira
+                  </CardTitle>
+                  <CardDescription>
+                    Comparativo de receitas, despesas e economia ao longo do tempo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {monthlyData.map((month, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-foreground">{month.month}</span>
+                          <span className="text-sm text-muted-foreground">
+                            Economia: R$ {month.savings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
                         </div>
-                        <div
-                          className="bg-red-500 flex items-center justify-center text-white text-xs font-medium"
-                          style={{ width: `${(month.expenses / (month.income + month.expenses)) * 100}%` }}
-                        >
-                          {month.expenses > month.income * 0.5 && `R$ ${month.expenses.toLocaleString()}`}
+                        <div className="relative">
+                          <div className="flex h-8 bg-gray-200 rounded-lg overflow-hidden">
+                            <div
+                              className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
+                              style={{ width: `${(month.income / (month.income + month.expenses)) * 100}%` }}
+                            >
+                              {month.income > month.expenses * 2 && `R$ ${month.income.toLocaleString()}`}
+                            </div>
+                            <div
+                              className="bg-red-500 flex items-center justify-center text-white text-xs font-medium"
+                              style={{ width: `${(month.expenses / (month.income + month.expenses)) * 100}%` }}
+                            >
+                              {month.expenses > month.income * 0.5 && `R$ ${month.expenses.toLocaleString()}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Receitas: R$ {month.income.toLocaleString()}</span>
+                          <span>Despesas: R$ {month.expenses.toLocaleString()}</span>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Receitas: R$ {month.income.toLocaleString()}</span>
-                      <span>Despesas: R$ {month.expenses.toLocaleString()}</span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <div className="space-y-6">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2" />
+                      Saldos por Conta
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {accountBalances.map((account, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-foreground">{account.account}</p>
+                            <p className={`text-sm flex items-center ${account.change >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              {account.change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                              {account.change >= 0 ? '+' : ''}{account.change}% este mês
+                            </p>
+                          </div>
+                          <p className={`font-bold ${account.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            R$ {Math.abs(account.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <PieChart className="h-5 w-5 mr-2" />
+                      Fontes de Renda
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {incomeBreakdown.map((source, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-foreground">{source.source}</span>
+                            <span className="font-medium">R$ {source.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${source.percentage}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{source.percentage}% do total</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <PieChart className="h-5 w-5 mr-2" />
+                    Gastos por Categoria
+                  </CardTitle>
+                  <CardDescription>
+                    Distribuição das suas despesas por categoria
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {categoryExpenses.map((category, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <div className={`w-4 h-4 rounded-full mr-3 ${category.color}`}></div>
+                            <span className="text-foreground">{category.category}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">R$ {category.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            <p className="text-sm text-muted-foreground">{category.percentage}%</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${category.color}`}
+                            style={{ width: `${category.percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Eye className="h-5 w-5 mr-2" />
+                    Insights Inteligentes
+                  </CardTitle>
+                  <CardDescription>
+                    Análises automáticas dos seus padrões financeiros
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {insights.map((insight, index) => (
+                      <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-foreground mb-1">{insight.title}</h4>
+                            <p className="text-sm text-muted-foreground">{insight.description}</p>
+                          </div>
+                          <div className={`flex items-center ml-4 px-2 py-1 rounded-full text-sm font-medium ${
+                            insight.trend === 'up' ? 'bg-success-background text-success' : 'bg-destructive-background text-destructive'
+                          }`}>
+                            {insight.trend === 'up' ? (
+                              <ArrowUpRight className="h-3 w-3 mr-1" />
+                            ) : (
+                              <ArrowDownLeft className="h-3 w-3 mr-1" />
+                            )}
+                            {insight.value}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <TimelineChart className="mb-8" />
+
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  Saldos por Conta
-                </CardTitle>
+                <CardTitle>Ações Recomendadas</CardTitle>
+                <CardDescription>
+                  Sugestões personalizadas para otimizar suas finanças
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">Otimizar Gastos</h4>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Você pode economizar R$ 150/mês reduzindo gastos com alimentação fora de casa
+                    </p>
+                    <Button size="sm" variant="outline" className="border-blue-300 text-blue-600" onClick={() => {
+                      alert('Funcionalidade em desenvolvimento: Análise detalhada de gastos com alimentação')
+                    }}>
+                      Ver Detalhes
+                    </Button>
+                  </div>
+
+                  <div className="p-4 bg-success-background border border-success/20 rounded-lg">
+                    <h4 className="font-semibold text-success mb-2">Investir Sobra</h4>
+                    <p className="text-sm text-success mb-3">
+                      Você tem R$ 2.200 disponíveis para investir este mês
+                    </p>
+                    <Button size="sm" variant="outline" className="border-success/50 text-success" onClick={() => {
+                      alert('Simulador de investimento: Com R$ 2.200 investidos em CDB (12% a.a.), você teria R$ 2.464 em 12 meses')
+                    }}>
+                      Simular Investimento
+                    </Button>
+                  </div>
+
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 className="font-semibold text-purple-900 mb-2">Definir Meta</h4>
+                    <p className="text-sm text-purple-700 mb-3">
+                      Crie uma meta de economia para sua próxima viagem
+                    </p>
+                    <Button size="sm" variant="outline" className="border-purple-300 text-purple-600" onClick={() => {
+                      window.location.href = '/metas'
+                    }}>
+                      Criar Meta
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="comparison" className="space-y-6">
+            <PeriodComparison />
+          </TabsContent>
+
+          <TabsContent value="breakdown" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalhamento Avançado</CardTitle>
+                <CardDescription>
+                  Análise detalhada por categoria e subcategoria
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {accountBalances.map((account, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-foreground">{account.account}</p>
-                        <p className={`text-sm flex items-center ${account.change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {account.change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {account.change >= 0 ? '+' : ''}{account.change}% este mês
-                        </p>
-                      </div>
-                      <p className={`font-bold ${account.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        R$ {Math.abs(account.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  ))}
+                  <p className="text-muted-foreground">Detalhamento avançado será implementado em breve...</p>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
+          <TabsContent value="insights" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <PieChart className="h-5 w-5 mr-2" />
-                  Fontes de Renda
-                </CardTitle>
+                <CardTitle>Insights Avançados</CardTitle>
+                <CardDescription>
+                  Análises preditivas e recomendações personalizadas
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {incomeBreakdown.map((source, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-foreground">{source.source}</span>
-                        <span className="font-medium">R$ {source.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${source.percentage}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{source.percentage}% do total</p>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">Insights avançados serão implementados em breve...</p>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
+          </TabsContent>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <PieChart className="h-5 w-5 mr-2" />
-                Gastos por Categoria
-              </CardTitle>
-              <CardDescription>
-                Distribuição das suas despesas por categoria
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {categoryExpenses.map((category, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <div className={`w-4 h-4 rounded-full mr-3 ${category.color}`}></div>
-                        <span className="text-foreground">{category.category}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">R$ {category.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                        <p className="text-sm text-muted-foreground">{category.percentage}%</p>
-                      </div>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${category.color}`}
-                        style={{ width: `${category.percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Eye className="h-5 w-5 mr-2" />
-                Insights Inteligentes
-              </CardTitle>
-              <CardDescription>
-                Análises automáticas dos seus padrões financeiros
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {insights.map((insight, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-foreground mb-1">{insight.title}</h4>
-                        <p className="text-sm text-muted-foreground">{insight.description}</p>
-                      </div>
-                      <div className={`flex items-center ml-4 px-2 py-1 rounded-full text-sm font-medium ${
-                        insight.trend === 'up' ? 'bg-success-background text-success' : 'bg-destructive-background text-destructive'
-                      }`}>
-                        {insight.trend === 'up' ? (
-                          <ArrowUpRight className="h-3 w-3 mr-1" />
-                        ) : (
-                          <ArrowDownLeft className="h-3 w-3 mr-1" />
-                        )}
-                        {insight.value}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <TimelineChart className="mb-8" />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Ações Recomendadas</CardTitle>
-            <CardDescription>
-              Sugestões personalizadas para otimizar suas finanças
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Otimizar Gastos</h4>
-                <p className="text-sm text-blue-700 mb-3">
-                  Você pode economizar R$ 150/mês reduzindo gastos com alimentação fora de casa
-                </p>
-                <Button size="sm" variant="outline" className="border-blue-300 text-blue-600" onClick={() => {
-                  alert('Funcionalidade em desenvolvimento: Análise detalhada de gastos com alimentação')
-                }}>
-                  Ver Detalhes
-                </Button>
-              </div>
-
-              <div className="p-4 bg-success-background border border-success/20 rounded-lg">
-                <h4 className="font-semibold text-success mb-2">Investir Sobra</h4>
-                <p className="text-sm text-success mb-3">
-                  Você tem R$ 2.200 disponíveis para investir este mês
-                </p>
-                <Button size="sm" variant="outline" className="border-success/50 text-success" onClick={() => {
-                  alert('Simulador de investimento: Com R$ 2.200 investidos em CDB (12% a.a.), você teria R$ 2.464 em 12 meses')
-                }}>
-                  Simular Investimento
-                </Button>
-              </div>
-
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <h4 className="font-semibold text-purple-900 mb-2">Definir Meta</h4>
-                <p className="text-sm text-purple-700 mb-3">
-                  Crie uma meta de economia para sua próxima viagem
-                </p>
-                <Button size="sm" variant="outline" className="border-purple-300 text-purple-600" onClick={() => {
-                  window.location.href = '/metas'
-                }}>
-                  Criar Meta
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </Tabs>
       </div>
     </div>
   )

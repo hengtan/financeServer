@@ -15,6 +15,8 @@ import {
   ArrowDownLeft
 } from 'lucide-react'
 import { useState } from 'react'
+import { LoadingWrapper } from '@/components/LoadingWrapper'
+import { useLoading } from '@/hooks/useLoading'
 
 export const TransactionsPage = () => {
   usePageTitle('Transações')
@@ -22,6 +24,7 @@ export const TransactionsPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('30-dias')
   const [selectedCategory, setSelectedCategory] = useState('todas')
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false)
+  const { isLoading, startLoading, stopLoading } = useLoading({ minimumDuration: 800 })
   const [transactions, setTransactions] = useState([
     { id: 1, description: "Salário - Empresa XYZ", amount: 5200.00, date: "2024-01-15", category: "Renda", account: "Conta Corrente", type: "crédito", status: "confirmada" },
     { id: 2, description: "Freelance - Projeto ABC", amount: 1200.00, date: "2024-01-12", category: "Renda Extra", account: "Conta Poupança", type: "pix", status: "confirmada" },

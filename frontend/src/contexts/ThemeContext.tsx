@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
+type AccentColor = 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'pink'
 
 interface ThemeContextType {
   theme: Theme
   setTheme: (theme: Theme) => void
   isDark: boolean
+  accentColor: AccentColor
+  setAccentColor: (color: AccentColor) => void
+  toggleTheme: () => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -29,12 +33,28 @@ export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProvid
     return stored || defaultTheme
   })
 
+  const [accentColor, setAccentColor] = useState<AccentColor>(() => {
+    const stored = localStorage.getItem('finance-accent-color') as AccentColor
+    return stored || 'blue'
+  })
+
   const [isDark, setIsDark] = useState(false)
+
+  const toggleTheme = () => {
+    if (theme === 'light') {
+      setTheme('dark')
+    } else if (theme === 'dark') {
+      setTheme('system')
+    } else {
+      setTheme('light')
+    }
+  }
 
   useEffect(() => {
     const root = window.document.documentElement
 
     root.classList.remove('light', 'dark')
+    root.classList.remove('accent-blue', 'accent-green', 'accent-purple', 'accent-orange', 'accent-red', 'accent-pink')
 
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -47,11 +67,17 @@ export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProvid
       root.classList.add(theme)
       setIsDark(theme === 'dark')
     }
-  }, [theme])
+
+    root.classList.add(`accent-${accentColor}`)
+  }, [theme, accentColor])
 
   useEffect(() => {
     localStorage.setItem('finance-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem('finance-accent-color', accentColor)
+  }, [accentColor])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -69,7 +95,10 @@ export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProvid
   const value: ThemeContextType = {
     theme,
     setTheme,
-    isDark
+    isDark,
+    accentColor,
+    setAccentColor,
+    toggleTheme
   }
 
   return (

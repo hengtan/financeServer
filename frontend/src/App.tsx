@@ -6,6 +6,8 @@ import { SecurityProvider } from '@/contexts/SecurityContext'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ScrollToTop } from '@/components/ScrollToTop'
+import { Toaster } from '@/components/ui/toaster'
+import { KeyboardShortcutsProvider } from '@/components/KeyboardShortcutsProvider'
 import { HomePage } from '@/pages/HomePage'
 import { AboutPage } from '@/pages/AboutPage'
 import { ContactPage } from '@/pages/ContactPage'
@@ -22,6 +24,9 @@ import { GoalsPage } from '@/pages/GoalsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
+import { CustomDashboardPage } from '@/pages/CustomDashboardPage'
+import { MultiDashboardPage } from '@/pages/MultiDashboardPage'
+import { AlertsPage } from '@/pages/AlertsPage'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -68,7 +73,8 @@ function App() {
         <SecurityProvider>
           <NotificationProvider>
             <Router>
-          <ScrollToTop />
+              <KeyboardShortcutsProvider>
+                <ScrollToTop />
           <Routes>
           <Route path="/" element={
             <AppLayout>
@@ -132,6 +138,22 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/dashboard/customizado" element={
+            <ProtectedRoute>
+              <AppLayout showFooter={false}>
+                <CustomDashboardPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/dashboard/especializados" element={
+            <ProtectedRoute>
+              <AppLayout showFooter={false}>
+                <MultiDashboardPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
           <Route path="/transacoes" element={
             <ProtectedRoute>
               <AppLayout showFooter={false}>
@@ -180,8 +202,18 @@ function App() {
             </ProtectedRoute>
           } />
 
+          <Route path="/alertas" element={
+            <ProtectedRoute>
+              <AppLayout showFooter={false}>
+                <AlertsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
           <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+                </Routes>
+                <Toaster />
+              </KeyboardShortcutsProvider>
             </Router>
           </NotificationProvider>
         </SecurityProvider>

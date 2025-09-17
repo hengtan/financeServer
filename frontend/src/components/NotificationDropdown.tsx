@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface Notification {
   id: string
@@ -249,28 +250,42 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
                     {/* Actions (show on hover) */}
                     {hoveredNotification === notification.id && (
-                      <div className="flex items-center space-x-1 ml-2">
-                        {!notification.read && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleMarkAsRead(e, notification.id)}
-                            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
-                            title="Marcar como lida"
-                          >
-                            <Check className="h-3 w-3 text-blue-600" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleClearNotification(e, notification.id)}
-                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
-                          title="Remover notificação"
-                        >
-                          <X className="h-3 w-3 text-red-600" />
-                        </Button>
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex items-center space-x-1 ml-2">
+                          {!notification.read && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => handleMarkAsRead(e, notification.id)}
+                                  className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
+                                >
+                                  <Check className="h-3 w-3 text-blue-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Marcar como lida</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => handleClearNotification(e, notification.id)}
+                                className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
+                              >
+                                <X className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Remover notificação</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
                     )}
                   </div>
                 </div>

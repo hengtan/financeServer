@@ -14,6 +14,9 @@ import {
 } from 'lucide-react'
 import { DashboardLabels } from '@/types/configuration'
 import { ChartSelector, useChartTypes } from '@/components/charts/ChartSelector'
+import { LoadingWrapper } from '@/components/LoadingWrapper'
+import { usePageLoading } from '@/hooks/useLoading'
+import { DashboardOnboarding } from '@/components/DashboardOnboarding'
 
 export interface DashboardStats {
   id: string
@@ -106,6 +109,7 @@ export const DashboardPage = ({
 
   const { user } = useAuth()
   const { availableCharts, getChartByCategory } = useChartTypes()
+  const { isPageLoading } = usePageLoading()
 
   // Default labels
   const defaultLabels: DashboardLabels = {
@@ -338,279 +342,316 @@ export const DashboardPage = ({
   }
 
   return (
-    <div className="min-h-screen bg-background pt-20">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            {finalLabels.welcome}, {user?.name?.split(' ')[0]}! 👋
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Aqui está um resumo das suas finanças hoje, {new Date().toLocaleDateString(locale, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {finalStats.map((stat) => (
-            <Card key={stat.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <div className="flex items-center mt-2">
-                      <span className="text-2xl font-bold text-foreground">{stat.value}</span>
-                    </div>
-                    <div className={`flex items-center mt-2 text-sm ${
-                      stat.trend === 'up' ? 'text-success' : 'text-destructive'
-                    }`}>
-                      {stat.trend === 'up' ? (
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                      )}
-                      {stat.change} vs mês anterior
-                    </div>
-                  </div>
-                  <div
-                    className="p-3 rounded-lg"
-                    style={{
-                      backgroundColor: stat.color ? `${stat.color}20` : '#dbeafe',
-                      color: stat.color || '#3b82f6'
-                    }}
-                  >
-                    {typeof stat.icon === 'string' ? (
-                      <span className="text-2xl">{stat.icon}</span>
-                    ) : (
-                      <div className="text-inherit">
-                        {getStatIcon(stat)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mb-8">
-          <ChartSelector
-            title="Análise Financeira"
-            description="Visualize seus dados financeiros de diferentes formas"
-            chartTypes={availableCharts}
-            defaultChartType="bar"
-            data={chartData}
-            className="w-full"
-          />
-        </div>
-
-        <div className="mb-8">
-          <ChartSelector
-            title="Distribuição de Gastos por Categoria"
-            description="Veja como seus gastos estão distribuídos"
-            chartTypes={getChartByCategory('expenses')}
-            defaultChartType="pie"
-            data={expensesCategoryData}
-            className="w-full"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2" />
-                  {finalLabels.recentTransactions}
-                </CardTitle>
-                <CardDescription>
-                  Suas últimas movimentações financeiras
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {finalTransactions.slice(0, 6).map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getCategoryColor(transaction)}`}>
-                          <span className="text-lg">{getTransactionIcon(transaction)}</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground">{transaction.description}</p>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <span>{transaction.category}</span>
-                            <span>•</span>
-                            <span>{transaction.account}</span>
-                            <span>•</span>
-                            <span>{new Date(transaction.date).toLocaleDateString(locale)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`font-bold text-lg ${
-                          transaction.amount > 0 ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {transaction.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(transaction.amount))}
-                        </div>
-                        <div className="text-sm text-muted-foreground capitalize">
-                          {transaction.type}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 text-center">
-                  <Button variant="outline" className="w-full" onClick={handleViewAllTransactions}>
-                    Ver Todas as Transações
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+    <LoadingWrapper isLoading={isPageLoading} skeleton="dashboard">
+      <div className="min-h-screen bg-background pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8 animate-fadeIn">
+            <h1 className="text-3xl font-bold text-foreground">
+              {finalLabels.welcome}, {user?.name?.split(' ')[0]}! 👋
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Aqui está um resumo das suas finanças hoje, {new Date().toLocaleDateString(locale, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Target className="h-5 w-5 mr-2" />
-                  {finalLabels.financialGoals}
-                </CardTitle>
-                <CardDescription>
-                  Acompanhe seu progresso
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {finalGoals.map((goal) => (
-                    <div key={goal.id}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-foreground">{goal.title}</span>
-                        <span className="text-sm text-muted-foreground">{goal.progress}%</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-slideIn" data-onboarding="stats-cards">
+            {finalStats.map((stat, index) => (
+              <Card
+                key={stat.id}
+                className="hover:shadow-lg transition-shadow animate-scaleIn"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                      <div className="flex items-center mt-2">
+                        <span className="text-2xl font-bold text-foreground">{stat.value}</span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                        <div
-                          className="h-2 rounded-full transition-all duration-300"
-                          style={{
-                            width: `${goal.progress}%`,
-                            background: goal.color ? `linear-gradient(to right, ${goal.color}88, ${goal.color})` : 'linear-gradient(to right, #3b82f6, #8b5cf6)'
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{formatCurrency(goal.current)}</span>
-                        <span>{formatCurrency(goal.target)}</span>
-                      </div>
-                      {goal.deadline && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Prazo: {new Date(goal.deadline).toLocaleDateString(locale)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6">
-                  <Button variant="outline" className="w-full" onClick={handleCreateGoal}>
-                    <Target className="h-4 w-4 mr-2" />
-                    Criar Nova Meta
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Bell className="h-5 w-5 mr-2" />
-                  {finalLabels.smartAlerts}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {finalAlerts.map((alert) => (
-                    <div key={alert.id} className={`p-3 rounded-lg ${getAlertStyle(alert)}`}>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{alert.title}</p>
-                          <p className="text-sm">{alert.message}</p>
-                        </div>
-                        {alert.priority && (
-                          <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                            alert.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-200/20 dark:text-red-200' :
-                            alert.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-200/20 dark:text-yellow-200' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-200/20 dark:text-gray-200'
-                          }`}>
-                            {alert.priority}
-                          </span>
+                      <div className={`flex items-center mt-2 text-sm ${
+                        stat.trend === 'up' ? 'text-success' : 'text-destructive'
+                      }`}>
+                        {stat.trend === 'up' ? (
+                          <TrendingUp className="h-4 w-4 mr-1" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 mr-1" />
                         )}
+                        {stat.change} vs mês anterior
                       </div>
-                      {alert.actionable && alert.actionLabel && (
-                        <div className="mt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAlertAction(alert)}
-                            className="text-xs"
-                          >
-                            {alert.actionLabel}
-                          </Button>
+                    </div>
+                    <div
+                      className="p-3 rounded-lg"
+                      style={{
+                        backgroundColor: stat.color ? `${stat.color}20` : '#dbeafe',
+                        color: stat.color || '#3b82f6'
+                      }}
+                    >
+                      {typeof stat.icon === 'string' ? (
+                        <span className="text-2xl">{stat.icon}</span>
+                      ) : (
+                        <div className="text-inherit">
+                          {getStatIcon(stat)}
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{finalLabels.monthlySummary}</CardTitle>
-                <CardDescription>
-                  {finalSummary.month}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Receitas</span>
-                    <span className="font-semibold text-success">{formatCurrency(finalSummary.income)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Despesas</span>
-                    <span className="font-semibold text-destructive">{formatCurrency(finalSummary.expenses)}</span>
-                  </div>
-                  <div className="border-t pt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-foreground">Saldo</span>
-                      <span className={`font-bold ${finalSummary.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {formatCurrency(finalSummary.balance)}
-                      </span>
-                    </div>
-                  </div>
+          <div className="mb-8 animate-fadeIn" style={{ animationDelay: '400ms' }} data-onboarding="charts">
+            <LoadingWrapper isLoading={false} skeleton="chart">
+              <ChartSelector
+                title="Análise Financeira"
+                description="Visualize seus dados financeiros de diferentes formas"
+                chartTypes={availableCharts}
+                defaultChartType="bar"
+                data={chartData}
+                className="w-full"
+              />
+            </LoadingWrapper>
+          </div>
 
-                  <div className="mt-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Top Categorias</h4>
-                    <div className="space-y-2">
-                      {finalSummary.topCategories.map((category, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">
-                            {category.icon && <span className="mr-1">{category.icon}</span>}
-                            {category.name}
-                          </span>
-                          <span className="font-medium">{formatCurrency(category.amount)}</span>
+          <div className="mb-8 animate-fadeIn" style={{ animationDelay: '500ms' }}>
+            <LoadingWrapper isLoading={false} skeleton="chart">
+              <ChartSelector
+                title="Distribuição de Gastos por Categoria"
+                description="Veja como seus gastos estão distribuídos"
+                chartTypes={getChartByCategory('expenses')}
+                defaultChartType="pie"
+                data={expensesCategoryData}
+                className="w-full"
+              />
+            </LoadingWrapper>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn" style={{ animationDelay: '600ms' }}>
+            <div className="lg:col-span-2">
+              <LoadingWrapper isLoading={false} skeleton="transactions">
+                <Card data-onboarding="transactions">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Calendar className="h-5 w-5 mr-2" />
+                      {finalLabels.recentTransactions}
+                    </CardTitle>
+                    <CardDescription>
+                      Suas últimas movimentações financeiras
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {finalTransactions.slice(0, 6).map((transaction, index) => (
+                        <div
+                          key={transaction.id}
+                          className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors animate-slideIn"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getCategoryColor(transaction)}`}>
+                              <span className="text-lg">{getTransactionIcon(transaction)}</span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{transaction.description}</p>
+                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                <span>{transaction.category}</span>
+                                <span>•</span>
+                                <span>{transaction.account}</span>
+                                <span>•</span>
+                                <span>{new Date(transaction.date).toLocaleDateString(locale)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`font-bold text-lg ${
+                              transaction.amount > 0 ? 'text-success' : 'text-destructive'
+                            }`}>
+                              {transaction.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(transaction.amount))}
+                            </div>
+                            <div className="text-sm text-muted-foreground capitalize">
+                              {transaction.type}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="mt-6 text-center">
+                      <Button variant="outline" className="w-full" onClick={handleViewAllTransactions}>
+                        Ver Todas as Transações
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </LoadingWrapper>
+            </div>
+
+            <div className="space-y-6">
+              <LoadingWrapper isLoading={false} skeleton="card">
+                <Card data-onboarding="goals">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Target className="h-5 w-5 mr-2" />
+                      {finalLabels.financialGoals}
+                    </CardTitle>
+                    <CardDescription>
+                      Acompanhe seu progresso
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {finalGoals.map((goal, index) => (
+                        <div
+                          key={goal.id}
+                          className="animate-slideIn"
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium text-foreground">{goal.title}</span>
+                            <span className="text-sm text-muted-foreground">{goal.progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                            <div
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${goal.progress}%`,
+                                background: goal.color ? `linear-gradient(to right, ${goal.color}88, ${goal.color})` : 'linear-gradient(to right, #3b82f6, #8b5cf6)'
+                              }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>{formatCurrency(goal.current)}</span>
+                            <span>{formatCurrency(goal.target)}</span>
+                          </div>
+                          {goal.deadline && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Prazo: {new Date(goal.deadline).toLocaleDateString(locale)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6">
+                      <Button variant="outline" className="w-full" onClick={handleCreateGoal}>
+                        <Target className="h-4 w-4 mr-2" />
+                        Criar Nova Meta
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </LoadingWrapper>
+
+              <LoadingWrapper isLoading={false} skeleton="card">
+                <Card data-onboarding="alerts">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Bell className="h-5 w-5 mr-2" />
+                      {finalLabels.smartAlerts}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {finalAlerts.map((alert, index) => (
+                        <div
+                          key={alert.id}
+                          className={`p-3 rounded-lg ${getAlertStyle(alert)} animate-slideIn`}
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{alert.title}</p>
+                              <p className="text-sm">{alert.message}</p>
+                            </div>
+                            {alert.priority && (
+                              <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                                alert.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-200/20 dark:text-red-200' :
+                                alert.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-200/20 dark:text-yellow-200' :
+                                'bg-gray-100 text-gray-800 dark:bg-gray-200/20 dark:text-gray-200'
+                              }`}>
+                                {alert.priority}
+                              </span>
+                            )}
+                          </div>
+                          {alert.actionable && alert.actionLabel && (
+                            <div className="mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAlertAction(alert)}
+                                className="text-xs"
+                              >
+                                {alert.actionLabel}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </LoadingWrapper>
+
+              <LoadingWrapper isLoading={false} skeleton="card">
+                <Card data-onboarding="summary">
+                  <CardHeader>
+                    <CardTitle>{finalLabels.monthlySummary}</CardTitle>
+                    <CardDescription>
+                      {finalSummary.month}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Receitas</span>
+                        <span className="font-semibold text-success">{formatCurrency(finalSummary.income)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Despesas</span>
+                        <span className="font-semibold text-destructive">{formatCurrency(finalSummary.expenses)}</span>
+                      </div>
+                      <div className="border-t pt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-foreground">Saldo</span>
+                          <span className={`font-bold ${finalSummary.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            {formatCurrency(finalSummary.balance)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-foreground mb-3">Top Categorias</h4>
+                        <div className="space-y-2">
+                          {finalSummary.topCategories.map((category, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center text-sm animate-slideIn"
+                              style={{ animationDelay: `${index * 50}ms` }}
+                            >
+                              <span className="text-muted-foreground">
+                                {category.icon && <span className="mr-1">{category.icon}</span>}
+                                {category.name}
+                              </span>
+                              <span className="font-medium">{formatCurrency(category.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </LoadingWrapper>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Onboarding Tutorial */}
+      <DashboardOnboarding autoStart={true} />
+    </LoadingWrapper>
   )
 }
 

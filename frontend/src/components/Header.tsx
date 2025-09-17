@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { TrendingUp, Menu, X, User, LogOut, BarChart3, Settings } from "lucide-react"
+import { TrendingUp, Menu, X, User, LogOut, BarChart3, Settings, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -33,7 +33,9 @@ export const Header = ({
 }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [dropdownStates, setDropdownStates] = useState<Record<string, boolean>>({})
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const { user, logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
@@ -59,10 +61,21 @@ export const Header = ({
 
   // Default navigation items for authenticated users
   const defaultAuthenticatedNavigation: NavigationItem[] = [
-    { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      href: '/dashboard',
+      icon: '📊',
+      children: [
+        { id: 'dashboard-main', label: 'Dashboard Principal', href: '/dashboard', icon: '🏠' },
+        { id: 'dashboard-custom', label: 'Dashboard Customizável', href: '/dashboard/customizado', icon: '🎛️' },
+        { id: 'dashboard-specialized', label: 'Dashboards Especializados', href: '/dashboard/especializados', icon: '🎯' }
+      ]
+    },
     { id: 'transactions', label: 'Transações', href: '/transacoes', icon: '💰' },
     { id: 'reports', label: 'Relatórios', href: '/relatorios', icon: '📈' },
-    { id: 'goals', label: 'Metas', href: '/metas', icon: '🎯' }
+    { id: 'goals', label: 'Metas', href: '/metas', icon: '🎯' },
+    { id: 'alerts', label: 'Alertas', href: '/alertas', icon: '🔔' }
   ]
 
   // Default navigation items for unauthenticated users
@@ -86,6 +99,12 @@ export const Header = ({
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
   const toggleUserMenu = () => setIsUserMenuOpen(!isUserMenuOpen)
+  const toggleDropdown = (itemId: string) => {
+    setDropdownStates(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }))
+  }
 
   const handleNavigation = (href: string) => {
     if (onNavigate) {
@@ -157,17 +176,26 @@ export const Header = ({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
       }
+
+      // Close dropdowns when clicking outside
+      Object.keys(dropdownStates).forEach(itemId => {
+        const ref = dropdownRefs.current[itemId]
+        if (ref && !ref.contains(event.target as Node)) {
+          setDropdownStates(prev => ({ ...prev, [itemId]: false }))
+        }
+      })
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [])
+  }, [dropdownStates])
 
   useEffect(() => {
     setIsMenuOpen(false)
     setIsUserMenuOpen(false)
+    setDropdownStates({})
   }, [location.pathname])
 
   return (
@@ -234,6 +262,83 @@ export const Header = ({
                     )
                   }
 
+                  // Navigation item with dropdown children
+                  if (item.children && item.children.length > 0) {
+                    const isDropdownOpen = dropdownStates[item.id]
+                    const hasActiveChild = item.children.some(child => isActiveRoute(child.href))
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="relative"
+                        ref={(ref) => { dropdownRefs.current[item.id] = ref }}
+                      >
+                        <button
+                          onClick={() => toggleDropdown(item.id)}
+                          className={`flex items-center transition-colors font-medium ${
+                            hasActiveChild || isActive
+                              ? 'text-primary font-semibold'
+                              : 'text-muted-foreground hover:text-primary'
+                          }`}
+                        >
+                          {item.icon && <span className="mr-1">{item.icon}</span>}
+                          {item.label}
+                          <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${
+                            isDropdownOpen ? 'rotate-180' : ''
+                          }`} />
+                          {item.badge && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+
+                        {isDropdownOpen && (
+                          <div className="absolute top-full left-0 mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border py-2 z-50">
+                            {item.children.map((child) => {
+                              const isChildActive = isActiveRoute(child.href)
+
+                              if (child.external) {
+                                return (
+                                  <a
+                                    key={child.id}
+                                    href={child.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent transition-colors"
+                                  >
+                                    {child.icon && <span className="mr-3">{child.icon}</span>}
+                                    {child.label}
+                                  </a>
+                                )
+                              }
+
+                              return (
+                                <Link
+                                  key={child.id}
+                                  to={child.href}
+                                  onClick={() => {
+                                    handleNavigation(child.href)
+                                    setDropdownStates(prev => ({ ...prev, [item.id]: false }))
+                                  }}
+                                  className={`flex items-center px-4 py-2 text-sm transition-colors ${
+                                    isChildActive
+                                      ? 'text-primary bg-accent font-medium'
+                                      : 'text-popover-foreground hover:bg-accent'
+                                  }`}
+                                >
+                                  {child.icon && <span className="mr-3">{child.icon}</span>}
+                                  {child.label}
+                                </Link>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  // Regular navigation item
                   return (
                     <Link
                       key={item.id}
@@ -449,6 +554,60 @@ export const Header = ({
                           </span>
                         )}
                       </a>
+                    )
+                  }
+
+                  // Mobile menu children handling
+                  if (item.children && item.children.length > 0) {
+                    const hasActiveChild = item.children.some(child => isActiveRoute(child.href))
+
+                    return (
+                      <div key={item.id} className="space-y-2">
+                        <div className={`flex items-center font-medium ${
+                          hasActiveChild || isActive
+                            ? 'text-primary font-semibold'
+                            : 'text-muted-foreground'
+                        }`}>
+                          {item.icon && <span className="mr-2">{item.icon}</span>}
+                          {item.label}
+                        </div>
+                        <div className="ml-6 space-y-2">
+                          {item.children.map((child) => {
+                            const isChildActive = isActiveRoute(child.href)
+
+                            if (child.external) {
+                              return (
+                                <a
+                                  key={child.id}
+                                  href={child.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                  {child.icon && <span className="mr-2">{child.icon}</span>}
+                                  {child.label}
+                                </a>
+                              )
+                            }
+
+                            return (
+                              <Link
+                                key={child.id}
+                                to={child.href}
+                                onClick={() => handleNavigation(child.href)}
+                                className={`flex items-center text-sm transition-colors ${
+                                  isChildActive
+                                    ? 'text-primary font-medium'
+                                    : 'text-muted-foreground hover:text-primary'
+                                }`}
+                              >
+                                {child.icon && <span className="mr-2">{child.icon}</span>}
+                                {child.label}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      </div>
                     )
                   }
 

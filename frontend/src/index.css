@@ -38,6 +38,43 @@
     --destructive-background: 0 84% 97%;
   }
 
+  /* Accent Color Themes */
+  .accent-blue {
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 217 91% 60%;
+  }
+
+  .accent-green {
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 142 76% 36%;
+  }
+
+  .accent-purple {
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 262 83% 58%;
+  }
+
+  .accent-orange {
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 25 95% 53%;
+  }
+
+  .accent-red {
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 0 84% 60%;
+  }
+
+  .accent-pink {
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 330 81% 60%;
+  }
+
   .dark {
     /* Backgrounds - Lighter dark palette */
     --background: 222 47% 8%;        /* Lighter dark blue-gray */
@@ -88,6 +125,43 @@
     --info-background: 217 30% 8%;
     --destructive-background: 0 30% 8%;
   }
+
+  /* Dark mode accent colors */
+  .dark.accent-blue {
+    --primary: 217 91% 65%;
+    --primary-foreground: 222 47% 8%;
+    --ring: 217 91% 65%;
+  }
+
+  .dark.accent-green {
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 142 76% 36%;
+  }
+
+  .dark.accent-purple {
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 262 83% 58%;
+  }
+
+  .dark.accent-orange {
+    --primary: 25 95% 53%;
+    --primary-foreground: 222 47% 8%;
+    --ring: 25 95% 53%;
+  }
+
+  .dark.accent-red {
+    --primary: 0 84% 60%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 0 84% 60%;
+  }
+
+  .dark.accent-pink {
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 98%;
+    --ring: 330 81% 60%;
+  }
 }
 
 @layer base {
@@ -136,4 +210,149 @@ html {
 
 .animation-delay-4000 {
   animation-delay: 4s;
+}
+
+/* Loading and fade animations */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Drag & Drop specific styles */
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-preview {
+  transform: rotate(2deg) scale(1.05);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+  z-index: 1000;
+}
+
+.drop-zone {
+  border: 2px dashed hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.05);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.drop-zone.active {
+  background-color: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary));
+}
+
+/* Prevent text selection during drag */
+.dragging * {
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+/* Fix native tooltip colors for better visibility */
+[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  z-index: 1000;
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  pointer-events: none;
+  transform: translateY(-100%);
+  margin-top: -8px;
+}
+
+/* Ensure tooltip visibility in both light and dark modes */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Override browser default tooltip colors */
+[title] {
+  position: relative;
+}
+
+/* Custom tooltip styling for better contrast */
+.tooltip-light {
+  background: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #374151 !important;
+}
+
+.tooltip-dark {
+  background: #f9fafb !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
 }
