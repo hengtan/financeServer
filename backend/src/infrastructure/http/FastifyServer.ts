@@ -107,10 +107,18 @@ export class FastifyServer {
     const transactionRoutes = await import('../../routes/fastify/transactions')
     const authRoutes = await import('../../routes/fastify/auth')
     const reportRoutes = await import('../../routes/fastify/reports')
+    const accountRoutes = await import('../../routes/fastify/accounts')
+    const categoryRoutes = await import('../../routes/fastify/categories')
+    const goalRoutes = await import('../../routes/fastify/goals')
+    const budgetRoutes = await import('../../routes/fastify/budgets')
 
     await this.app.register(transactionRoutes.default)
     await this.app.register(authRoutes.default)
     await this.app.register(reportRoutes.default)
+    await this.app.register(accountRoutes.default)
+    await this.app.register(categoryRoutes.default)
+    await this.app.register(goalRoutes.default)
+    await this.app.register(budgetRoutes.default)
 
     this.app.log.info('✅ API routes registered successfully')
   }

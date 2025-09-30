@@ -63,7 +63,7 @@
     "pino-pretty": "^10.2.3",
     "prisma": "^5.7.1",
     "prom-client": "^15.1.0",
-    "reflect-metadata": "^0.1.13",
+    "reflect-metadata": "^0.1.14",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "typedi": "^0.10.0",
