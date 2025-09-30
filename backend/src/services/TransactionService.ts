@@ -2,6 +2,7 @@ import { Service, Inject } from 'typedi'
 import { ITransactionRepository } from '../core/interfaces/repositories/ITransactionRepository'
 import { IAccountRepository } from '../core/interfaces/repositories/IAccountRepository'
 import { ICategoryRepository } from '../core/interfaces/repositories/ICategoryRepository'
+import { IUserCategoryRepository } from '../core/interfaces/repositories/IUserCategoryRepository'
 import { Transaction, TransactionType, TransactionStatus } from '../core/entities/Transaction'
 import { RedisService } from '../infrastructure/cache/RedisService'
 
@@ -10,21 +11,36 @@ export class TransactionService {
   constructor(
     @Inject('ITransactionRepository') private transactionRepository: ITransactionRepository,
     @Inject('IAccountRepository') private accountRepository: IAccountRepository,
-    @Inject('ICategoryRepository') private categoryRepository: ICategoryRepository,
+    @Inject('ICategoryRepository') private categoryRepository: ICategoryRepository, // 🔄 Legacy support
+    @Inject('IUserCategoryRepository') private userCategoryRepository: IUserCategoryRepository, // 🚀 New architecture
     private redisService: RedisService
   ) {}
 
-  async createTransaction(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Transaction> {
+  async createTransaction(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> & {
+    userCategoryId?: string // Support new architecture
+  }): Promise<Transaction> {
     // Validate account exists and belongs to user
     const account = await this.accountRepository.findById(data.accountId)
     if (!account || account.userId !== data.userId) {
       throw new Error('Account not found or does not belong to user')
     }
 
-    // Validate category exists and belongs to user or is system category
-    const category = await this.categoryRepository.findById(data.categoryId)
-    if (!category || (category.userId !== data.userId && !category.isSystem)) {
-      throw new Error('Category not found or does not belong to user')
+    // Validate category - support both architectures
+    if (data.userCategoryId) {
+      // 🚀 New architecture: validate UserCategory
+      const userCategory = await this.userCategoryRepository.findById(data.userCategoryId)
+      if (!userCategory || userCategory.userId !== data.userId) {
+        throw new Error('User category not found or does not belong to user')
+      }
+      if (!userCategory.isActive) {
+        throw new Error('Cannot use inactive category for transactions')
+      }
+    } else {
+      // 🔄 Legacy architecture: validate Category
+      const category = await this.categoryRepository.findById(data.categoryId)
+      if (!category || (category.userId !== data.userId && !category.isSystem)) {
+        throw new Error('Category not found or does not belong to user')
+      }
     }
 
     // For transfers, validate destination account
@@ -41,7 +57,8 @@ export class TransactionService {
       description: data.description,
       amount: data.amount,
       type: data.type,
-      categoryId: data.categoryId,
+      categoryId: data.categoryId, // 🔄 Legacy support
+      userCategoryId: data.userCategoryId, // 🚀 New architecture
       accountId: data.accountId,
       toAccountId: data.toAccountId,
       status: TransactionStatus.PENDING,
@@ -152,8 +169,18 @@ export class TransactionService {
       }
     }
 
-    // Validate category changes
-    if (data.categoryId && data.categoryId !== existing.categoryId) {
+    // Validate category changes - support both architectures
+    if (data.userCategoryId && data.userCategoryId !== existing.userCategoryId) {
+      // 🚀 New architecture: validate UserCategory
+      const userCategory = await this.userCategoryRepository.findById(data.userCategoryId)
+      if (!userCategory || userCategory.userId !== existing.userId) {
+        throw new Error('User category not found or does not belong to user')
+      }
+      if (!userCategory.isActive) {
+        throw new Error('Cannot use inactive category for transactions')
+      }
+    } else if (data.categoryId && data.categoryId !== existing.categoryId) {
+      // 🔄 Legacy architecture: validate Category
       const category = await this.categoryRepository.findById(data.categoryId)
       if (!category || (category.userId !== existing.userId && !category.isSystem)) {
         throw new Error('Category not found or does not belong to user')
@@ -239,15 +266,26 @@ export class TransactionService {
     }> = {}
 
     for (const transaction of transactions.transactions) {
-      const categoryId = transaction.categoryId
+      const categoryId = transaction.getCategoryId() // Use helper method to get the right category ID
       if (!categoryGroups[categoryId]) {
-        // Buscar nome da categoria
-        const category = await this.categoryRepository.findById(categoryId)
+        // Buscar nome da categoria - support both architectures
+        let categoryName = 'Categoria desconhecida'
+
+        if (transaction.isUsingNewCategoryArchitecture() && transaction.userCategoryId) {
+          // 🚀 New architecture: get UserCategory name
+          const userCategory = await this.userCategoryRepository.findById(transaction.userCategoryId)
+          categoryName = userCategory?.name || 'Categoria desconhecida'
+        } else {
+          // 🔄 Legacy architecture: get Category name
+          const category = await this.categoryRepository.findById(transaction.categoryId)
+          categoryName = category?.name || 'Categoria desconhecida'
+        }
+
         categoryGroups[categoryId] = {
           income: 0,
           expense: 0,
           count: 0,
-          categoryName: category?.name || 'Categoria desconhecida',
+          categoryName,
           transactions: []
         }
       }

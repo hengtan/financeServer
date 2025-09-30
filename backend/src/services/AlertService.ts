@@ -1,4 +1,3 @@
-import { Service, Inject } from 'typedi'
 import { IAlertRepository } from '../core/interfaces/repositories/IAlertRepository'
 import { ITransactionRepository } from '../core/interfaces/repositories/ITransactionRepository'
 import { IAccountRepository } from '../core/interfaces/repositories/IAccountRepository'
@@ -37,15 +36,14 @@ export interface SmartAlertConfig {
   cooldownHours: number
 }
 
-@Service()
 export class AlertService {
   constructor(
-    @Inject('IAlertRepository') private alertRepository: IAlertRepository,
-    @Inject('ITransactionRepository') private transactionRepository: ITransactionRepository,
-    @Inject('IAccountRepository') private accountRepository: IAccountRepository,
-    @Inject('ICategoryRepository') private categoryRepository: ICategoryRepository,
-    @Inject('IBudgetRepository') private budgetRepository: IBudgetRepository,
-    @Inject('IGoalRepository') private goalRepository: IGoalRepository,
+    private alertRepository: IAlertRepository,
+    private transactionRepository: ITransactionRepository,
+    private accountRepository: IAccountRepository,
+    private categoryRepository: ICategoryRepository,
+    private budgetRepository: IBudgetRepository,
+    private goalRepository: IGoalRepository,
     private redisService: RedisService,
     private transactionService: TransactionService
   ) {}

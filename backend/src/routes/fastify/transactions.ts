@@ -11,9 +11,10 @@ export default async function transactionRoutes(
   // Temporary fix for DI issues
   const transactionRepository = Container.get('ITransactionRepository') as any
   const accountRepository = Container.get('IAccountRepository') as any
-  const categoryRepository = Container.get('ICategoryRepository') as any
+  const categoryRepository = Container.get('ICategoryRepository') as any // 🔄 Legacy support
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any // 🚀 New architecture
   const redisService = Container.get(RedisService)
-  const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, redisService)
+  const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, userCategoryRepository, redisService)
 
   const userRepository = Container.get('IUserRepository') as any
   const authService = new AuthService(userRepository, redisService)
@@ -119,17 +120,27 @@ export default async function transactionRoutes(
   // POST /api/transactions - Criar nova transação
   fastify.post(`${prefix}/transactions`, async (request, reply) => {
     try {
+      console.log('🔄 Backend: POST /api/transactions received')
+      console.log('🔍 Backend: Headers keys:', Object.keys(request.headers))
+      console.log('🔍 Backend: Raw body:', request.body)
+
       const user = await getUserFromToken(request.headers.authorization)
       if (!user) {
+        console.log('❌ Backend: User not authenticated')
         return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
       }
 
+      console.log('✅ Backend: User authenticated:', user.id, user.email)
+
       const body = request.body as any
+      console.log('📥 Backend: Parsed body:', body)
 
       const transactionData = {
         ...body,
         userId: user.id
       }
+
+      console.log('📤 Backend: Transaction data prepared for service:', transactionData)
 
       const transaction = await transactionService.createTransaction(transactionData)
 
@@ -139,9 +150,13 @@ export default async function transactionRoutes(
         message: 'Transação criada com sucesso'
       })
     } catch (error) {
+      console.log('❌ Backend: Error in POST /api/transactions:', error)
+      console.log('❌ Backend: Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+
       const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
 
       if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        console.log('❌ Backend: Authentication error')
         return reply.status(401).send({
           success: false,
           message: 'Token inválido ou expirado'
@@ -149,6 +164,7 @@ export default async function transactionRoutes(
       }
 
       if (errorMessage.includes('required') || errorMessage.includes('obrigatório')) {
+        console.log('❌ Backend: Validation error')
         return reply.status(400).send({
           success: false,
           message: 'Dados inválidos',
@@ -156,6 +172,7 @@ export default async function transactionRoutes(
         })
       }
 
+      console.log('❌ Backend: Internal server error')
       return reply.status(500).send({
         success: false,
         message: 'Erro interno do servidor',

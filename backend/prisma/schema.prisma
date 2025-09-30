@@ -36,9 +36,12 @@ model User {
   // Relations
   accounts          Account[]
   transactions      Transaction[]
-  categories        Category[]
+  categories        Category[]        // 🔄 Tabela legacy (será removida)
+  userCategories    UserCategory[]    // 🚀 Nova arquitetura híbrida
   goals             Goal[]
   budgets           Budget[]
+  reports           Report[]
+  alerts            Alert[]
 
   // Indexes for performance
   @@index([email])
@@ -166,6 +169,99 @@ enum CategoryStatus {
   ARCHIVED
 }
 
+// ============================================================
+// 🚀 NEW CATEGORY ARCHITECTURE - HYBRID SYSTEM
+// ============================================================
+
+// Templates de categorias (sistema) - Categorias padrão globais
+model CategoryTemplate {
+  id          String @id @default(cuid())
+  name        String
+  type        CategoryType
+  description String?
+  color       String?
+  icon        String?
+
+  // Configurações do template
+  isDefault   Boolean @default(false) // Aparece por padrão para novos usuários
+  isSystem    Boolean @default(true)  // Criada pelo sistema
+  sortOrder   Int?                    // Ordem de exibição
+
+  // Metadados e localização
+  tags        String[]
+  metadata    Json?
+
+  // Audit fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userCategories UserCategory[]
+
+  // Indexes
+  @@index([type])
+  @@index([isDefault])
+  @@index([isSystem])
+  @@index([sortOrder])
+  @@unique([name, type]) // Nome único por tipo
+  @@map("category_templates")
+}
+
+// Categorias específicas do usuário (baseadas em templates OU criadas do zero)
+model UserCategory {
+  id                 String @id @default(cuid())
+  userId             String
+
+  // Referência ao template (NULL = categoria própria do usuário)
+  categoryTemplateId String?
+
+  // Dados da categoria (sobrescreve template se baseada em um)
+  name               String
+  description        String?
+  type               CategoryType
+  color              String?
+  icon               String?
+
+  // Hierarquia (mantém flexibilidade)
+  parentCategoryId   String?
+
+  // Estado e configurações
+  status             CategoryStatus @default(ACTIVE)
+  isActive           Boolean @default(true)
+  isCustom           Boolean @default(false) // true = criada pelo usuário
+  isDefault          Boolean @default(false) // padrão do usuário
+  sortOrder          Int?
+
+  // Metadados
+  tags               String[]
+  metadata           Json?
+
+  // Audit fields
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  user               User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryTemplate   CategoryTemplate? @relation(fields: [categoryTemplateId], references: [id])
+  parentCategory     UserCategory? @relation("UserCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subcategories      UserCategory[] @relation("UserCategoryHierarchy")
+
+  // 🔄 Relations que serão migradas da tabela Category
+  transactions       Transaction[] @relation("UserCategoryTransactions")
+  budgets           Budget[] @relation("UserCategoryBudgets")
+
+  // Indexes otimizados
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, status])
+  @@index([userId, isActive])
+  @@index([categoryTemplateId])
+  @@index([parentCategoryId])
+  @@index([type, isActive])
+  @@unique([userId, name]) // Nome único por usuário
+  @@map("user_categories")
+}
+
 // Financial transactions with ACID compliance
 model Transaction {
   id              String            @id @default(cuid())
@@ -173,7 +269,8 @@ model Transaction {
   description     String
   amount          Decimal           @db.Decimal(15, 2) // High precision financial amount
   type            TransactionType
-  categoryId      String
+  categoryId      String           // 🔄 Legacy field (será removido)
+  userCategoryId  String?          // 🚀 Nova arquitetura híbrida
   accountId       String
   toAccountId     String?           // For transfers
   status          TransactionStatus @default(PENDING)
@@ -187,19 +284,22 @@ model Transaction {
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
-  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)    // 🔄 Legacy
+  userCategory    UserCategory?     @relation("UserCategoryTransactions", fields: [userCategoryId], references: [id])  // 🚀 Nova
   account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Restrict)
   toAccount       Account?          @relation("TransferTo", fields: [toAccountId], references: [id])
 
   // Indexes for high-performance queries
   @@index([userId])
   @@index([accountId])
-  @@index([categoryId])
+  @@index([categoryId])        // 🔄 Legacy index
+  @@index([userCategoryId])    // 🚀 Nova index
   @@index([type])
   @@index([status])
   @@index([date])
   @@index([userId, date]) // Composite index for user transaction history
   @@index([accountId, date]) // Composite index for account transaction history
+  @@index([userCategoryId, date]) // Composite index for category transaction history
   @@map("transactions")
 }
 
@@ -255,7 +355,8 @@ enum GoalStatus {
 model Budget {
   id              String       @id @default(cuid())
   userId          String
-  categoryId      String
+  categoryId      String       // 🔄 Legacy field (será removido)
+  userCategoryId  String?      // 🚀 Nova arquitetura híbrida
   name            String
   amount          Decimal      @db.Decimal(15, 2)
   spent           Decimal      @default(0) @db.Decimal(15, 2)
@@ -272,11 +373,13 @@ model Budget {
 
   // Relations
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)    // 🔄 Legacy
+  userCategory    UserCategory? @relation("UserCategoryBudgets", fields: [userCategoryId], references: [id])  // 🚀 Nova
 
   // Indexes
   @@index([userId])
-  @@index([categoryId])
+  @@index([categoryId])        // 🔄 Legacy index
+  @@index([userCategoryId])    // 🚀 Nova index
   @@index([status])
   @@index([startDate, endDate])
   @@map("budgets")
@@ -340,4 +443,141 @@ model Session {
   @@index([refreshToken])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// Reports management
+model Report {
+  id              String        @id @default(cuid())
+  userId          String
+  name            String
+  description     String?
+  type            ReportType
+  status          ReportStatus  @default(PENDING)
+  format          ReportFormat
+  config          Json // ReportConfig as JSON
+  data            Json? // ReportData as JSON
+  fileUrl         String?
+  filePath        String?
+  error           String?
+  generatedAt     DateTime?
+  expiresAt       DateTime?
+  metadata        Json?
+
+  // Audit fields
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([format])
+  @@index([generatedAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("reports")
+}
+
+enum ReportType {
+  FINANCIAL_SUMMARY
+  CATEGORY_ANALYSIS
+  MONTHLY_TREND
+  CASH_FLOW_PROJECTION
+  BUDGET_VARIANCE
+  SPENDING_PATTERNS
+  CUSTOM
+}
+
+enum ReportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ReportFormat {
+  JSON
+  PDF
+  EXCEL
+  CSV
+}
+
+// Alerts management
+model Alert {
+  id              String        @id @default(cuid())
+  userId          String
+  type            AlertType
+  severity        AlertSeverity
+  status          AlertStatus   @default(ACTIVE)
+  title           String
+  message         String
+  description     String?
+  data            Json // AlertData as JSON
+  rule            Json? // AlertRule as JSON
+  actionUrl       String?
+  actionText      String?
+  triggeredAt     DateTime      @default(now())
+  readAt          DateTime?
+  dismissedAt     DateTime?
+  expiresAt       DateTime?
+  channels        Json // AlertChannel[] as JSON
+  metadata        Json?
+
+  // Audit fields
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([userId])
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([triggeredAt])
+  @@index([readAt])
+  @@index([dismissedAt])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@index([userId, status]) // Composite index for user alerts by status
+  @@map("alerts")
+}
+
+enum AlertType {
+  BUDGET_EXCEEDED
+  HIGH_SPENDING
+  LOW_BALANCE
+  UNUSUAL_TRANSACTION
+  RECURRING_PAYMENT_DUE
+  GOAL_MILESTONE
+  CASH_FLOW_WARNING
+  INCOME_RECEIVED
+  EXPENSE_ANOMALY
+  SAVINGS_OPPORTUNITY
+  CUSTOM
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  READ
+  DISMISSED
+  EXPIRED
+}
+
+enum AlertChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
 }

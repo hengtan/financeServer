@@ -34,7 +34,11 @@ export class Transaction {
 
   @IsUUID(4)
   @IsNotEmpty()
-  public readonly categoryId: string
+  public readonly categoryId: string // 🔄 Legacy field (for backward compatibility)
+
+  @IsOptional()
+  @IsUUID(4)
+  public readonly userCategoryId?: string // 🚀 New hybrid architecture
 
   @IsUUID(4)
   @IsNotEmpty()
@@ -68,7 +72,8 @@ export class Transaction {
     description: string
     amount: number | string | Decimal
     type: TransactionType
-    categoryId: string
+    categoryId: string // 🔄 Legacy field (for backward compatibility)
+    userCategoryId?: string // 🚀 New hybrid architecture
     accountId: string
     toAccountId?: string
     status?: TransactionStatus
@@ -83,7 +88,8 @@ export class Transaction {
     this.description = props.description
     this.amount = new Decimal(props.amount)
     this.type = props.type
-    this.categoryId = props.categoryId
+    this.categoryId = props.categoryId // 🔄 Legacy field
+    this.userCategoryId = props.userCategoryId // 🚀 New architecture
     this.accountId = props.accountId
     this.toAccountId = props.toAccountId
     this.status = props.status || TransactionStatus.PENDING
@@ -159,6 +165,15 @@ export class Transaction {
     return this.amount.toFixed(2)
   }
 
+  public getCategoryId(): string {
+    // Prefer new userCategoryId over legacy categoryId
+    return this.userCategoryId || this.categoryId
+  }
+
+  public isUsingNewCategoryArchitecture(): boolean {
+    return !!this.userCategoryId
+  }
+
   // Para auditoria e compliance
   public toAuditLog(): Record<string, any> {
     return {
@@ -181,7 +196,8 @@ export class Transaction {
       description: this.description,
       amount: this.getAmountAsString(),
       type: this.type,
-      categoryId: this.categoryId,
+      categoryId: this.categoryId, // 🔄 Legacy field
+      userCategoryId: this.userCategoryId, // 🚀 New architecture
       accountId: this.accountId,
       toAccountId: this.toAccountId,
       status: this.status,
