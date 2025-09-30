@@ -75,19 +75,18 @@ export const TimelineChart = ({
     return monthlyData
   }
 
-  // Use external data if provided, otherwise generate mock data
+  // Use external data if provided, otherwise show empty state
   const data = useMemo(() => {
     if (externalData && externalData.length > 0) {
       return externalData
     }
-    return selectedPeriod === 'month'
-      ? generateDailyData(selectedYear, selectedMonth)
-      : generateMonthlyData(selectedYear)
-  }, [externalData, selectedPeriod, selectedYear, selectedMonth])
+    // Return empty array when no external data is provided
+    return []
+  }, [externalData])
 
   const totalExpenses = data.reduce((sum, item) => sum + item.expenses, 0)
-  const maxExpense = Math.max(...data.map(d => d.expenses))
-  const minExpense = Math.min(...data.map(d => d.expenses))
+  const maxExpense = data.length > 0 ? Math.max(...data.map(d => d.expenses)) : 0
+  const minExpense = data.length > 0 ? Math.min(...data.map(d => d.expenses)) : 0
 
   const getDateLabel = (date: string, index: number) => {
     if (selectedPeriod === 'month') {

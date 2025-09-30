@@ -71,19 +71,19 @@ export const TrendForecast = () => {
         transactionsService.getCategories()
       ])
 
-      if (transactionsResponse.success && transactionsResponse.data.data.length > 0) {
+      if (transactionsResponse.success) {
         setTransactions(transactionsResponse.data.data)
         setCategories(['all', ...categoriesResponse.data || []])
       } else {
-        // Fallback para dados simulados
-        console.warn('API não disponível, usando dados simulados')
-        setTransactions(mockTransactions)
-        setCategories(['all', 'Renda', 'Alimentação', 'Transporte', 'Entretenimento', 'Saúde', 'Investimento'])
+        // Se API falhou, mostrar dados vazios
+        console.warn('API não disponível, mostrando estado vazio')
+        setTransactions([])
+        setCategories(['all'])
       }
     } catch (error) {
-      console.warn('Erro ao carregar dados da API, usando dados simulados:', error)
-      setTransactions(mockTransactions)
-      setCategories(['all', 'Renda', 'Alimentação', 'Transporte', 'Entretenimento', 'Saúde', 'Investimento'])
+      console.warn('Erro ao carregar dados da API, mostrando estado vazio:', error)
+      setTransactions([])
+      setCategories(['all'])
     } finally {
       setLoading(false)
     }
