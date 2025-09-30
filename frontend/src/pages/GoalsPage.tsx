@@ -16,7 +16,8 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { goalsService, Goal, GoalsSummary } from '@/services/goals'
 
 export const GoalsPage = () => {
   usePageTitle('Metas')
@@ -24,74 +25,35 @@ export const GoalsPage = () => {
   const [activeTab, setActiveTab] = useState('ativas')
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false)
   const [isAddValueOpen, setIsAddValueOpen] = useState(false)
-  const [selectedGoal, setSelectedGoal] = useState<any>(null)
-  const [goals, setGoals] = useState([
-    {
-      id: 1,
-      title: "Viagem para Europa",
-      description: "Economia para viagem de 15 dias pela Europa com a família",
-      targetAmount: 15000,
-      currentAmount: 8500,
-      deadline: "2024-12-31",
-      category: "Viagem",
-      status: "active",
-      monthlyTarget: 650,
-      createdAt: "2024-01-01",
-      color: "blue"
-    },
-    {
-      id: 2,
-      title: "Reserva de Emergência",
-      description: "Fundo de emergência equivalente a 6 meses de despesas",
-      targetAmount: 30000,
-      currentAmount: 22500,
-      deadline: "2024-06-30",
-      category: "Emergência",
-      status: "active",
-      monthlyTarget: 1500,
-      createdAt: "2023-12-01",
-      color: "green"
-    },
-    {
-      id: 3,
-      title: "Carro Novo",
-      description: "Entrada para financiamento de um carro popular zero km",
-      targetAmount: 50000,
-      currentAmount: 12000,
-      deadline: "2025-03-31",
-      category: "Veículo",
-      status: "active",
-      monthlyTarget: 2500,
-      createdAt: "2024-01-01",
-      color: "purple"
-    },
-    {
-      id: 4,
-      title: "Curso de MBA",
-      description: "Pós-graduação em Administração de Empresas",
-      targetAmount: 25000,
-      currentAmount: 25000,
-      deadline: "2024-01-15",
-      category: "Educação",
-      status: "completed",
-      monthlyTarget: 2000,
-      createdAt: "2023-02-01",
-      color: "yellow"
-    },
-    {
-      id: 5,
-      title: "Reforma da Casa",
-      description: "Reforma completa da cozinha e banheiros",
-      targetAmount: 35000,
-      currentAmount: 5200,
-      deadline: "2024-08-31",
-      category: "Casa",
-      status: "active",
-      monthlyTarget: 4000,
-      createdAt: "2024-01-01",
-      color: "red"
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null)
+  const [goals, setGoals] = useState<Goal[]>([])
+  const [summary, setSummary] = useState<GoalsSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadGoals()
+  }, [])
+
+  const loadGoals = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await goalsService.getGoals()
+      if (response.success) {
+        setGoals(response.data.goals)
+        setSummary(response.data.summary)
+      } else {
+        setError('Erro ao carregar metas')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar metas:', error)
+      setError('Erro ao carregar metas')
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
 
   const achievements = [
     {
@@ -114,8 +76,8 @@ export const GoalsPage = () => {
     }
   ]
 
-  const activeGoals = goals.filter(goal => goal.status === 'active')
-  const completedGoals = goals.filter(goal => goal.status === 'completed')
+  const activeGoals = goals.filter(goal => goal.status === 'ACTIVE')
+  const completedGoals = goals.filter(goal => goal.status === 'COMPLETED')
 
   const calculateProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100)
@@ -148,9 +110,9 @@ export const GoalsPage = () => {
     return 'text-green-600'
   }
 
-  const totalSaved = activeGoals.reduce((sum, goal) => sum + goal.currentAmount, 0)
-  const totalTarget = activeGoals.reduce((sum, goal) => sum + goal.targetAmount, 0)
-  const overallProgress = (totalSaved / totalTarget) * 100
+  const totalSaved = summary?.totalCurrent || 0
+  const totalTarget = summary?.totalTarget || 0
+  const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0
 
   const handleNewGoal = (goal: any) => {
     setGoals([...goals, goal])
@@ -178,6 +140,18 @@ export const GoalsPage = () => {
     if (confirm('Tem certeza que deseja excluir esta meta?')) {
       setGoals(goals.filter(goal => goal.id !== goalId))
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

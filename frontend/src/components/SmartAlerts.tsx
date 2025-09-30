@@ -23,6 +23,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { showSuccessToast, showWarningToast, showInfoToast } from '@/lib/utils'
+import { dashboardService } from '@/services/dashboard'
+import { transactionsService } from '@/services/transactions'
+import { goalsService } from '@/services/goals'
+import { accountsService } from '@/services/accounts'
+import { reportsService } from '@/services/reports'
 
 interface Alert {
   id: string
@@ -66,117 +71,218 @@ export interface SmartAlertsProps {
   className?: string
 }
 
-// Mock data - simulando alertas inteligentes
-const getMockAlerts = (): Alert[] => [
-  {
-    id: '1',
-    type: 'warning',
-    priority: 'high',
-    title: 'Gastos Acima da Média',
-    description: 'Seus gastos com alimentação este mês (R$ 1.234) estão 45% acima da média dos últimos 6 meses.',
-    category: 'spending',
-    threshold: 850,
-    currentValue: 1234,
-    targetValue: 850,
-    isActive: true,
-    isRead: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 horas atrás
-    triggeredAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    actions: [
-      {
-        label: 'Ver Detalhes',
-        action: () => alert('Análise detalhada de gastos com alimentação'),
-        variant: 'outline'
-      },
-      {
-        label: 'Definir Limite',
-        action: () => alert('Configurar limite de gastos para alimentação'),
-        variant: 'default'
-      }
-    ]
-  },
-  {
-    id: '2',
-    type: 'success',
-    priority: 'medium',
-    title: 'Meta Atingida',
-    description: 'Parabéns! Você atingiu 100% da sua meta de economia mensal (R$ 2.000).',
-    category: 'goal',
-    currentValue: 2000,
-    targetValue: 2000,
-    isActive: true,
-    isRead: false,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 horas atrás
-    triggeredAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    actions: [
-      {
-        label: 'Definir Nova Meta',
-        action: () => window.location.href = '/metas',
-        variant: 'default'
-      }
-    ]
-  },
-  {
-    id: '3',
-    type: 'info',
-    priority: 'medium',
-    title: 'Oportunidade de Investimento',
-    description: 'Você tem R$ 3.500 parados na conta corrente. Considere investir para rentabilizar.',
-    category: 'investment',
-    currentValue: 3500,
-    isActive: true,
-    isRead: true,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 dia atrás
-    triggeredAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    actions: [
-      {
-        label: 'Simular Investimento',
-        action: () => alert('Simulador: R$ 3.500 em CDB (12% a.a.) = R$ 3.920 em 12 meses'),
-        variant: 'default'
-      }
-    ]
-  },
-  {
-    id: '4',
-    type: 'danger',
-    priority: 'critical',
-    title: 'Limite de Cartão Próximo',
-    description: 'Você já utilizou 85% do limite do seu cartão Visa. Restam apenas R$ 450.',
-    category: 'budget',
-    threshold: 90,
-    currentValue: 85,
-    targetValue: 90,
-    isActive: true,
-    isRead: false,
-    createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutos atrás
-    triggeredAt: new Date(Date.now() - 30 * 60 * 1000),
-    actions: [
-      {
-        label: 'Ver Fatura',
-        action: () => alert('Visualizar fatura do cartão Visa'),
-        variant: 'outline'
-      },
-      {
-        label: 'Fazer Pagamento',
-        action: () => alert('Realizar pagamento do cartão'),
-        variant: 'destructive'
-      }
-    ]
-  },
-  {
-    id: '5',
-    type: 'info',
-    priority: 'low',
-    title: 'Tendência Positiva',
-    description: 'Seus gastos diminuíram 12% comparado ao mês anterior. Continue assim!',
-    category: 'trend',
-    currentValue: -12,
-    isActive: true,
-    isRead: true,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 dias atrás
-    triggeredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+// Gerar alertas inteligentes baseados em dados reais
+const generateIntelligentAlerts = async (): Promise<Alert[]> => {
+  const alerts: Alert[] = []
+  let alertId = 1
+
+  try {
+    // Buscar dados em paralelo
+    const [dashboardResponse, goalsResponse, expensesResponse, accountsResponse] = await Promise.all([
+      dashboardService.getOverview(),
+      goalsService.getGoals(),
+      reportsService.getExpensesByCategory(),
+      accountsService.getAccounts()
+    ])
+
+    // Alertas baseados em metas
+    if (goalsResponse.success && goalsResponse.data.goals.length > 0) {
+      goalsResponse.data.goals.forEach(goal => {
+        const progress = (goal.currentAmount / goal.targetAmount) * 100
+        const daysRemaining = goalsService.calculateDaysRemaining(goal.deadline)
+
+        // Alerta para metas próximas de serem atingidas
+        if (progress >= 90 && progress < 100) {
+          alerts.push({
+            id: `goal-near-${alertId++}`,
+            type: 'success',
+            priority: 'medium',
+            title: 'Meta Quase Atingida!',
+            description: `Você está a apenas ${(100 - progress).toFixed(1)}% de completar a meta "${goal.title}".`,
+            category: 'goal',
+            currentValue: goal.currentAmount,
+            targetValue: goal.targetAmount,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date(),
+            actions: [
+              {
+                label: 'Contribuir Agora',
+                action: () => window.location.href = '/metas',
+                variant: 'default'
+              }
+            ]
+          })
+        }
+
+        // Alerta para metas com prazo próximo
+        if (daysRemaining && daysRemaining <= 30 && daysRemaining > 0 && progress < 80) {
+          alerts.push({
+            id: `goal-deadline-${alertId++}`,
+            type: 'warning',
+            priority: 'high',
+            title: 'Meta com Prazo Próximo',
+            description: `A meta "${goal.title}" vence em ${daysRemaining} dias e você ainda precisa de ${goalsService.formatAmount(goal.targetAmount - goal.currentAmount)}.`,
+            category: 'goal',
+            currentValue: goal.currentAmount,
+            targetValue: goal.targetAmount,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date(),
+            actions: [
+              {
+                label: 'Ver Meta',
+                action: () => window.location.href = '/metas',
+                variant: 'outline'
+              }
+            ]
+          })
+        }
+      })
+    }
+
+    // Alertas baseados em gastos por categoria
+    if (expensesResponse.success && expensesResponse.data.length > 0) {
+      const topExpenses = expensesResponse.data.slice(0, 3)
+      topExpenses.forEach(expense => {
+        if (expense.percentage > 40) {
+          alerts.push({
+            id: `expense-high-${alertId++}`,
+            type: 'warning',
+            priority: 'medium',
+            title: 'Categoria de Gasto Elevada',
+            description: `Seus gastos com "${expense.category}" representam ${expense.percentage.toFixed(1)}% do total. Considere revisar esses gastos.`,
+            category: 'spending',
+            currentValue: expense.amount,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date(),
+            actions: [
+              {
+                label: 'Ver Relatórios',
+                action: () => window.location.href = '/relatorios',
+                variant: 'outline'
+              }
+            ]
+          })
+        }
+      })
+    }
+
+    // Alertas baseados em saldos de contas
+    if (accountsResponse.success && accountsResponse.data.length > 0) {
+      accountsResponse.data.forEach(account => {
+        const balance = parseFloat(account.balance || '0')
+
+        // Alerta para saldo baixo
+        if (balance < 100 && balance > 0) {
+          alerts.push({
+            id: `account-low-${alertId++}`,
+            type: 'warning',
+            priority: 'high',
+            title: 'Saldo Baixo',
+            description: `Sua conta "${account.name}" está com saldo baixo: ${accountsService.formatBalance(balance)}.`,
+            category: 'budget',
+            currentValue: balance,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date()
+          })
+        }
+
+        // Alerta para saldo negativo
+        if (balance < 0) {
+          alerts.push({
+            id: `account-negative-${alertId++}`,
+            type: 'danger',
+            priority: 'critical',
+            title: 'Saldo Negativo',
+            description: `Sua conta "${account.name}" está no vermelho: ${accountsService.formatBalance(Math.abs(balance))}.`,
+            category: 'budget',
+            currentValue: balance,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date(),
+            actions: [
+              {
+                label: 'Ver Transações',
+                action: () => window.location.href = '/transacoes',
+                variant: 'destructive'
+              }
+            ]
+          })
+        }
+
+        // Alerta para oportunidade de investimento
+        if (balance > 5000 && account.type === 'CHECKING') {
+          alerts.push({
+            id: `investment-opportunity-${alertId++}`,
+            type: 'info',
+            priority: 'low',
+            title: 'Oportunidade de Investimento',
+            description: `Você tem ${accountsService.formatBalance(balance)} na conta corrente. Considere investir parte desse valor.`,
+            category: 'investment',
+            currentValue: balance,
+            isActive: true,
+            isRead: false,
+            createdAt: new Date(),
+            actions: [
+              {
+                label: 'Simular Investimento',
+                action: () => showInfoToast('Simulação', `${accountsService.formatBalance(balance)} em CDB (12% a.a.) = ${accountsService.formatBalance(balance * 1.12)} em 12 meses`),
+                variant: 'default'
+              }
+            ]
+          })
+        }
+      })
+    }
+
+    // Se não há dados suficientes, mostrar alertas informativos
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 'welcome-tip',
+        type: 'info',
+        priority: 'low',
+        title: 'Bem-vindo aos Alertas Inteligentes!',
+        description: 'À medida que você adiciona transações e metas, criaremos alertas personalizados para ajudar você a gerenciar suas finanças.',
+        category: 'trend',
+        isActive: true,
+        isRead: false,
+        createdAt: new Date(),
+        actions: [
+          {
+            label: 'Adicionar Transação',
+            action: () => window.location.href = '/transacoes',
+            variant: 'default'
+          },
+          {
+            label: 'Criar Meta',
+            action: () => window.location.href = '/metas',
+            variant: 'outline'
+          }
+        ]
+      })
+    }
+
+  } catch (error) {
+    console.error('Erro ao gerar alertas inteligentes:', error)
+    // Retornar alerta de erro
+    alerts.push({
+      id: 'error-alert',
+      type: 'warning',
+      priority: 'medium',
+      title: 'Erro ao Carregar Alertas',
+      description: 'Não foi possível carregar os alertas inteligentes. Tente novamente mais tarde.',
+      category: 'trend',
+      isActive: true,
+      isRead: false,
+      createdAt: new Date()
+    })
   }
-]
+
+  return alerts
+}
 
 const defaultAlertRules: AlertRule[] = [
   {
@@ -293,12 +399,20 @@ export function SmartAlerts({ className }: SmartAlertsProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simular carregamento
-    setTimeout(() => {
-      setAlerts(getMockAlerts())
-      setAlertRules(defaultAlertRules)
-      setIsLoading(false)
-    }, 1000)
+    const loadIntelligentAlerts = async () => {
+      setIsLoading(true)
+      try {
+        const intelligentAlerts = await generateIntelligentAlerts()
+        setAlerts(intelligentAlerts)
+        setAlertRules(defaultAlertRules)
+      } catch (error) {
+        console.error('Erro ao carregar alertas:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadIntelligentAlerts()
   }, [])
 
   const unreadCount = alerts.filter(alert => !alert.isRead).length

@@ -17,71 +17,130 @@ import {
   ArrowDownLeft,
   DollarSign
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { reportsService, MonthlyTrend, ExpenseByCategory, IncomeBySource } from '@/services/reports'
+import { accountsService, Account } from '@/services/accounts'
 
 export const ReportsPage = () => {
   usePageTitle('Relatórios')
 
   const [selectedPeriod, setSelectedPeriod] = useState('mensal')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [monthlyData, setMonthlyData] = useState<MonthlyTrend[]>([])
+  const [categoryExpenses, setCategoryExpenses] = useState<ExpenseByCategory[]>([])
+  const [incomeBreakdown, setIncomeBreakdown] = useState<IncomeBySource[]>([])
+  const [accountBalances, setAccountBalances] = useState<Account[]>([])
+  const [insights, setInsights] = useState<any[]>([])
 
-  const monthlyData = [
-    { month: 'Jan 2024', income: 6400, expenses: 4200, savings: 2200 },
-    { month: 'Dez 2023', income: 5800, expenses: 3900, savings: 1900 },
-    { month: 'Nov 2023', income: 6200, expenses: 4100, savings: 2100 },
-    { month: 'Out 2023', income: 5900, expenses: 3800, savings: 2100 },
-    { month: 'Set 2023', income: 6100, expenses: 4000, savings: 2100 },
-    { month: 'Ago 2023', income: 5700, expenses: 3600, savings: 2100 },
-  ]
+  useEffect(() => {
+    loadReportsData()
+  }, [])
 
-  const categoryExpenses = [
-    { category: 'Alimentação', amount: 1234.56, percentage: 29.3, color: 'bg-red-500' },
-    { category: 'Transporte', amount: 567.89, percentage: 13.5, color: 'bg-blue-500' },
-    { category: 'Entretenimento', amount: 234.50, percentage: 5.6, color: 'bg-green-500' },
-    { category: 'Saúde', amount: 175.20, percentage: 4.2, color: 'bg-yellow-500' },
-    { category: 'Educação', amount: 102.90, percentage: 2.4, color: 'bg-purple-500' },
-    { category: 'Vestuário', amount: 189.90, percentage: 4.5, color: 'bg-emerald-500' },
-    { category: 'Investimento', amount: 1000.00, percentage: 23.8, color: 'bg-indigo-500' },
-    { category: 'Outros', amount: 695.05, percentage: 16.7, color: 'bg-gray-500' }
-  ]
+  const loadReportsData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-  const incomeBreakdown = [
-    { source: 'Salário Principal', amount: 5200.00, percentage: 81.3 },
-    { source: 'Freelance', amount: 1200.00, percentage: 18.7 }
-  ]
+      // Carregar dados em paralelo
+      const [monthlyResponse, expensesResponse, incomeResponse, accountsResponse] = await Promise.all([
+        reportsService.getMonthlyTrend(2024),
+        reportsService.getExpensesByCategory(),
+        reportsService.getIncomeBySource(),
+        accountsService.getAccounts()
+      ])
 
-  const insights = [
-    {
-      title: "Maior Economia do Ano",
-      description: "Janeiro foi seu melhor mês com R$ 2.200 economizados",
-      trend: "up",
-      value: "+15.8%"
-    },
-    {
-      title: "Categoria em Alta",
-      description: "Gastos com alimentação aumentaram 20% comparado ao mês anterior",
-      trend: "up",
-      value: "+20%"
-    },
-    {
-      title: "Meta Atingida",
-      description: "Você conseguiu economizar mais de R$ 2.000 este mês",
-      trend: "up",
-      value: "Meta ✓"
-    },
-    {
-      title: "Oportunidade",
-      description: "Seus gastos com transporte diminuíram 12%",
-      trend: "down",
-      value: "-12%"
+      // Processar dados mensais
+      if (monthlyResponse.success) {
+        setMonthlyData(monthlyResponse.data)
+      }
+
+      // Processar despesas por categoria
+      if (expensesResponse.success) {
+        setCategoryExpenses(expensesResponse.data)
+      }
+
+      // Processar receitas por fonte
+      if (incomeResponse.success) {
+        setIncomeBreakdown(incomeResponse.data)
+      }
+
+      // Processar contas
+      if (accountsResponse.success) {
+        setAccountBalances(accountsResponse.data)
+      }
+
+      // Gerar insights baseados nos dados (versão simplificada)
+      generateInsights(monthlyResponse.data, expensesResponse.data)
+
+    } catch (error) {
+      console.error('Erro ao carregar dados de relatórios:', error)
+      setError('Erro ao carregar dados de relatórios')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
-  const accountBalances = [
-    { account: 'Conta Corrente', balance: 8430.50, change: 12.5 },
-    { account: 'Conta Poupança', balance: 4200.00, change: 8.3 },
-    { account: 'Investimentos CDB', balance: 2800.00, change: 5.2 },
-    { account: 'Cartão Visa (Limite)', balance: -1234.56, change: -15.2 }
-  ]
+  const generateInsights = (monthly: MonthlyTrend[], expenses: ExpenseByCategory[]) => {
+    const generatedInsights = []
+
+    if (monthly.length > 1) {
+      const lastMonth = monthly[0]
+      const previousMonth = monthly[1]
+      const savingsChange = ((lastMonth.netIncome - previousMonth.netIncome) / Math.abs(previousMonth.netIncome || 1)) * 100
+
+      generatedInsights.push({
+        title: "Evolução Mensal",
+        description: `Seu saldo líquido ${savingsChange >= 0 ? 'aumentou' : 'diminuiu'} ${Math.abs(savingsChange).toFixed(1)}% comparado ao mês anterior`,
+        trend: savingsChange >= 0 ? "up" : "down",
+        value: `${savingsChange >= 0 ? '+' : ''}${savingsChange.toFixed(1)}%`
+      })
+    }
+
+    if (expenses.length > 0) {
+      const topExpense = expenses[0]
+      generatedInsights.push({
+        title: "Maior Categoria de Gasto",
+        description: `${topExpense.category} representa ${topExpense.percentage.toFixed(1)}% dos seus gastos`,
+        trend: "up",
+        value: `${topExpense.percentage.toFixed(1)}%`
+      })
+    }
+
+    setInsights(generatedInsights)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const handleExport = () => {
+    const csv = [
+      ['Período', 'Receitas', 'Despesas', 'Saldo Líquido'],
+      ...monthlyData.map(m => [
+        `${m.month}/${m.year}`,
+        m.income.toString(),
+        m.expenses.toString(),
+        m.netIncome.toString()
+      ])
+    ].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'relatorio-financeiro.csv'
+    a.click()
+    window.URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="min-h-screen bg-background pt-20">
@@ -101,20 +160,7 @@ export const ReportsPage = () => {
               <option value="anual">Último ano</option>
               <option value="personalizado">Período personalizado</option>
             </select>
-            <Button variant="outline" onClick={() => {
-              const csv = [
-                ['Período', 'Receitas', 'Despesas', 'Economia'],
-                ...monthlyData.map(m => [m.month, m.income.toString(), m.expenses.toString(), m.savings.toString()])
-              ].map(row => row.join(',')).join('\n')
-
-              const blob = new Blob([csv], { type: 'text/csv' })
-              const url = window.URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = 'relatorio-financeiro.csv'
-              a.click()
-              window.URL.revokeObjectURL(url)
-            }}>
+            <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>
@@ -145,36 +191,45 @@ export const ReportsPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {monthlyData.map((month, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium text-foreground">{month.month}</span>
-                          <span className="text-sm text-muted-foreground">
-                            Economia: R$ {month.savings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <div className="flex h-8 bg-gray-200 rounded-lg overflow-hidden">
-                            <div
-                              className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
-                              style={{ width: `${(month.income / (month.income + month.expenses)) * 100}%` }}
-                            >
-                              {month.income > month.expenses * 2 && `R$ ${month.income.toLocaleString()}`}
-                            </div>
-                            <div
-                              className="bg-red-500 flex items-center justify-center text-white text-xs font-medium"
-                              style={{ width: `${(month.expenses / (month.income + month.expenses)) * 100}%` }}
-                            >
-                              {month.expenses > month.income * 0.5 && `R$ ${month.expenses.toLocaleString()}`}
+                    {monthlyData.length > 0 ? monthlyData.map((month, index) => {
+                      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+                      const monthName = monthNames[parseInt(month.month) - 1] || month.month
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-foreground">{monthName} {month.year}</span>
+                            <span className="text-sm text-muted-foreground">
+                              Saldo: R$ {month.netIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="relative">
+                            <div className="flex h-8 bg-gray-200 rounded-lg overflow-hidden">
+                              <div
+                                className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
+                                style={{ width: `${(month.income / (month.income + month.expenses)) * 100}%` }}
+                              >
+                                {month.income > month.expenses * 2 && `R$ ${month.income.toLocaleString()}`}
+                              </div>
+                              <div
+                                className="bg-red-500 flex items-center justify-center text-white text-xs font-medium"
+                                style={{ width: `${(month.expenses / (month.income + month.expenses)) * 100}%` }}
+                              >
+                                {month.expenses > month.income * 0.5 && `R$ ${month.expenses.toLocaleString()}`}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>Receitas: R$ {month.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            <span>Despesas: R$ {month.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Receitas: R$ {month.income.toLocaleString()}</span>
-                          <span>Despesas: R$ {month.expenses.toLocaleString()}</span>
-                        </div>
+                      )
+                    }) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Nenhum dado mensal disponível</p>
+                        <p className="text-sm">Adicione algumas transações para ver a evolução financeira</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -189,20 +244,27 @@ export const ReportsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {accountBalances.map((account, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium text-foreground">{account.account}</p>
-                            <p className={`text-sm flex items-center ${account.change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                              {account.change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                              {account.change >= 0 ? '+' : ''}{account.change}% este mês
+                      {accountBalances.length > 0 ? accountBalances.map((account, index) => {
+                        const balance = parseFloat(account.balance || '0')
+                        return (
+                          <div key={index} className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium text-foreground">{account.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {account.type} • {account.status}
+                              </p>
+                            </div>
+                            <p className={`font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                              R$ {Math.abs(balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </p>
                           </div>
-                          <p className={`font-bold ${account.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
-                            R$ {Math.abs(account.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </p>
+                        )
+                      }) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p>Nenhuma conta cadastrada</p>
+                          <p className="text-sm">Cadastre suas contas para acompanhar os saldos</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -216,7 +278,7 @@ export const ReportsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {incomeBreakdown.map((source, index) => (
+                      {incomeBreakdown.length > 0 ? incomeBreakdown.map((source, index) => (
                         <div key={index} className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-foreground">{source.source}</span>
@@ -228,9 +290,14 @@ export const ReportsPage = () => {
                               style={{ width: `${source.percentage}%` }}
                             ></div>
                           </div>
-                          <p className="text-sm text-muted-foreground">{source.percentage}% do total</p>
+                          <p className="text-sm text-muted-foreground">{source.percentage.toFixed(1)}% do total</p>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <p>Nenhuma fonte de renda identificada</p>
+                          <p className="text-sm">Adicione transações de receita para ver a análise</p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -250,26 +317,37 @@ export const ReportsPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {categoryExpenses.map((category, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <div className={`w-4 h-4 rounded-full mr-3 ${category.color}`}></div>
-                            <span className="text-foreground">{category.category}</span>
+                    {categoryExpenses.length > 0 ? categoryExpenses.map((category, index) => {
+                      const colorClass = `bg-${category.color}`
+                      return (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className={`w-4 h-4 rounded-full mr-3`} style={{ backgroundColor: category.color }}></div>
+                              <span className="text-foreground">{category.category}</span>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">R$ {category.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                              <p className="text-sm text-muted-foreground">{category.percentage.toFixed(1)}%</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium">R$ {category.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                            <p className="text-sm text-muted-foreground">{category.percentage}%</p>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${category.percentage}%`,
+                                backgroundColor: category.color
+                              }}
+                            ></div>
                           </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${category.color}`}
-                            style={{ width: `${category.percentage}%` }}
-                          ></div>
-                        </div>
+                      )
+                    }) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Nenhuma despesa por categoria</p>
+                        <p className="text-sm">Adicione transações com categorias para ver a distribuição</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -286,7 +364,7 @@ export const ReportsPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {insights.map((insight, index) => (
+                    {insights.length > 0 ? insights.map((insight, index) => (
                       <div key={index} className="p-4 border border-gray-200 rounded-lg">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -305,7 +383,12 @@ export const ReportsPage = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Nenhum insight disponível</p>
+                        <p className="text-sm">Adicione mais transações para gerar insights inteligentes</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
