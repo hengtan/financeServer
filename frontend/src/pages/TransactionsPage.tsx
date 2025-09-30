@@ -14,7 +14,8 @@ import {
   ArrowUpRight,
   ArrowDownLeft
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { transactionsService, Transaction } from '@/services/transactions'
 import { LoadingWrapper } from '@/components/LoadingWrapper'
 import { useLoading } from '@/hooks/useLoading'
 
@@ -25,32 +26,55 @@ export const TransactionsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('todas')
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false)
   const { isLoading, startLoading, stopLoading } = useLoading({ minimumDuration: 800 })
-  const [transactions, setTransactions] = useState([
-    { id: 1, description: "Salário - Empresa XYZ", amount: 5200.00, date: "2024-01-15", category: "Renda", account: "Conta Corrente", type: "crédito", status: "confirmada" },
-    { id: 2, description: "Freelance - Projeto ABC", amount: 1200.00, date: "2024-01-12", category: "Renda Extra", account: "Conta Poupança", type: "pix", status: "confirmada" },
-    { id: 3, description: "Supermercado Extra", amount: -234.50, date: "2024-01-16", category: "Alimentação", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 4, description: "Netflix Streaming", amount: -29.90, date: "2024-01-14", category: "Entretenimento", account: "Cartão Visa", type: "cartão", status: "pendente" },
-    { id: 5, description: "Uber - Corrida Centro", amount: -18.50, date: "2024-01-14", category: "Transporte", account: "Cartão Mastercard", type: "cartão", status: "confirmada" },
-    { id: 6, description: "Farmácia São João", amount: -85.30, date: "2024-01-13", category: "Saúde", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 7, description: "Mercado Livre - Livros", amount: -67.90, date: "2024-01-11", category: "Educação", account: "Cartão Visa", type: "cartão", status: "confirmada" },
-    { id: 8, description: "Academia FitLife", amount: -89.90, date: "2024-01-10", category: "Saúde", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 9, description: "Posto Shell", amount: -120.00, date: "2024-01-09", category: "Transporte", account: "Cartão Visa", type: "cartão", status: "confirmada" },
-    { id: 10, description: "iFood - Almoço", amount: -45.90, date: "2024-01-08", category: "Alimentação", account: "Cartão Mastercard", type: "cartão", status: "confirmada" },
-    { id: 11, description: "Transferência - João", amount: -200.00, date: "2024-01-07", category: "Transferência", account: "Conta Corrente", type: "pix", status: "confirmada" },
-    { id: 12, description: "Padaria do Bairro", amount: -15.50, date: "2024-01-07", category: "Alimentação", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 13, description: "Spotify Premium", amount: -16.90, date: "2024-01-06", category: "Entretenimento", account: "Cartão Visa", type: "cartão", status: "confirmada" },
-    { id: 14, description: "Amazon - Livro", amount: -35.00, date: "2024-01-05", category: "Educação", account: "Cartão Mastercard", type: "cartão", status: "confirmada" },
-    { id: 15, description: "Padaria Central", amount: -12.80, date: "2024-01-05", category: "Alimentação", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 16, description: "Estacionamento Shopping", amount: -8.00, date: "2024-01-04", category: "Transporte", account: "Conta Corrente", type: "débito", status: "confirmada" },
-    { id: 17, description: "Pizzaria Bella", amount: -78.50, date: "2024-01-03", category: "Alimentação", account: "Cartão Visa", type: "cartão", status: "confirmada" },
-    { id: 18, description: "Cinema Multiplex", amount: -24.00, date: "2024-01-02", category: "Entretenimento", account: "Cartão Mastercard", type: "cartão", status: "confirmada" },
-    { id: 19, description: "Loja de Roupas", amount: -189.90, date: "2024-01-01", category: "Vestuário", account: "Cartão Visa", type: "cartão", status: "confirmada" },
-    { id: 20, description: "Investimento CDB", amount: -1000.00, date: "2024-01-01", category: "Investimento", account: "Conta Corrente", type: "transferência", status: "confirmada" }
-  ])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<string[]>(['todas'])
 
-  const categories = [
-    'todas', 'Renda', 'Alimentação', 'Transporte', 'Entretenimento', 'Saúde', 'Educação', 'Vestuário', 'Investimento'
-  ]
+  useEffect(() => {
+    loadTransactions()
+  }, [])
+
+  const loadTransactions = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Carregar transações e categorias em paralelo
+      const [transactionsResponse, categoriesResponse] = await Promise.all([
+        transactionsService.getTransactions({ limit: 50 }),
+        transactionsService.getCategories()
+      ])
+
+      if (transactionsResponse.success) {
+        // Converter dados da API para o formato esperado pelo componente
+        const formattedTransactions: Transaction[] = transactionsResponse.data.data.map((t: any) => ({
+          id: t.id,
+          description: t.description,
+          amount: parseFloat(t.amount || 0),
+          date: t.date,
+          category: t.category?.name || 'Sem categoria',
+          account: t.account?.name || 'Conta',
+          type: t.type === 'INCOME' ? 'income' : 'expense',
+          status: t.status === 'COMPLETED' ? 'confirmed' : t.status === 'PENDING' ? 'pending' : 'cancelled'
+        }))
+        setTransactions(formattedTransactions)
+      }
+
+      if (categoriesResponse.success) {
+        setCategories(['todas', ...categoriesResponse.data])
+      }
+
+    } catch (error) {
+      console.error('Erro ao carregar transações:', error)
+      setError('Erro ao carregar transações')
+      // Em caso de erro, usar array vazio em vez de dados mock
+      setTransactions([])
+      setCategories(['todas'])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const summary = {
     total: transactions.reduce((sum, t) => sum + t.amount, 0),
