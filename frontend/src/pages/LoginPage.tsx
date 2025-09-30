@@ -181,9 +181,9 @@ export const LoginPage = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Não tem uma conta?{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
+                <Link to="/cadastro" className="text-blue-600 hover:text-blue-500 font-medium">
                   Cadastre-se grátis
-                </a>
+                </Link>
               </p>
             </div>
 

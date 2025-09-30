@@ -13,6 +13,7 @@ import { AboutPage } from '@/pages/AboutPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { DemoPage } from '@/pages/DemoPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { FeaturesPage } from '@/pages/FeaturesPage'
 import { PricingPage } from '@/pages/PricingPage'
@@ -128,6 +129,12 @@ function App() {
           <Route path="/login" element={
             <PublicRoute>
               <LoginPage />
+            </PublicRoute>
+          } />
+
+          <Route path="/cadastro" element={
+            <PublicRoute>
+              <RegisterPage />
             </PublicRoute>
           } />
 
