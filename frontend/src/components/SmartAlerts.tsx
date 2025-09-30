@@ -27,7 +27,6 @@ import { dashboardService } from '@/services/dashboard'
 import { transactionsService } from '@/services/transactions'
 import { goalsService } from '@/services/goals'
 import { accountsService } from '@/services/accounts'
-import { reportsService } from '@/services/reports'
 
 interface Alert {
   id: string
@@ -78,10 +77,9 @@ const generateIntelligentAlerts = async (): Promise<Alert[]> => {
 
   try {
     // Buscar dados em paralelo
-    const [dashboardResponse, goalsResponse, expensesResponse, accountsResponse] = await Promise.all([
+    const [dashboardResponse, goalsResponse, accountsResponse] = await Promise.all([
       dashboardService.getOverview(),
       goalsService.getGoals(),
-      reportsService.getExpensesByCategory(),
       accountsService.getAccounts()
     ])
 
@@ -141,32 +139,36 @@ const generateIntelligentAlerts = async (): Promise<Alert[]> => {
       })
     }
 
-    // Alertas baseados em gastos por categoria
-    if (expensesResponse.success && expensesResponse.data.length > 0) {
-      const topExpenses = expensesResponse.data.slice(0, 3)
-      topExpenses.forEach(expense => {
-        if (expense.percentage > 40) {
+    // Alertas baseados no dashboard overview
+    if (dashboardResponse.success && dashboardResponse.data) {
+      const { monthlyExpenses, monthlyIncome } = dashboardResponse.data
+
+      // Alerta se gastos mensais são muito altos em relação à renda
+      if (monthlyExpenses && monthlyIncome && monthlyIncome > 0) {
+        const expenseRatio = (monthlyExpenses / monthlyIncome) * 100
+        if (expenseRatio > 80) {
           alerts.push({
-            id: `expense-high-${alertId++}`,
+            id: `expense-ratio-high-${alertId++}`,
             type: 'warning',
-            priority: 'medium',
-            title: 'Categoria de Gasto Elevada',
-            description: `Seus gastos com "${expense.category}" representam ${expense.percentage.toFixed(1)}% do total. Considere revisar esses gastos.`,
+            priority: 'high',
+            title: 'Gastos Elevados',
+            description: `Seus gastos representam ${expenseRatio.toFixed(1)}% da sua renda mensal. Considere revisar seus gastos.`,
             category: 'spending',
-            currentValue: expense.amount,
+            currentValue: monthlyExpenses,
+            targetValue: monthlyIncome * 0.8,
             isActive: true,
             isRead: false,
             createdAt: new Date(),
             actions: [
               {
-                label: 'Ver Relatórios',
-                action: () => window.location.href = '/relatorios',
+                label: 'Ver Transações',
+                action: () => window.location.href = '/transacoes',
                 variant: 'outline'
               }
             ]
           })
         }
-      })
+      }
     }
 
     // Alertas baseados em saldos de contas
