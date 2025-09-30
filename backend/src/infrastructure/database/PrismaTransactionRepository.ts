@@ -92,6 +92,43 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     }
   }
 
+  async findByUserIdAndPeriod(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    filters?: {
+      type?: string
+      status?: string
+      categoryId?: string
+      accountId?: string
+    }
+  ): Promise<Transaction[]> {
+    const where: any = {
+      userId,
+      date: {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      }
+    }
+
+    if (filters?.type) where.type = filters.type
+    if (filters?.status) where.status = filters.status
+    if (filters?.categoryId) where.categoryId = filters.categoryId
+    if (filters?.accountId) where.accountId = filters.accountId
+
+    const transactions = await this.prisma.transaction.findMany({
+      where,
+      include: {
+        category: true,
+        account: true,
+        toAccount: true
+      },
+      orderBy: { date: 'desc' }
+    })
+
+    return transactions.map(t => this.toDomainEntity(t))
+  }
+
   async findByAccountId(accountId: string, filters?: {
     type?: string
     status?: string

@@ -16,6 +16,17 @@ export interface ITransactionRepository {
     transactions: Transaction[]
     total: number
   }>
+  findByUserIdAndPeriod(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    filters?: {
+      type?: string
+      status?: string
+      categoryId?: string
+      accountId?: string
+    }
+  ): Promise<Transaction[]>
   create(transaction: Transaction): Promise<Transaction>
   update(transaction: Transaction): Promise<Transaction>
   delete(id: string): Promise<void>

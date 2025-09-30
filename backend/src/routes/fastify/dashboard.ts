@@ -42,16 +42,21 @@ export default async function dashboardRoutes(
       startDate.setDate(endDate.getDate() - parseInt(period))
 
       // Buscar dados em paralelo para melhor performance
-      const [accounts, transactions, goals, budgets] = await Promise.all([
+      const [accountsResult, transactions, goalsResult, budgetsResult] = await Promise.all([
         accountRepository.findByUserId(user.id),
         transactionRepository.findByUserIdAndPeriod(user.id, startDate.toISOString(), endDate.toISOString()),
         goalRepository.findByUserId(user.id, 'ACTIVE'),
         budgetRepository.findByUserId(user.id, { status: 'ACTIVE' })
       ])
 
+      // Extrair arrays dos resultados
+      const accounts = accountsResult?.accounts || []
+      const goals = goalsResult || []
+      const budgets = budgetsResult?.budgets || []
+
       // Calcular métricas financeiras
-      const totalBalance = accounts?.reduce((sum: number, acc: any) =>
-        sum + parseFloat(acc.balance || '0'), 0) || 0
+      const totalBalance = accounts.reduce((sum: number, acc: any) =>
+        sum + parseFloat(acc.balance || '0'), 0)
 
       const incomeTransactions = transactions?.filter((t: any) => t.type === 'INCOME') || []
       const expenseTransactions = transactions?.filter((t: any) => t.type === 'EXPENSE') || []
@@ -171,8 +176,8 @@ export default async function dashboardRoutes(
             }
           },
           accounts: {
-            total: accounts?.length || 0,
-            active: accounts?.filter((acc: any) => acc.status === 'ACTIVE').length || 0,
+            total: accounts.length,
+            active: accounts.filter((acc: any) => acc.status === 'ACTIVE').length,
             totalBalance
           },
           transactions: {
@@ -183,14 +188,14 @@ export default async function dashboardRoutes(
               Math.abs(totalExpenses + totalIncome) / transactions.length : 0
           },
           goals: {
-            total: goals?.length || 0,
+            total: goals.length,
             averageProgress: goalsProgress.length > 0 ?
               goalsProgress.reduce((sum, g) => sum + g.progress, 0) / goalsProgress.length : 0,
             completedGoals: goalsProgress.filter(g => g.progress >= 100).length,
             activeGoals: goalsProgress
           },
           budgets: {
-            total: budgets?.length || 0,
+            total: budgets.length,
             exceeded: budgetsStatus.filter(b => b.status === 'EXCEEDED').length,
             warning: budgetsStatus.filter(b => b.status === 'WARNING').length,
             activeBudgets: budgetsStatus
@@ -241,25 +246,29 @@ export default async function dashboardRoutes(
         return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
       }
 
-      const [accounts, recentTransactions, activeGoals, activeBudgets] = await Promise.all([
+      const [accountsResult, recentTransactionsResult, activeGoals, activeBudgetsResult] = await Promise.all([
         accountRepository.findByUserId(user.id),
         transactionRepository.findByUserId(user.id, { limit: 10 }),
         goalRepository.findByUserId(user.id, 'ACTIVE'),
         budgetRepository.findByUserId(user.id, { status: 'ACTIVE' })
       ])
 
-      const totalBalance = accounts?.reduce((sum: number, acc: any) =>
-        sum + parseFloat(acc.balance || '0'), 0) || 0
+      const accounts = accountsResult?.accounts || []
+      const recentTransactions = recentTransactionsResult?.transactions || []
+      const activeBudgets = activeBudgetsResult?.budgets || []
+
+      const totalBalance = accounts.reduce((sum: number, acc: any) =>
+        sum + parseFloat(acc.balance || '0'), 0)
 
       return {
         success: true,
         data: {
           totalBalance,
-          accountsCount: accounts?.length || 0,
-          recentTransactionsCount: recentTransactions?.length || 0,
+          accountsCount: accounts.length,
+          recentTransactionsCount: recentTransactions.length,
           activeGoalsCount: activeGoals?.length || 0,
-          activeBudgetsCount: activeBudgets?.length || 0,
-          lastTransactionDate: recentTransactions?.[0]?.date || null
+          activeBudgetsCount: activeBudgets.length,
+          lastTransactionDate: recentTransactions[0]?.date || null
         }
       }
     } catch (error) {
