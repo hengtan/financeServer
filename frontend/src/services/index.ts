@@ -7,6 +7,7 @@ export * from './categories'
 export * from './goals'
 export * from './budgets'
 export * from './reports'
+export * from './dashboard'
 
 // Re-export service instances for easy access
 export { apiService } from './api'
@@ -17,3 +18,4 @@ export { categoriesService } from './categories'
 export { goalsService } from './goals'
 export { budgetsService } from './budgets'
 export { reportsService } from './reports'
+export { dashboardService } from './dashboard'

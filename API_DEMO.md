@@ -25,6 +25,8 @@ cd frontend && npm run dev
 - **Frontend:** http://localhost:5173
 - **Documentação Swagger:** http://localhost:3001/docs
 - **Health Check:** http://localhost:3001/health
+- **Health Check Avançado:** http://localhost:3001/health/detailed
+- **Performance Metrics:** http://localhost:3001/health/metrics
 
 ---
 
@@ -358,21 +360,151 @@ const loadGoals = async () => {
 
 ---
 
-## ✅ **Funcionalidades Testadas e Funcionando**
+## 📊 **8. API de Dashboard (Dashboard)**
 
-- ✅ **Autenticação JWT** completa
-- ✅ **CRUD de Contas** com validações
-- ✅ **Categorias sistema + usuário**
-- ✅ **Transações** com analytics avançadas
-- ✅ **Metas financeiras** com progresso
-- ✅ **Orçamentos** com alertas inteligentes
-- ✅ **Cache Redis** para performance
-- ✅ **Validação de dados** em todos endpoints
-- ✅ **Tratamento de erros** padronizado
-- ✅ **Documentação Swagger** automática
+#### Obter Visão Geral Financeira Completa
+```bash
+curl -X GET "http://localhost:3001/api/dashboard/overview?period=30" \
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+```
+
+#### Obter Estatísticas Rápidas
+```bash
+curl -X GET http://localhost:3001/api/dashboard/quick-stats \
+  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+```
+
+#### Testar API Dashboard
+```bash
+curl -X GET http://localhost:3001/api/dashboard/test
+```
+
+**Resposta esperada (Overview):**
+```json
+{
+  "success": true,
+  "data": {
+    "period": { "days": 30, "startDate": "...", "endDate": "..." },
+    "financial": {
+      "totalBalance": 12500.50,
+      "totalIncome": 8500.00,
+      "totalExpenses": 5200.30,
+      "netIncome": 3299.70,
+      "expenseTrend": { "percentage": -5.2, "direction": "DOWN" }
+    },
+    "analytics": {
+      "topExpenseCategories": [...],
+      "financialHealth": {
+        "score": 78,
+        "recommendations": [...]
+      }
+    }
+  }
+}
+```
 
 ---
 
-## 🚀 **Sistema Totalmente Funcional!**
+## 🔍 **9. Monitoramento e Health Checks**
 
-O FinanceServer está pronto para uso em produção com todas as funcionalidades core implementadas e testadas.
+#### Health Check Básico
+```bash
+curl -X GET http://localhost:3001/health
+```
+
+#### Health Check Detalhado
+```bash
+curl -X GET http://localhost:3001/health/detailed
+```
+
+#### Métricas de Performance
+```bash
+curl -X GET http://localhost:3001/health/metrics
+```
+
+#### Readiness Probe (Kubernetes)
+```bash
+curl -X GET http://localhost:3001/health/ready
+```
+
+#### Liveness Probe (Kubernetes)
+```bash
+curl -X GET http://localhost:3001/health/alive
+```
+
+---
+
+## ✅ **Funcionalidades Implementadas e Testadas**
+
+### Core Features
+- ✅ **Autenticação JWT** completa com refresh tokens
+- ✅ **CRUD de Contas** com validações e resumos
+- ✅ **Categorias sistema + usuário** com estatísticas de uso
+- ✅ **Transações** com analytics avançadas e filtros
+- ✅ **Metas financeiras** com progresso e contribuições
+- ✅ **Orçamentos** com alertas inteligentes e analytics
+- ✅ **Dashboard** com visão geral e health scoring
+- ✅ **Cache Redis** para performance otimizada
+- ✅ **Validação de dados** em todos endpoints
+- ✅ **Tratamento de erros** padronizado e estruturado
+
+### Advanced Features
+- ✅ **Rate Limiting Avançado** por tipo de operação
+- ✅ **Logging Estruturado** com Winston e rotação de logs
+- ✅ **Health Checks Avançados** para todos os serviços
+- ✅ **Métricas de Performance** em tempo real
+- ✅ **Auditoria completa** de operações financeiras
+- ✅ **Sliding Window Rate Limiting** com Redis
+- ✅ **Documentação Swagger** automática e completa
+- ✅ **Frontend Services** para todas as APIs
+- ✅ **Error Fingerprinting** para deduplicação
+- ✅ **Graceful Shutdown** com cleanup de recursos
+
+### Security & Monitoring
+- ✅ **JWT com blacklist** no Redis
+- ✅ **Rate limiting por IP, usuário e operação**
+- ✅ **Logs de auditoria** para compliance
+- ✅ **Monitoramento de saúde** do sistema
+- ✅ **Métricas de performance** detalhadas
+- ✅ **Detecção de anomalias** financeiras
+- ✅ **Backup de logs** com rotação automática
+
+---
+
+## 🚀 **Sistema Enterprise-Ready!**
+
+O FinanceServer está pronto para uso em produção com:
+
+### 🏗️ Arquitetura
+- **Clean Architecture** com Domain-Driven Design
+- **Dependency Injection** com TypeDI
+- **Repository Pattern** com Prisma ORM
+- **Service Layer** bem definido
+- **Middleware pipeline** configurável
+
+### 🔒 Segurança
+- **Rate Limiting** multi-camada
+- **JWT Authentication** com refresh tokens
+- **Input Validation** completa
+- **SQL Injection** prevenção com Prisma
+- **CORS** configurado corretamente
+
+### 📊 Observabilidade
+- **Structured Logging** com níveis
+- **Health Checks** para todos serviços
+- **Performance Metrics** detalhadas
+- **Error Tracking** com fingerprints
+- **Audit Trails** completos
+
+### ⚡ Performance
+- **Redis Caching** estratégico
+- **Connection Pooling** otimizado
+- **Query Optimization** com índices
+- **Sliding Window** rate limiting
+- **Graceful Degradation** em falhas
+
+### 📱 Frontend Ready
+- **TypeScript Services** completos
+- **Type Safety** end-to-end
+- **Error Handling** padronizado
+- **API Consistency** garantida
