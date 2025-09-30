@@ -1,0 +1,129 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:17-alpine
+    container_name: financeserver-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: financeserver
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - financeserver-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financeserver"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: financeserver-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ""
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - financeserver-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financeserver-backend
+    restart: unless-stopped
+    environment:
+      # Server
+      NODE_ENV: development
+      PORT: 3001
+
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/financeserver
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+
+      # JWT
+      JWT_SECRET: finance-server-production-secret-key-2024-change-in-production
+      JWT_EXPIRES_IN: 7d
+      JWT_REFRESH_SECRET: production-refresh-secret-key-change-this
+      JWT_REFRESH_EXPIRES_IN: 30d
+
+      # CORS
+      CORS_ORIGIN: http://localhost:5173,http://localhost:3000
+
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+
+      # Bcrypt
+      BCRYPT_SALT_ROUNDS: 12
+
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: combined
+    ports:
+      - "3001:3001"
+    networks:
+      - financeserver-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # volumes:
+      # - ./backend/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Database Migration Service (run once)
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financeserver-migrate
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/financeserver
+    networks:
+      - financeserver-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npx tsx prisma/seed.ts
+      "
+    restart: "no"
+
+networks:
+  financeserver-network:
+    driver: bridge
+    name: financeserver-network
+
+volumes:
+  postgres_data:
+    name: financeserver-postgres-data
+  redis_data:
+    name: financeserver-redis-data

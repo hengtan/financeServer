@@ -1,11 +1,11 @@
-import { Service } from 'typedi'
+import { Service, Inject } from 'typedi'
 import { PrismaClient } from '@prisma/client'
 import { User, UserRole, UserStatus } from '../../core/entities/User'
 import { IUserRepository } from '../../core/interfaces/repositories/IUserRepository'
 
 @Service()
 export class PrismaUserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(@Inject('PrismaClient') private readonly prisma: PrismaClient) {}
 
   async findById(id: string): Promise<User | null> {
     const userData = await this.prisma.user.findUnique({

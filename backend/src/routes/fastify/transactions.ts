@@ -1,169 +1,386 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify'
-
-// Dados mock para desenvolvimento/sandbox
-const mockTransactions = [
-  {
-    id: 1,
-    description: 'Salário',
-    amount: 5200,
-    date: '2024-01-15',
-    category: 'Renda',
-    account: 'Conta Corrente',
-    type: 'income',
-    status: 'confirmed',
-    tags: ['trabalho', 'mensal'],
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    userId: 1
-  },
-  {
-    id: 2,
-    description: 'Freelance Design',
-    amount: 1200,
-    date: '2024-01-12',
-    category: 'Renda Extra',
-    account: 'Conta Corrente',
-    type: 'income',
-    status: 'confirmed',
-    tags: ['freelance', 'design'],
-    createdAt: '2024-01-12T14:30:00Z',
-    updatedAt: '2024-01-12T14:30:00Z',
-    userId: 1
-  },
-  {
-    id: 3,
-    description: 'Supermercado',
-    amount: -234.50,
-    date: '2024-01-16',
-    category: 'Alimentação',
-    account: 'Cartão de Crédito',
-    type: 'expense',
-    status: 'confirmed',
-    tags: ['supermercado'],
-    createdAt: '2024-01-16T18:45:00Z',
-    updatedAt: '2024-01-16T18:45:00Z',
-    userId: 1
-  }
-]
-
-const mockUser = {
-  id: 1,
-  email: 'sandbox@financeserver.dev',
-  name: 'Usuário Sandbox',
-  avatar: null,
-  createdAt: '2024-01-01T00:00:00Z',
-  updatedAt: '2024-01-15T12:00:00Z'
-}
+import { Container } from 'typedi'
+import { TransactionService } from '../../services/TransactionService'
+import { AuthService } from '../../services/AuthService'
+import { RedisService } from '../../infrastructure/cache/RedisService'
 
 export default async function transactionRoutes(
   fastify: FastifyInstance,
   options: FastifyPluginOptions
 ) {
+  // Temporary fix for DI issues
+  const transactionRepository = Container.get('ITransactionRepository') as any
+  const accountRepository = Container.get('IAccountRepository') as any
+  const categoryRepository = Container.get('ICategoryRepository') as any
+  const redisService = Container.get(RedisService)
+  const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, redisService)
+
+  const userRepository = Container.get('IUserRepository') as any
+  const authService = new AuthService(userRepository, redisService)
   const prefix = '/api'
+
+  // Helper function to extract user from token
+  const getUserFromToken = async (authHeader?: string) => {
+    if (!authHeader) {
+      throw new Error('Token não fornecido')
+    }
+    const token = authHeader.replace('Bearer ', '')
+    return await authService.validateToken(token)
+  }
 
   // GET /api/transactions - Listar transações com paginação
   fastify.get(`${prefix}/transactions`, async (request, reply) => {
-    const query = request.query as any
-    const page = parseInt(query.page) || 1
-    const limit = parseInt(query.limit) || 10
-    const offset = (page - 1) * limit
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
 
-    return {
-      success: true,
-      data: {
-        data: mockTransactions.slice(offset, offset + limit),
+      const query = request.query as any
+      const page = parseInt(query.page) || 1
+      const limit = parseInt(query.limit) || 10
+
+      const transactions = await transactionService.getTransactionsByUser(
+        user.id,
+        { page, limit }
+      )
+
+      return {
+        success: true,
+        data: transactions,
         pagination: {
-          page,
-          limit,
-          total: mockTransactions.length,
-          totalPages: Math.ceil(mockTransactions.length / limit)
+          page: transactions.page,
+          limit: transactions.limit,
+          total: transactions.total,
+          totalPages: Math.ceil(transactions.total / transactions.limit),
+          hasNext: (transactions.page * transactions.limit) < transactions.total,
+          hasPrev: transactions.page > 1
         }
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
     }
   })
 
   // GET /api/transactions/:id - Buscar transação específica
   fastify.get(`${prefix}/transactions/:id`, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const transaction = mockTransactions.find(t => t.id === parseInt(id))
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
 
-    if (!transaction) {
-      return reply.status(404).send({
+      const { id } = request.params as { id: string }
+
+      const transaction = await transactionService.getTransactionById(id, user.id)
+
+      return {
+        success: true,
+        data: transaction
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      if (errorMessage.includes('não encontrada') || errorMessage.includes('not found')) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Transação não encontrada'
+        })
+      }
+
+      return reply.status(500).send({
         success: false,
-        message: 'Transação não encontrada'
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
       })
-    }
-
-    return {
-      success: true,
-      data: transaction
     }
   })
 
   // POST /api/transactions - Criar nova transação
   fastify.post(`${prefix}/transactions`, async (request, reply) => {
-    const body = request.body as any
-    const newTransaction = {
-      id: mockTransactions.length + 1,
-      ...body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      userId: 1
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const body = request.body as any
+
+      const transactionData = {
+        ...body,
+        userId: user.id
+      }
+
+      const transaction = await transactionService.createTransaction(transactionData)
+
+      return reply.status(201).send({
+        success: true,
+        data: transaction,
+        message: 'Transação criada com sucesso'
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      if (errorMessage.includes('required') || errorMessage.includes('obrigatório')) {
+        return reply.status(400).send({
+          success: false,
+          message: 'Dados inválidos',
+          errors: [errorMessage]
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
     }
-
-    mockTransactions.push(newTransaction)
-
-    return reply.status(201).send({
-      success: true,
-      data: newTransaction,
-      message: 'Transação criada com sucesso'
-    })
   })
 
-  // GET /api/transactions/categories - Listar categorias
-  fastify.get(`${prefix}/transactions/categories`, async (request, reply) => {
-    const categories = [...new Set(mockTransactions.map(t => t.category))]
+  // PUT /api/transactions/:id - Atualizar transação
+  fastify.put(`${prefix}/transactions/:id`, async (request, reply) => {
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
 
-    return {
-      success: true,
-      data: categories
+      const { id } = request.params as { id: string }
+      const body = request.body as any
+
+      const transaction = await transactionService.updateTransaction(id, body)
+
+      return {
+        success: true,
+        data: transaction,
+        message: 'Transação atualizada com sucesso'
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      if (errorMessage.includes('não encontrada') || errorMessage.includes('not found')) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Transação não encontrada'
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
+    }
+  })
+
+  // DELETE /api/transactions/:id - Deletar transação
+  fastify.delete(`${prefix}/transactions/:id`, async (request, reply) => {
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const { id } = request.params as { id: string }
+
+      await transactionService.deleteTransaction(id)
+
+      return {
+        success: true,
+        message: 'Transação deletada com sucesso'
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      if (errorMessage.includes('não encontrada') || errorMessage.includes('not found')) {
+        return reply.status(404).send({
+          success: false,
+          message: 'Transação não encontrada'
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
     }
   })
 
   // GET /api/transactions/summary - Resumo financeiro
   fastify.get(`${prefix}/transactions/summary`, async (request, reply) => {
-    const totalIncome = mockTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalExpenses = mockTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-
-    return {
-      success: true,
-      data: {
-        totalIncome,
-        totalExpenses,
-        balance: totalIncome - totalExpenses,
-        transactionsCount: mockTransactions.length,
-        period: {
-          start: '2024-01-01',
-          end: new Date().toISOString().split('T')[0]
-        }
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
       }
+
+      const query = request.query as any
+
+      const summary = await transactionService.getMonthlyStats(user.id,
+        new Date().getFullYear(),
+        new Date().getMonth() + 1
+      )
+
+      return {
+        success: true,
+        data: summary
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
     }
   })
 
   // GET /api/transactions/monthly-trend - Tendência mensal
   fastify.get(`${prefix}/transactions/monthly-trend`, async (request, reply) => {
-    return {
-      success: true,
-      data: [
-        { month: '2024-01', income: 6400, expenses: 1000, balance: 5400 },
-        { month: '2024-02', income: 5200, expenses: 800, balance: 4400 },
-        { month: '2024-03', income: 5200, expenses: 900, balance: 4300 }
-      ]
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      const query = request.query as any
+
+      // This would be implemented based on your requirements
+      // For now, return a simple response
+      return {
+        success: true,
+        data: [],
+        message: 'Monthly trend endpoint - to be implemented'
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
+        return reply.status(401).send({
+          success: false,
+          message: 'Token inválido ou expirado'
+        })
+      }
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro interno do servidor',
+        errors: [errorMessage]
+      })
+    }
+  })
+
+  // GET /api/transactions/analytics/detailed - Detalhamento Avançado
+  fastify.get(`${prefix}/transactions/analytics/detailed`, async (request, reply) => {
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const query = request.query as any
+      const year = parseInt(query.year) || new Date().getFullYear()
+      const month = query.month ? parseInt(query.month) : undefined
+
+      // Análise por categoria
+      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month)
+
+      // Análise de tendências mensais (últimos 12 meses)
+      const trendAnalysis = await transactionService.getTrendAnalysis(user.id)
+
+      // Comparação com período anterior
+      const comparisonAnalysis = await transactionService.getComparisonAnalysis(user.id, year, month)
+
+      return {
+        success: true,
+        data: {
+          period: {
+            year,
+            month: month || 'Ano completo'
+          },
+          categoryAnalysis,
+          trendAnalysis,
+          comparisonAnalysis
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro ao buscar detalhamento avançado',
+        errors: [errorMessage]
+      })
+    }
+  })
+
+  // GET /api/transactions/analytics/insights - Insights Avançados
+  fastify.get(`${prefix}/transactions/analytics/insights`, async (request, reply) => {
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      // Análises preditivas e recomendações
+      const insights = await transactionService.getAdvancedInsights(user.id)
+
+      return {
+        success: true,
+        data: insights
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro ao buscar insights avançados',
+        errors: [errorMessage]
+      })
     }
   })
 
@@ -172,7 +389,7 @@ export default async function transactionRoutes(
     return {
       success: true,
       message: 'API de transações funcionando!',
-      user: mockUser,
+      realImplementation: true,
       timestamp: new Date().toISOString()
     }
   })

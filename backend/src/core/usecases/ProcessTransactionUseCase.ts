@@ -22,7 +22,7 @@ export interface ProcessTransactionRequest {
 export interface ProcessTransactionResponse {
   transaction: Transaction
   sourceAccount: Account
-  destinationAccount?: Account
+  destinationAccount?: Account | null
 }
 
 @Service()
@@ -49,7 +49,7 @@ export class ProcessTransactionUseCase {
       throw new Error('Account does not belong to the user')
     }
 
-    let destinationAccount: Account | undefined
+    let destinationAccount: Account | null | undefined
 
     if (request.type === TransactionType.TRANSFER) {
       if (!request.toAccountId) {
@@ -123,7 +123,7 @@ export class ProcessTransactionUseCase {
       throw new Error('Category is not active')
     }
 
-    if (category.type !== request.type) {
+    if (category.type as string !== request.type as string) {
       throw new Error('Category type does not match transaction type')
     }
 
@@ -149,7 +149,7 @@ export class ProcessTransactionUseCase {
 
   private async processAccountBalances(
     sourceAccount: Account,
-    destinationAccount: Account | undefined,
+    destinationAccount: Account | null | undefined,
     transaction: Transaction
   ): Promise<void> {
     const amount = transaction.amount

@@ -91,7 +91,6 @@ model Account {
   // Relations
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    Transaction[] @relation("AccountTransactions")
-  transfersFrom   Transaction[] @relation("TransferFrom")
   transfersTo     Transaction[] @relation("TransferTo")
 
   // Indexes for performance and constraints
@@ -190,7 +189,6 @@ model Transaction {
   user            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
   category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Restrict)
-  fromAccount     Account?          @relation("TransferFrom", fields: [accountId], references: [id])
   toAccount       Account?          @relation("TransferTo", fields: [toAccountId], references: [id])
 
   // Indexes for high-performance queries

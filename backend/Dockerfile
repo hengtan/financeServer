@@ -24,7 +24,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci --only=production \
+RUN npm install --only=production \
     && npm cache clean --force
 
 # ================================================================
@@ -47,7 +47,7 @@ COPY tsconfig.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev)
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY src ./src/

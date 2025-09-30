@@ -17,4 +17,5 @@ export interface IAccountRepository {
   delete(id: string): Promise<void>
   findDefaultByUserId(userId: string): Promise<Account | null>
   existsByUserIdAndName(userId: string, name: string): Promise<boolean>
+  updateBalance(id: string, newBalance: number): Promise<Account>
 }

@@ -12,7 +12,6 @@ export class RedisService {
       port: parseInt(process.env.REDIS_PORT || '6379'),
       password: process.env.REDIS_PASSWORD,
       db: parseInt(process.env.REDIS_DB || '0'),
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       connectTimeout: 10000,
@@ -138,12 +137,23 @@ export class RedisService {
       await this.client.ping()
       const latency = Date.now() - start
 
-      const info = await this.client.memory('usage', 'temp')
+      let memory = 'unknown'
+      try {
+        const info = await this.client.info('memory')
+        if (info) {
+          const match = info.match(/used_memory:(\d+)/)
+          if (match) {
+            memory = `${Math.round(parseInt(match[1]) / 1024 / 1024)}MB`
+          }
+        }
+      } catch (memError) {
+        // Memory command might not be available in all Redis versions
+      }
 
       return {
         status: 'connected',
         latency,
-        memory: info ? `${Math.round(parseInt(info.toString()) / 1024 / 1024)}MB` : 'unknown'
+        memory
       }
     } catch (error) {
       return {

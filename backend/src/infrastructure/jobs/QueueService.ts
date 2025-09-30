@@ -185,11 +185,11 @@ export class QueueService {
     }
 
     return {
-      waiting: await queue.getWaiting(),
-      active: await queue.getActive(),
-      completed: await queue.getCompleted(),
-      failed: await queue.getFailed(),
-      delayed: await queue.getDelayed()
+      waiting: (await queue.getWaiting()).length,
+      active: (await queue.getActive()).length,
+      completed: (await queue.getCompleted()).length,
+      failed: (await queue.getFailed()).length,
+      delayed: (await queue.getDelayed()).length
     }
   }
 

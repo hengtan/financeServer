@@ -1,10 +1,7 @@
 import 'reflect-metadata'
 import { Container } from 'typedi'
 import { FastifyServer } from './infrastructure/http/FastifyServer'
-// import { RedisService } from './infrastructure/cache/RedisService'
-// import { QueueService, JobTypes } from './infrastructure/jobs/QueueService'
-// import { MetricsService } from './infrastructure/monitoring/MetricsService'
-import { ProcessTransactionUseCase } from './core/usecases/ProcessTransactionUseCase'
+import { setupContainer } from './infrastructure/di/Container'
 
 class Application {
   private server: FastifyServer
@@ -13,11 +10,9 @@ class Application {
   // private metricsService: MetricsService
 
   constructor() {
+    // Setup dependency injection
+    setupContainer()
     this.server = new FastifyServer()
-    // Temporarily disable Redis/Queue services for basic integration
-    // this.redisService = Container.get(RedisService)
-    // this.queueService = Container.get(QueueService)
-    // this.metricsService = Container.get(MetricsService)
   }
 
   async start(): Promise<void> {

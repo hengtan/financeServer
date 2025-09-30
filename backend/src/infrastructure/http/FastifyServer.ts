@@ -10,7 +10,7 @@ import { RedisService } from '../cache/RedisService'
 
 export class FastifyServer {
   private app: FastifyInstance
-  // private redisService: RedisService
+  private redisService: RedisService
 
   constructor() {
     this.app = fastify({
@@ -30,8 +30,7 @@ export class FastifyServer {
       trustProxy: true
     })
 
-    // Temporarily disable Redis for basic integration
-    // this.redisService = Container.get(RedisService)
+    this.redisService = Container.get(RedisService)
     this.setupRoutes()
   }
 
@@ -56,7 +55,7 @@ export class FastifyServer {
     await this.app.register(rateLimit, {
       max: 100,
       timeWindow: '1 minute',
-      // redis: this.redisService.getClient(),
+      redis: this.redisService.getClient(),
       nameSpace: 'rate-limit:',
       addHeaders: {
         'x-ratelimit-limit': true,
@@ -65,11 +64,10 @@ export class FastifyServer {
       }
     })
 
-    // Temporarily disable Redis plugin
-    // await this.app.register(redisPlugin, {
-    //   client: this.redisService.getClient(),
-    //   namespace: 'redis'
-    // })
+    await this.app.register(redisPlugin, {
+      client: this.redisService.getClient(),
+      namespace: 'redis'
+    })
 
     if (process.env.NODE_ENV !== 'production') {
       await this.app.register(swagger, {
@@ -119,7 +117,7 @@ export class FastifyServer {
 
   private setupRoutes(): void {
     this.app.get('/health', async (request, reply) => {
-      // const redisHealth = await this.redisService.getHealth()
+      const redisHealth = await this.redisService.getHealth()
 
       return {
         status: 'ok',
@@ -127,8 +125,8 @@ export class FastifyServer {
         version: process.env.npm_package_version || '1.0.0',
         environment: process.env.NODE_ENV || 'development',
         services: {
-          api: { status: 'connected' }
-          // redis: redisHealth
+          api: { status: 'connected' },
+          redis: redisHealth
         },
         uptime: process.uptime(),
         memory: {
@@ -194,10 +192,10 @@ export class FastifyServer {
   public async stop(): Promise<void> {
     try {
       await this.app.close()
-      // await this.redisService.disconnect()
+      await this.redisService.disconnect()
       this.app.log.info('Server stopped gracefully')
     } catch (error) {
-      this.app.log.error('Error stopping server:', error)
+      this.app.log.error(error as Error, 'Error stopping server')
       process.exit(1)
     }
   }
