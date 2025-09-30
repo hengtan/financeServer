@@ -14,7 +14,7 @@ import { ContactPage } from '@/pages/ContactPage'
 import { DemoPage } from '@/pages/DemoPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
-import { DashboardPage } from '@/pages/DashboardPage'
+import { DashboardPageWrapper } from '@/pages/DashboardPageWrapper'
 import { FeaturesPage } from '@/pages/FeaturesPage'
 import { PricingPage } from '@/pages/PricingPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
@@ -141,7 +141,7 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <AppLayout showFooter={false}>
-                <DashboardPage />
+                <DashboardPageWrapper />
               </AppLayout>
             </ProtectedRoute>
           } />
