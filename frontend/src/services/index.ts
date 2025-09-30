@@ -2,12 +2,18 @@
 export * from './api'
 export * from './auth'
 export * from './transactions'
+export * from './accounts'
+export * from './categories'
 export * from './goals'
+export * from './budgets'
 export * from './reports'
 
 // Re-export service instances for easy access
 export { apiService } from './api'
 export { authService } from './auth'
 export { transactionsService } from './transactions'
+export { accountsService } from './accounts'
+export { categoriesService } from './categories'
 export { goalsService } from './goals'
+export { budgetsService } from './budgets'
 export { reportsService } from './reports'

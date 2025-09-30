@@ -1,232 +1,250 @@
-import { apiService, ApiResponse, PaginatedResponse, PaginationParams } from './api'
+import { apiService, ApiResponse } from './api'
 
 export interface Goal {
-  id?: number
+  id: string
   title: string
   description?: string
   targetAmount: number
   currentAmount: number
-  targetDate: string
-  category: 'savings' | 'investment' | 'purchase' | 'debt_payment' | 'other'
-  priority: 'low' | 'medium' | 'high'
-  status: 'active' | 'completed' | 'paused' | 'cancelled'
-  progress: number
-  createdAt?: string
-  updatedAt?: string
-  userId?: number
+  deadline?: string
+  category: string
+  status: 'ACTIVE' | 'COMPLETED' | 'PAUSED'
+  color: string
+  userId: string
+  createdAt: string
+  updatedAt: string
+  // Dados calculados
+  progress?: number
+  remaining?: number
+  daysRemaining?: number
 }
 
-export interface GoalFilters extends PaginationParams {
-  category?: string
-  status?: 'active' | 'completed' | 'paused' | 'cancelled'
-  priority?: 'low' | 'medium' | 'high'
-  search?: string
-}
-
-export interface GoalContribution {
-  id?: number
-  goalId: number
-  amount: number
-  date: string
+// Interface para criação/atualização de meta
+export interface CreateGoalData {
+  title: string
   description?: string
-  type: 'contribution' | 'withdrawal'
-  createdAt?: string
+  targetAmount: number
+  currentAmount?: number
+  deadline?: string
+  status?: string
+  category?: string
+  color?: string
 }
 
-export interface GoalAnalytics {
-  totalGoals: number
-  activeGoals: number
-  completedGoals: number
-  totalTargetAmount: number
-  totalCurrentAmount: number
-  averageProgress: number
-  projectedCompletion: {
-    goalId: number
-    title: string
-    estimatedDate: string
-    monthsRemaining: number
-  }[]
+export interface UpdateGoalData extends Partial<CreateGoalData> {}
+
+// Interface para resumo de metas
+export interface GoalsSummary {
+  total: number
+  active: number
+  completed: number
+  totalTarget: number
+  totalCurrent: number
+}
+
+// Interface para contribuição em meta
+export interface GoalContribution {
+  amount: number
+}
+
+// Interface para progresso detalhado
+export interface GoalProgress {
+  goalId: string
+  title: string
+  financial: {
+    current: number
+    target: number
+    remaining: number
+    percentage: number
+    isCompleted: boolean
+  }
+  time?: {
+    totalDays: number
+    daysPassed: number
+    daysRemaining: number
+    timePercentage: number
+    isOverdue: boolean
+  }
+  recommendations: {
+    dailyTarget?: number
+    onTrack?: boolean
+  }
 }
 
 class GoalsService {
-  private readonly baseUrl = '/goals'
+  private readonly basePath = '/goals'
 
-  async getGoals(filters?: GoalFilters): Promise<ApiResponse<PaginatedResponse<Goal>>> {
-    return apiService.getPaginated<Goal>(this.baseUrl, filters)
+  // Listar todas as metas do usuário
+  async getGoals(status?: string): Promise<ApiResponse<{ goals: Goal[]; summary: GoalsSummary }>> {
+    const params = status ? { status } : {}
+    return apiService.get<{ goals: Goal[]; summary: GoalsSummary }>(this.basePath, { params })
   }
 
-  async getGoal(id: number): Promise<ApiResponse<Goal>> {
-    return apiService.get<Goal>(`${this.baseUrl}/${id}`)
+  // Buscar meta específica por ID
+  async getGoalById(id: string): Promise<ApiResponse<Goal>> {
+    return apiService.get<Goal>(`${this.basePath}/${id}`)
   }
 
-  async createGoal(goal: Omit<Goal, 'id' | 'progress' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Goal>> {
-    return apiService.post<Goal>(this.baseUrl, goal)
+  // Criar nova meta
+  async createGoal(data: CreateGoalData): Promise<ApiResponse<Goal>> {
+    return apiService.post<Goal>(this.basePath, data)
   }
 
-  async updateGoal(id: number, goal: Partial<Goal>): Promise<ApiResponse<Goal>> {
-    return apiService.put<Goal>(`${this.baseUrl}/${id}`, goal)
+  // Atualizar meta existente
+  async updateGoal(id: string, data: UpdateGoalData): Promise<ApiResponse<Goal>> {
+    return apiService.put<Goal>(`${this.basePath}/${id}`, data)
   }
 
-  async deleteGoal(id: number): Promise<ApiResponse<void>> {
-    return apiService.delete<void>(`${this.baseUrl}/${id}`)
+  // Deletar meta
+  async deleteGoal(id: string): Promise<ApiResponse<void>> {
+    return apiService.delete<void>(`${this.basePath}/${id}`)
   }
 
-  async getGoalContributions(goalId: number): Promise<ApiResponse<GoalContribution[]>> {
-    return apiService.get<GoalContribution[]>(`${this.baseUrl}/${goalId}/contributions`)
+  // Adicionar valor à meta
+  async contributeToGoal(id: string, contribution: GoalContribution): Promise<ApiResponse<Goal>> {
+    return apiService.post<Goal>(`${this.basePath}/${id}/contribute`, contribution)
   }
 
-  async addContribution(goalId: number, contribution: Omit<GoalContribution, 'id' | 'goalId' | 'createdAt'>): Promise<ApiResponse<GoalContribution>> {
-    return apiService.post<GoalContribution>(`${this.baseUrl}/${goalId}/contributions`, contribution)
+  // Obter progresso detalhado da meta
+  async getGoalProgress(id: string): Promise<ApiResponse<GoalProgress>> {
+    return apiService.get<GoalProgress>(`${this.basePath}/${id}/progress`)
   }
 
-  async updateContribution(goalId: number, contributionId: number, contribution: Partial<GoalContribution>): Promise<ApiResponse<GoalContribution>> {
-    return apiService.put<GoalContribution>(`${this.baseUrl}/${goalId}/contributions/${contributionId}`, contribution)
+  // Testar conectividade da API
+  async testConnection(): Promise<ApiResponse<{ message: string; timestamp: string }>> {
+    return apiService.get<{ message: string; timestamp: string }>(`${this.basePath}/test`)
   }
 
-  async deleteContribution(goalId: number, contributionId: number): Promise<ApiResponse<void>> {
-    return apiService.delete<void>(`${this.baseUrl}/${goalId}/contributions/${contributionId}`)
+  // Métodos auxiliares
+
+  // Validar dados da meta
+  validateGoalData(data: CreateGoalData): { isValid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    if (!data.title || data.title.trim().length === 0) {
+      errors.push('Título da meta é obrigatório')
+    }
+
+    if (!data.targetAmount || data.targetAmount <= 0) {
+      errors.push('Valor alvo deve ser maior que zero')
+    }
+
+    if (data.deadline) {
+      const deadline = new Date(data.deadline)
+      const now = new Date()
+      if (deadline <= now) {
+        errors.push('Data limite deve ser no futuro')
+      }
+    }
+
+    if (data.color && !this.isValidColor(data.color)) {
+      errors.push('Cor deve estar no formato hexadecimal (#RRGGBB)')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
   }
 
-  async getGoalsAnalytics(): Promise<ApiResponse<GoalAnalytics>> {
-    return apiService.get<GoalAnalytics>(`${this.baseUrl}/analytics`)
+  // Validar cor hexadecimal
+  private isValidColor(color: string): boolean {
+    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+    return hexRegex.test(color)
   }
 
-  async getGoalProgress(id: number): Promise<ApiResponse<{
-    progress: number
-    remainingAmount: number
-    monthlyContributionNeeded: number
-    projectedCompletionDate: string
-    onTrack: boolean
-  }>> {
-    return apiService.get(`${this.baseUrl}/${id}/progress`)
-  }
-
-  async getGoalCategories(): Promise<ApiResponse<Array<{
-    category: string
-    count: number
-    totalAmount: number
-    averageProgress: number
-  }>>> {
-    return apiService.get<Array<{
-      category: string
-      count: number
-      totalAmount: number
-      averageProgress: number
-    }>>(`${this.baseUrl}/categories-summary`)
-  }
-
-  async simulateGoal(params: {
-    targetAmount: number
-    currentAmount: number
-    monthlyContribution: number
-    targetDate: string
-  }): Promise<ApiResponse<{
-    monthsToComplete: number
-    projectedCompletionDate: string
-    totalContributions: number
-    feasible: boolean
-    requiredMonthlyContribution: number
-  }>> {
-    return apiService.post(`${this.baseUrl}/simulate`, params)
-  }
-
-  async markGoalComplete(id: number): Promise<ApiResponse<Goal>> {
-    return apiService.patch<Goal>(`${this.baseUrl}/${id}/complete`)
-  }
-
-  async pauseGoal(id: number): Promise<ApiResponse<Goal>> {
-    return apiService.patch<Goal>(`${this.baseUrl}/${id}/pause`)
-  }
-
-  async resumeGoal(id: number): Promise<ApiResponse<Goal>> {
-    return apiService.patch<Goal>(`${this.baseUrl}/${id}/resume`)
-  }
-}
-
-export const goalsService = new GoalsService()
-
-export class GoalUtils {
-  static calculateProgress(currentAmount: number, targetAmount: number): number {
+  // Calcular progresso da meta
+  calculateProgress(currentAmount: number, targetAmount: number): number {
+    if (targetAmount <= 0) return 0
     return Math.min((currentAmount / targetAmount) * 100, 100)
   }
 
-  static calculateRemainingAmount(currentAmount: number, targetAmount: number): number {
+  // Calcular valor restante
+  calculateRemaining(currentAmount: number, targetAmount: number): number {
     return Math.max(targetAmount - currentAmount, 0)
   }
 
-  static calculateMonthsRemaining(targetDate: string): number {
-    const target = new Date(targetDate)
+  // Calcular dias restantes
+  calculateDaysRemaining(deadline?: string): number | null {
+    if (!deadline) return null
+    const end = new Date(deadline)
     const now = new Date()
-    const diffTime = target.getTime() - now.getTime()
-    return Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30)), 0)
+    const diffTime = end.getTime() - now.getTime()
+    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
   }
 
-  static calculateRequiredMonthlyContribution(
-    currentAmount: number,
-    targetAmount: number,
-    targetDate: string
-  ): number {
-    const remaining = this.calculateRemainingAmount(currentAmount, targetAmount)
-    const monthsRemaining = this.calculateMonthsRemaining(targetDate)
-
-    if (monthsRemaining <= 0) return remaining
-    return remaining / monthsRemaining
+  // Obter status disponíveis
+  getAvailableStatuses(): { value: string; label: string; color: string }[] {
+    return [
+      { value: 'ACTIVE', label: 'Ativo', color: 'green' },
+      { value: 'COMPLETED', label: 'Concluído', color: 'blue' },
+      { value: 'PAUSED', label: 'Pausado', color: 'orange' }
+    ]
   }
 
-  static formatGoalStatus(status: Goal['status']): string {
-    const statusMap = {
-      active: 'Ativo',
-      completed: 'Concluído',
-      paused: 'Pausado',
-      cancelled: 'Cancelado'
+  // Obter categorias padrão
+  getDefaultCategories(): string[] {
+    return [
+      'Emergência',
+      'Viagem',
+      'Casa',
+      'Carro',
+      'Educação',
+      'Aposentadoria',
+      'Investimento',
+      'Geral'
+    ]
+  }
+
+  // Formatir valor monetário
+  formatAmount(amount: number, currency: string = 'BRL'): string {
+    if (currency === 'BRL') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(amount)
     }
-    return statusMap[status]
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency
+    }).format(amount)
   }
 
-  static formatGoalCategory(category: Goal['category']): string {
-    const categoryMap = {
-      savings: 'Poupança',
-      investment: 'Investimento',
-      purchase: 'Compra',
-      debt_payment: 'Pagamento de Dívida',
-      other: 'Outros'
+  // Formatir porcentagem
+  formatPercentage(value: number): string {
+    return `${value.toFixed(1)}%`
+  }
+
+  // Obter texto do status em português
+  getStatusText(status: string): string {
+    const statusMap: Record<string, string> = {
+      'ACTIVE': 'Ativo',
+      'COMPLETED': 'Concluído',
+      'PAUSED': 'Pausado'
     }
-    return categoryMap[category]
+    return statusMap[status] || status
   }
 
-  static formatGoalPriority(priority: Goal['priority']): string {
-    const priorityMap = {
-      low: 'Baixa',
-      medium: 'Média',
-      high: 'Alta'
-    }
-    return priorityMap[priority]
-  }
-
-  static getStatusColor(status: Goal['status']): string {
-    const colorMap = {
-      active: 'green',
-      completed: 'blue',
-      paused: 'orange',
-      cancelled: 'red'
-    }
-    return colorMap[status]
-  }
-
-  static getPriorityColor(priority: Goal['priority']): string {
-    const colorMap = {
-      low: 'gray',
-      medium: 'orange',
-      high: 'red'
-    }
-    return colorMap[priority]
-  }
-
-  static isGoalOnTrack(goal: Goal): boolean {
-    const monthsRemaining = this.calculateMonthsRemaining(goal.targetDate)
-    const progressNeeded = (Date.now() - new Date(goal.createdAt || Date.now()).getTime()) /
-      (new Date(goal.targetDate).getTime() - new Date(goal.createdAt || Date.now()).getTime()) * 100
-
-    return goal.progress >= progressNeeded * 0.9 // 90% tolerance
+  // Obter cor baseada no progresso
+  getProgressColor(progress: number): string {
+    if (progress >= 100) return '#10B981' // Verde
+    if (progress >= 75) return '#3B82F6'  // Azul
+    if (progress >= 50) return '#F59E0B'  // Amarelo
+    return '#EF4444' // Vermelho
   }
 }
+
+// Instância singleton do serviço
+export const goalsService = new GoalsService()
+
+// Exportar tipos para uso em outros arquivos
+export type {
+  Goal,
+  CreateGoalData as CreateGoalDataType,
+  UpdateGoalData as UpdateGoalDataType,
+  GoalsSummary as GoalsSummaryType,
+  GoalContribution as GoalContributionType,
+  GoalProgress as GoalProgressType
+}
+export { GoalsService }

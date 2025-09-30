@@ -39,13 +39,11 @@ export class PrismaBudgetRepository implements IBudgetRepository {
     return this.prisma.budget.create({
       data: {
         name: data.name,
-        description: data.description,
         amount: parseFloat(data.amount),
         period: data.period,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         status: data.status || 'ACTIVE',
-        color: data.color || '#3B82F6',
         categoryId: data.categoryId,
         userId: data.userId
       },
@@ -142,9 +140,10 @@ export class PrismaBudgetRepository implements IBudgetRepository {
       }
     })
 
-    const spent = transactions.reduce((sum, transaction) => sum + Math.abs(parseFloat(transaction.amount)), 0)
-    const remaining = Math.max(0, budget.amount - spent)
-    const progress = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
+    const spent = transactions.reduce((sum, transaction) => sum + Math.abs(parseFloat(transaction.amount.toString())), 0)
+    const budgetAmount = parseFloat(budget.amount.toString())
+    const remaining = Math.max(0, budgetAmount - spent)
+    const progress = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0
 
     return {
       ...budget,
