@@ -4,6 +4,8 @@ import { dashboardService } from '@/services/dashboard'
 import { transactionsService } from '@/services/transactions'
 import { goalsService } from '@/services/goals'
 import { useAuth } from '@/contexts/AuthContext'
+import { Button } from '@/components/ui/button'
+import { HelpCircle } from 'lucide-react'
 
 export const DashboardPageWrapper = () => {
   const { user } = useAuth()
@@ -12,10 +14,40 @@ export const DashboardPageWrapper = () => {
   const [transactions, setTransactions] = useState<RecentTransaction[]>([])
   const [goals, setGoals] = useState<FinancialGoal[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [showTour, setShowTour] = useState(false)
+  const [showTourButton, setShowTourButton] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
+    checkTourStatus()
   }, [])
+
+  const checkTourStatus = () => {
+    const tourCompleted = localStorage.getItem('onboarding-completed')
+    const isSandboxUser = user?.email?.includes('sandbox') || user?.email?.includes('financeserver.dev')
+
+    if (!tourCompleted) {
+      // Se nunca fez o tour, mostrar automaticamente
+      setShowTour(true)
+      setShowTourButton(false)
+    } else {
+      // Se já fez o tour, mostrar botão para refazer (especialmente para sandbox)
+      setShowTour(false)
+      setShowTourButton(true)
+    }
+  }
+
+  const startTour = () => {
+    // Remove flag de tour completo para permitir exibição
+    localStorage.removeItem('onboarding-completed')
+    setShowTour(true)
+    setShowTourButton(false)
+  }
+
+  const handleTourComplete = () => {
+    setShowTour(false)
+    setShowTourButton(true)
+  }
 
   const loadDashboardData = async () => {
     try {
@@ -154,28 +186,47 @@ export const DashboardPageWrapper = () => {
   }
 
   return (
-    <DashboardPage
-      stats={stats}
-      transactions={transactions}
-      goals={goals}
-      alerts={[]} // Por enquanto, sem alertas
-      summary={{
-        month: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-        income: stats.find(s => s.id === 'income') ?
-          parseFloat(stats.find(s => s.id === 'income')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-        expenses: stats.find(s => s.id === 'expenses') ?
-          parseFloat(stats.find(s => s.id === 'expenses')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-        balance: stats.find(s => s.id === 'balance_net') ?
-          parseFloat(stats.find(s => s.id === 'balance_net')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-        topCategories: []
-      }}
-      labels={{
-        welcome: `Olá, ${user?.name?.split(' ')[0] || 'Usuário'}! 👋`,
-        totalBalance: 'Saldo Total',
-        monthlyExpenses: 'Gastos do Mês',
-        savings: 'Receita do Mês',
-        investments: 'Saldo Líquido'
-      }}
-    />
+    <div className="relative">
+      {/* Botão para iniciar tour (quando disponível) */}
+      {showTourButton && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button
+            onClick={startTour}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 bg-white shadow-lg hover:shadow-xl border-primary/20 hover:border-primary/40"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Tour do Dashboard
+          </Button>
+        </div>
+      )}
+
+      <DashboardPage
+        stats={stats}
+        transactions={transactions}
+        goals={goals}
+        alerts={[]} // Por enquanto, sem alertas
+        summary={{
+          month: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+          income: stats.find(s => s.id === 'income') ?
+            parseFloat(stats.find(s => s.id === 'income')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
+          expenses: stats.find(s => s.id === 'expenses') ?
+            parseFloat(stats.find(s => s.id === 'expenses')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
+          balance: stats.find(s => s.id === 'balance_net') ?
+            parseFloat(stats.find(s => s.id === 'balance_net')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
+          topCategories: []
+        }}
+        labels={{
+          welcome: `Olá, ${user?.name?.split(' ')[0] || 'Usuário'}! 👋`,
+          totalBalance: 'Saldo Total',
+          monthlyExpenses: 'Gastos do Mês',
+          savings: 'Receita do Mês',
+          investments: 'Saldo Líquido'
+        }}
+        showOnboarding={showTour}
+        onOnboardingComplete={handleTourComplete}
+      />
+    </div>
   )
 }

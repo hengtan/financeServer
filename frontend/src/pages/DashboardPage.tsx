@@ -89,6 +89,8 @@ export interface DashboardPageProps {
   customActions?: {
     [key: string]: () => void
   }
+  showOnboarding?: boolean
+  onOnboardingComplete?: () => void
 }
 
 export const DashboardPage = ({
@@ -103,7 +105,9 @@ export const DashboardPage = ({
   onViewAllTransactions,
   onCreateGoal,
   onAlertAction,
-  customActions
+  customActions,
+  showOnboarding = false,
+  onOnboardingComplete
 }: DashboardPageProps) => {
   usePageTitle('Dashboard')
 
@@ -650,7 +654,7 @@ export const DashboardPage = ({
       </div>
 
       {/* Onboarding Tutorial */}
-      <DashboardOnboarding autoStart={true} />
+      {showOnboarding && <DashboardOnboarding autoStart={true} onComplete={onOnboardingComplete} />}
     </LoadingWrapper>
   )
 }
