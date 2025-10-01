@@ -10,8 +10,10 @@ export default async function authRoutes(
 ) {
   // Temporary fix for DI issue
   const userRepository = Container.get('IUserRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
+  const accountRepository = Container.get('IAccountRepository') as any
   const redisService = Container.get(RedisService)
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/auth'
 
   // POST /api/auth/login - Login do usuário

@@ -10,8 +10,10 @@ export default async function categoryRoutes(
   // Temporary fix for DI issues
   const categoryRepository = Container.get('ICategoryRepository') as any
   const userRepository = Container.get('IUserRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
+  const accountRepository = Container.get('IAccountRepository') as any
   const redisService = Container.get(RedisService)
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/categories'
 
   // Helper function to extract user from token

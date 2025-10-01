@@ -13,8 +13,9 @@ export default async function dashboardRoutes(
   const goalRepository = Container.get('IGoalRepository') as any
   const budgetRepository = Container.get('IBudgetRepository') as any
   const userRepository = Container.get('IUserRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
   const redisService = Container.get(RedisService)
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/dashboard'
 
   // Helper function to extract user from token

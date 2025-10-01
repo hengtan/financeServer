@@ -269,7 +269,7 @@ model Transaction {
   description     String
   amount          Decimal           @db.Decimal(15, 2) // High precision financial amount
   type            TransactionType
-  categoryId      String           // 🔄 Legacy field (será removido)
+  categoryId      String?          // 🔄 Legacy field (será removido, agora opcional)
   userCategoryId  String?          // 🚀 Nova arquitetura híbrida
   accountId       String
   toAccountId     String?           // For transfers
@@ -284,7 +284,7 @@ model Transaction {
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Restrict)
-  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)    // 🔄 Legacy
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: Restrict)    // 🔄 Legacy (agora opcional)
   userCategory    UserCategory?     @relation("UserCategoryTransactions", fields: [userCategoryId], references: [id])  // 🚀 Nova
   account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Restrict)
   toAccount       Account?          @relation("TransferTo", fields: [toAccountId], references: [id])

@@ -68,8 +68,17 @@ export const RegisterPage = () => {
       } else {
         setError(response.message || 'Erro ao criar conta. Tente novamente.')
       }
-    } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.')
+    } catch (err: any) {
+      // Tratar erros HTTP específicos
+      if (err.response?.status === 409) {
+        setError(err.response.data?.message || 'Este email já está cadastrado.')
+      } else if (err.response?.status === 400) {
+        setError(err.response.data?.message || 'Dados inválidos. Verifique as informações.')
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else {
+        setError('Erro ao criar conta. Tente novamente.')
+      }
     } finally {
       setIsLoading(false)
     }

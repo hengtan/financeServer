@@ -18,9 +18,10 @@ export default async function alertRoutes(
   const goalRepository = Container.get('IGoalRepository') as any
   const redisService = Container.get(RedisService)
   const userRepository = Container.get('IUserRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
 
   // Create services manually
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const transactionService = new TransactionService(
     transactionRepository,
     accountRepository,

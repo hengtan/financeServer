@@ -19,14 +19,20 @@ export class TransactionService {
   async createTransaction(data: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'> & {
     userCategoryId?: string // Support new architecture
   }): Promise<Transaction> {
+    console.log('🔄 TransactionService: createTransaction called with data:', data)
+
     // Validate account exists and belongs to user
     const account = await this.accountRepository.findById(data.accountId)
     if (!account || account.userId !== data.userId) {
       throw new Error('Account not found or does not belong to user')
     }
 
-    // Validate category - support both architectures
+    // 🚀 NEW HYBRID ARCHITECTURE: Handle userCategoryId → categoryId mapping
+    let finalCategoryId = data.categoryId
+
     if (data.userCategoryId) {
+      console.log('🚀 TransactionService: Using new hybrid architecture with userCategoryId:', data.userCategoryId)
+
       // 🚀 New architecture: validate UserCategory
       const userCategory = await this.userCategoryRepository.findById(data.userCategoryId)
       if (!userCategory || userCategory.userId !== data.userId) {
@@ -35,12 +41,20 @@ export class TransactionService {
       if (!userCategory.isActive) {
         throw new Error('Cannot use inactive category for transactions')
       }
-    } else {
+
+      // 🚀 NEW ARCHITECTURE: When using userCategoryId, we don't need categoryId
+      // The userCategoryId is sufficient for the new hybrid architecture
+      finalCategoryId = undefined // Don't use legacy categoryId
+      console.log('✅ TransactionService: Using new architecture with userCategoryId only')
+    } else if (finalCategoryId) {
       // 🔄 Legacy architecture: validate Category
-      const category = await this.categoryRepository.findById(data.categoryId)
+      const category = await this.categoryRepository.findById(finalCategoryId)
       if (!category || (category.userId !== data.userId && !category.isSystem)) {
         throw new Error('Category not found or does not belong to user')
       }
+      console.log('✅ TransactionService: Using legacy category:', finalCategoryId)
+    } else {
+      throw new Error('Either categoryId or userCategoryId must be provided')
     }
 
     // For transfers, validate destination account
@@ -52,13 +66,14 @@ export class TransactionService {
     }
 
     // Create transaction
+    console.log('📝 TransactionService: Creating transaction with finalCategoryId:', finalCategoryId)
     const transactionData = new Transaction({
       userId: data.userId,
       description: data.description,
       amount: data.amount,
       type: data.type,
-      categoryId: data.categoryId, // 🔄 Legacy support
-      userCategoryId: data.userCategoryId, // 🚀 New architecture
+      categoryId: finalCategoryId, // 🔄 Use resolved categoryId (supports both architectures)
+      userCategoryId: data.userCategoryId, // 🚀 New architecture (optional)
       accountId: data.accountId,
       toAccountId: data.toAccountId,
       status: TransactionStatus.PENDING,

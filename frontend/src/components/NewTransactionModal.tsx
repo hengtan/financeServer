@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -127,6 +127,15 @@ export const NewTransactionModal = ({
   const finalTransactionTypes = transactionTypes.length > 0 ? transactionTypes : defaultTransactionTypes
   const finalLabels = { ...defaultLabels, ...labels }
 
+  // Debug logging (only when modal opens)
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('🔍 Modal Opened: Received accounts:', accounts)
+      console.log('🔍 Modal Opened: Final accounts:', finalAccounts)
+      console.log('🔍 Modal Opened: Default values:', defaultValues)
+    }
+  }, [isOpen])
+
   const [formData, setFormData] = useState({
     description: defaultValues.description || '',
     amount: defaultValues.amount || 0,
@@ -136,6 +145,21 @@ export const NewTransactionModal = ({
     date: defaultValues.date || new Date().toISOString().split('T')[0],
     notes: defaultValues.notes || ''
   })
+
+  // Update form when defaultValues change (especially accountId)
+  React.useEffect(() => {
+    // Only update if we actually have valid IDs from defaultValues
+    if (defaultValues.accountId || defaultValues.categoryId || defaultValues.typeId) {
+      console.log('🔄 Modal: DefaultValues changed, updating form:', defaultValues)
+      setFormData(prev => ({
+        ...prev,
+        categoryId: defaultValues.categoryId || prev.categoryId,
+        accountId: defaultValues.accountId || prev.accountId,
+        typeId: defaultValues.typeId || prev.typeId,
+      }))
+    }
+    // Only depend on the actual IDs, not the arrays
+  }, [defaultValues.accountId, defaultValues.categoryId, defaultValues.typeId])
 
   const [amountString, setAmountString] = useState(
     defaultValues.amount ? defaultValues.amount.toString() : ''

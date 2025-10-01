@@ -11,9 +11,11 @@ export default async function userCategoryRoutes(
 ) {
   // Get services from container
   const userRepository = Container.get('IUserRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
+  const accountRepository = Container.get('IAccountRepository') as any
   const redisService = Container.get(RedisService)
   const userCategoryService = Container.get(UserCategoryService)
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/user-categories'
 
   // Helper function to extract user from token

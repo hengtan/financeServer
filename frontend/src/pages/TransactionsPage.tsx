@@ -2,6 +2,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { NewTransactionModal } from '@/components/NewTransactionModal'
+import { apiService } from '@/services/api'
 import {
   Calendar,
   Filter,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { transactionsService, Transaction } from '@/services/transactions'
+import { userCategoriesService, UserCategory } from '@/services/userCategories'
 import { LoadingWrapper } from '@/components/LoadingWrapper'
 import { useLoading } from '@/hooks/useLoading'
 
@@ -30,8 +32,18 @@ export const TransactionsPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>(['todas'])
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [userCategories, setUserCategories] = useState<UserCategory[]>([])
+  const [realCategories, setRealCategories] = useState<any[]>([])
 
   useEffect(() => {
+    console.log('🔍 Frontend: Checking authentication status...')
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
+    console.log('🔍 Frontend: Auth token present:', !!token)
+    if (token) {
+      console.log('🔍 Frontend: Token preview:', token.substring(0, 20) + '...')
+    }
+
     loadTransactions()
   }, [])
 
@@ -40,10 +52,11 @@ export const TransactionsPage = () => {
       setLoading(true)
       setError(null)
 
-      // Carregar transações e categorias em paralelo
-      const [transactionsResponse, categoriesResponse] = await Promise.all([
+      // Carregar transações, categorias de usuário e contas em paralelo
+      const [transactionsResponse, userCategoriesResponse, accountsResponse] = await Promise.all([
         transactionsService.getTransactions({ limit: 50 }),
-        transactionsService.getCategories()
+        userCategoriesService.getActiveUserCategories(),
+        apiService.get('/accounts')
       ])
 
       if (transactionsResponse.success) {
@@ -61,8 +74,36 @@ export const TransactionsPage = () => {
         setTransactions(formattedTransactions)
       }
 
-      if (categoriesResponse.success) {
-        setCategories(['todas', ...categoriesResponse.data])
+      console.log('🔍 Frontend: User categories response:', userCategoriesResponse)
+      if (userCategoriesResponse.success && userCategoriesResponse.data?.categories && Array.isArray(userCategoriesResponse.data.categories)) {
+        const categoriesArray = userCategoriesResponse.data.categories
+        console.log('✅ Frontend: User categories loaded:', categoriesArray.length)
+        setUserCategories(categoriesArray)
+        const categoryNames = categoriesArray.map((cat: UserCategory) => cat.name)
+        setCategories(['todas', ...categoryNames])
+        // Compatibilidade com código existente
+        const mapped = categoriesArray.map((cat: UserCategory) => ({
+          id: cat.id,
+          name: cat.name,
+          type: cat.type,
+          color: cat.color,
+          icon: cat.icon
+        }))
+        console.log('📋 Frontend: Real categories to pass to modal:', mapped)
+        setRealCategories(mapped)
+      } else {
+        console.log('❌ Frontend: User categories failed or not array:', userCategoriesResponse)
+        setUserCategories([])
+        setCategories(['todas'])
+        setRealCategories([])
+      }
+
+      if (accountsResponse.success && accountsResponse.data?.accounts) {
+        console.log('✅ Accounts loaded successfully:', accountsResponse.data.accounts)
+        setAccounts(accountsResponse.data.accounts)
+      } else {
+        console.log('❌ Failed to load accounts:', accountsResponse)
+        setAccounts([])
       }
 
     } catch (error) {
@@ -70,7 +111,10 @@ export const TransactionsPage = () => {
       setError('Erro ao carregar transações')
       // Em caso de erro, usar array vazio em vez de dados mock
       setTransactions([])
+      setUserCategories([])
       setCategories(['todas'])
+      setAccounts([])
+      setRealCategories([])
     } finally {
       setLoading(false)
     }
@@ -117,8 +161,46 @@ export const TransactionsPage = () => {
     return true
   })
 
-  const handleNewTransaction = (transaction: any) => {
-    setTransactions([transaction, ...transactions])
+  const handleNewTransaction = async (transaction: any) => {
+    try {
+      console.log('🔄 Frontend: Transaction data received from modal:', transaction)
+
+      const payload = {
+        description: transaction.description,
+        amount: transaction.amount,
+        type: transaction.typeId === 'credit' ? 'INCOME' : 'EXPENSE',
+        userCategoryId: transaction.categoryId, // 🚀 Usando nova arquitetura híbrida
+        accountId: transaction.accountId,
+        date: new Date(transaction.date).toISOString()
+      }
+
+      console.log('📤 Frontend: Payload being sent to API:', payload)
+
+      // Enviar para a API
+      const response = await apiService.post('/transactions', payload)
+
+      if (response.success) {
+        // Adicionar a transação salva ao estado
+        const savedTransaction = {
+          id: response.data.id,
+          description: response.data.description,
+          amount: parseFloat(response.data.amount),
+          type: response.data.type,
+          category: 'Categoria',
+          account: 'Conta',
+          status: response.data.status,
+          date: new Date(response.data.date).toLocaleDateString('pt-BR')
+        }
+        setTransactions([savedTransaction, ...transactions])
+
+        // Recarregar transações para ter dados atualizados
+        loadTransactions()
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar transação:', error)
+      // Em caso de erro, mostrar mensagem ao usuário
+      alert(`Erro ao criar transação: ${error.response?.data?.message || error.message || 'Erro desconhecido'}`)
+    }
   }
 
   const handleExport = () => {
@@ -306,6 +388,21 @@ export const TransactionsPage = () => {
           isOpen={isNewTransactionOpen}
           onClose={() => setIsNewTransactionOpen(false)}
           onSubmit={handleNewTransaction}
+          accounts={(() => {
+            const mappedAccounts = accounts.map(acc => ({
+              id: acc.id,
+              name: acc.name,
+              type: acc.type?.toLowerCase() || 'checking',
+              currency: acc.currency || 'BRL'
+            }))
+            console.log('🔄 Passing accounts to modal:', mappedAccounts)
+            return mappedAccounts
+          })()}
+          categories={realCategories}
+          defaultValues={{
+            accountId: accounts.length > 0 ? accounts[0].id : undefined,
+            categoryId: realCategories.length > 0 ? realCategories[0].id : undefined
+          }}
         />
       </div>
     </div>

@@ -17,7 +17,7 @@ export default async function transactionRoutes(
   const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, userCategoryRepository, redisService)
 
   const userRepository = Container.get('IUserRepository') as any
-  const authService = new AuthService(userRepository, redisService)
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api'
 
   // Helper function to extract user from token

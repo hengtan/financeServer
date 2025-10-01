@@ -9,22 +9,28 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   constructor(@Inject('PrismaClient') private prisma: PrismaClient) {}
 
   async create(transaction: Transaction): Promise<Transaction> {
+    const data: any = {
+      userId: transaction.userId,
+      description: transaction.description,
+      amount: new Decimal(transaction.amount),
+      type: transaction.type as PrismaTransactionType,
+      accountId: transaction.accountId,
+      status: transaction.status as PrismaTransactionStatus,
+      date: transaction.date,
+      metadata: transaction.metadata
+    }
+
+    // 🚀 New hybrid architecture: only include categoryId/userCategoryId if they exist
+    if (transaction.categoryId) data.categoryId = transaction.categoryId
+    if (transaction.userCategoryId) data.userCategoryId = transaction.userCategoryId
+    if (transaction.toAccountId) data.toAccountId = transaction.toAccountId
+    if (transaction.reference) data.reference = transaction.reference
+
     const created = await this.prisma.transaction.create({
-      data: {
-        userId: transaction.userId,
-        description: transaction.description,
-        amount: new Decimal(transaction.amount),
-        type: transaction.type as PrismaTransactionType,
-        categoryId: transaction.categoryId,
-        accountId: transaction.accountId,
-        toAccountId: transaction.toAccountId,
-        status: transaction.status as PrismaTransactionStatus,
-        date: transaction.date,
-        reference: transaction.reference,
-        metadata: transaction.metadata
-      },
+      data,
       include: {
         category: true,
+        userCategory: true, // 🚀 Include new userCategory relation
         account: true,
         toAccount: true
       }
@@ -38,6 +44,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       where: { id },
       include: {
         category: true,
+        userCategory: true, // 🚀 Include new userCategory relation
         account: true,
         toAccount: true
       }
@@ -76,6 +83,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         where,
         include: {
           category: true,
+          userCategory: true, // 🚀 Include new userCategory relation
           account: true,
           toAccount: true
         },
@@ -155,6 +163,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         where,
         include: {
           category: true,
+          userCategory: true, // 🚀 Include new userCategory relation
           account: true,
           toAccount: true
         },
@@ -179,6 +188,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         amount: new Decimal(transaction.amount),
         type: transaction.type as PrismaTransactionType,
         categoryId: transaction.categoryId,
+        userCategoryId: transaction.userCategoryId, // 🚀 New hybrid architecture
         accountId: transaction.accountId,
         toAccountId: transaction.toAccountId,
         status: transaction.status as PrismaTransactionStatus,
@@ -297,6 +307,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       amount: new Decimal(Number(prismaTransaction.amount)),
       type: prismaTransaction.type as unknown as TransactionType,
       categoryId: prismaTransaction.categoryId,
+      userCategoryId: prismaTransaction.userCategoryId || undefined, // 🚀 New hybrid architecture
       accountId: prismaTransaction.accountId,
       toAccountId: prismaTransaction.toAccountId || undefined,
       status: prismaTransaction.status as unknown as TransactionStatus,

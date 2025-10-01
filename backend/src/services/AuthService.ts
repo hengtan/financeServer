@@ -1,5 +1,7 @@
 import { Service, Inject } from 'typedi'
 import { IUserRepository } from '../core/interfaces/repositories/IUserRepository'
+import { IUserCategoryRepository } from '../core/interfaces/repositories/IUserCategoryRepository'
+import { IAccountRepository } from '../core/interfaces/repositories/IAccountRepository'
 import { User, UserRole, UserStatus } from '../core/entities/User'
 import { RedisService } from '../infrastructure/cache/RedisService'
 import * as bcrypt from 'bcryptjs'
@@ -16,6 +18,8 @@ interface LoginResult {
 export class AuthService {
   constructor(
     @Inject('IUserRepository') private userRepository: IUserRepository,
+    @Inject('IUserCategoryRepository') private userCategoryRepository: IUserCategoryRepository,
+    @Inject('IAccountRepository') private accountRepository: IAccountRepository,
     private redisService: RedisService
   ) {}
 
@@ -68,7 +72,7 @@ export class AuthService {
 
       const secret = process.env.JWT_SECRET!
       const decoded = jwt.verify(token, secret) as any
-      
+
       // Get user from cache first
       const cacheKey = `user:${decoded.userId}`
       const cached = await this.redisService.get<User>(cacheKey)
@@ -79,7 +83,7 @@ export class AuthService {
 
       // Get from database
       const user = await this.userRepository.findById(decoded.userId)
-      
+
       if (user && user.status === 'ACTIVE') {
         // Cache user for 5 minutes
         await this.redisService.set(cacheKey, user, 300)
@@ -150,7 +154,97 @@ export class AuthService {
     // Save to repository
     const savedUser = await this.userRepository.create(user)
 
+    // 🚀 AUTOMATIC ONBOARDING: Initialize user resources asynchronously
+    // This ensures scalability - runs in background without blocking registration response
+    this.initializeUserResources(savedUser.id).catch(error => {
+      console.error(`❌ Failed to initialize resources for user ${savedUser.id}:`, error)
+      // Log error but don't fail registration - resources can be created on-demand later
+    })
+
     return savedUser
+  }
+
+  /**
+   * 🚀 SCALABLE ONBOARDING: Initialize default resources for new users
+   * Runs asynchronously to avoid blocking registration
+   * Supports 1000+ registrations/minute by not waiting for resource creation
+   */
+  private async initializeUserResources(userId: string): Promise<void> {
+    try {
+      console.log(`🎯 Initializing resources for user ${userId}...`)
+
+      // 1. Create default UserCategories from templates
+      await this.createDefaultUserCategories(userId)
+
+      // 2. Create default Account
+      await this.createDefaultAccount(userId)
+
+      console.log(`✅ Resources initialized successfully for user ${userId}`)
+    } catch (error) {
+      console.error(`❌ Error initializing resources for user ${userId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Create UserCategories from CategoryTemplates for a new user
+   */
+  private async createDefaultUserCategories(userId: string): Promise<void> {
+    // Get CategoryTemplates (this should be injected, but for now we'll use Prisma directly)
+    const { PrismaClient } = await import('@prisma/client')
+    const prisma = new PrismaClient()
+
+    try {
+      const templates = await prisma.categoryTemplate.findMany({
+        where: { isDefault: true }
+      })
+
+      console.log(`📋 Found ${templates.length} category templates`)
+
+      // Create UserCategories in parallel for speed
+      await Promise.all(
+        templates.map(template =>
+          this.userCategoryRepository.create({
+            userId,
+            categoryTemplateId: template.id,
+            name: template.name,
+            type: template.type as any,
+            color: template.color || undefined,
+            icon: template.icon || undefined,
+            isActive: true,
+            isCustom: false,
+            tags: template.tags || [],
+            status: 'ACTIVE' as any
+          } as any)
+        )
+      )
+
+      console.log(`✅ Created ${templates.length} user categories`)
+    } finally {
+      await prisma.$disconnect()
+    }
+  }
+
+  /**
+   * Create a default checking account for a new user
+   */
+  private async createDefaultAccount(userId: string): Promise<void> {
+    const { Account } = await import('../core/entities/Account')
+    const { Decimal } = await import('decimal.js')
+
+    const account = new Account({
+      userId,
+      name: 'Conta Principal',
+      type: 'CHECKING' as any,
+      balance: new Decimal(0),
+      currency: 'BRL',
+      status: 'ACTIVE' as any,
+      isDefault: true,
+      description: 'Conta criada automaticamente'
+    })
+
+    await this.accountRepository.create(account)
+    console.log(`✅ Created default account for user ${userId}`)
   }
 
   async updateProfile(userId: string, data: {

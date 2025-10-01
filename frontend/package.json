@@ -37,6 +37,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.1",
     "recharts": "^3.2.1",
+    "reflect-metadata": "^0.2.2",
     "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {

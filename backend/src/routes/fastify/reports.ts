@@ -16,7 +16,8 @@ export default async function reportRoutes(fastify: FastifyInstance) {
   const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, redisService)
 
   const userRepository = Container.get('IUserRepository') as any
-  const authService = new AuthService(userRepository, redisService)
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
+  const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/reports'
 
   // Helper function to extract user from token
