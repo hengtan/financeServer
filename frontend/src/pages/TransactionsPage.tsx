@@ -36,6 +36,17 @@ export const TransactionsPage = () => {
   const [userCategories, setUserCategories] = useState<UserCategory[]>([])
   const [realCategories, setRealCategories] = useState<any[]>([])
 
+  // Estados para filtros
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    type: 'all', // 'all', 'income', 'expense'
+    status: 'all', // 'all', 'pending', 'confirmed', 'cancelled'
+    dateFrom: '',
+    dateTo: '',
+    amountMin: '',
+    amountMax: ''
+  })
+
   useEffect(() => {
     console.log('🔍 Frontend: Checking authentication status...')
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
@@ -173,9 +184,41 @@ export const TransactionsPage = () => {
   }
 
   const filteredTransactions = transactions.filter(transaction => {
+    // Filtro de categoria
     if (selectedCategory !== 'todas' && transaction.category !== selectedCategory) {
       return false
     }
+
+    // Filtro de tipo (receita/despesa)
+    if (filters.type !== 'all' && transaction.type !== filters.type) {
+      return false
+    }
+
+    // Filtro de status
+    if (filters.status !== 'all' && transaction.status !== filters.status) {
+      return false
+    }
+
+    // Filtro de data inicial
+    if (filters.dateFrom && new Date(transaction.date) < new Date(filters.dateFrom)) {
+      return false
+    }
+
+    // Filtro de data final
+    if (filters.dateTo && new Date(transaction.date) > new Date(filters.dateTo)) {
+      return false
+    }
+
+    // Filtro de valor mínimo
+    if (filters.amountMin && transaction.amount < parseFloat(filters.amountMin)) {
+      return false
+    }
+
+    // Filtro de valor máximo
+    if (filters.amountMax && transaction.amount > parseFloat(filters.amountMax)) {
+      return false
+    }
+
     return true
   })
 
@@ -346,7 +389,7 @@ export const TransactionsPage = () => {
                     </option>
                   ))}
                 </select>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
                   <Filter className="h-4 w-4 mr-2" />
                   Filtros
                 </Button>
@@ -357,6 +400,103 @@ export const TransactionsPage = () => {
               </div>
             </div>
           </CardHeader>
+
+          {/* Painel de Filtros */}
+          {showFilters && (
+            <div className="px-6 py-4 border-b border-border bg-muted/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Tipo</label>
+                  <select
+                    value={filters.type}
+                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="income">Receitas</option>
+                    <option value="expense">Despesas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Status</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="pending">Pendente</option>
+                    <option value="confirmed">Confirmado</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Data Inicial</label>
+                  <input
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Data Final</label>
+                  <input
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Valor Mínimo</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={filters.amountMin}
+                    onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
+                    placeholder="0,00"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Valor Máximo</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={filters.amountMax}
+                    onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
+                    placeholder="0,00"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFilters({
+                      type: 'all',
+                      status: 'all',
+                      dateFrom: '',
+                      dateTo: '',
+                      amountMin: '',
+                      amountMax: ''
+                    })
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+          )}
+
           <CardContent>
             <div className="space-y-4">
               {filteredTransactions.map((transaction) => (
