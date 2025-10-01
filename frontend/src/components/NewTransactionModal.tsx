@@ -266,7 +266,7 @@ export const NewTransactionModal = ({
           >
             {finalCategories.map(cat => (
               <option key={cat.id} value={cat.id}>
-                {cat.icon && `${cat.icon} `}{cat.name}
+                {cat.name}
               </option>
             ))}
           </select>

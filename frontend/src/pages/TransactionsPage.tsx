@@ -59,14 +59,28 @@ export const TransactionsPage = () => {
         apiService.get('/accounts')
       ])
 
+      let categoriesMap = new Map<string, string>()
+
       if (transactionsResponse.success) {
+        // Primeiro, buscar todas as categorias para fazer o mapeamento
+        try {
+          const allCategoriesResponse = await userCategoriesService.getActiveUserCategories()
+          if (allCategoriesResponse.success && allCategoriesResponse.data?.categories) {
+            allCategoriesResponse.data.categories.forEach((cat: any) => {
+              categoriesMap.set(cat.id, cat.name)
+            })
+          }
+        } catch (err) {
+          console.error('Error loading categories for mapping:', err)
+        }
+
         // Converter dados da API para o formato esperado pelo componente
         const formattedTransactions: Transaction[] = transactionsResponse.data.data.map((t: any) => ({
           id: t.id,
           description: t.description,
           amount: parseFloat(t.amount || 0),
           date: t.date,
-          category: t.category?.name || 'Sem categoria',
+          category: t.userCategoryId ? (categoriesMap.get(t.userCategoryId) || 'Sem categoria') : (t.category?.name || 'Sem categoria'),
           account: t.account?.name || 'Conta',
           type: t.type === 'INCOME' ? 'income' : 'expense',
           status: t.status === 'COMPLETED' ? 'confirmed' : t.status === 'PENDING' ? 'pending' : 'cancelled'
