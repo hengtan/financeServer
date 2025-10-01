@@ -351,7 +351,7 @@ export const DashboardPage = ({
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8 animate-fadeIn">
             <h1 className="text-3xl font-bold text-foreground">
-              {finalLabels.welcome}, {user?.name?.split(' ')[0]}! 👋
+              {finalLabels.welcome}
             </h1>
             <p className="text-muted-foreground mt-2">
               Aqui está um resumo das suas finanças hoje, {new Date().toLocaleDateString(locale, {
