@@ -509,6 +509,328 @@ async function main() {
     })
   }
 
+  // Monthly subscriptions and recurring services (last 12 months)
+  const subscriptions = [
+    { name: 'Netflix', amount: 55.90, categoryName: 'Lazer', day: 8, account: 'cc_inter' },
+    { name: 'Spotify Premium', amount: 21.90, categoryName: 'Lazer', day: 12, account: 'cc_inter' },
+    { name: 'Amazon Prime', amount: 14.90, categoryName: 'Serviços', day: 15, account: 'cc_pao_acucar' },
+    { name: 'iCloud 200GB', amount: 12.90, categoryName: 'Serviços', day: 20, account: 'cc_inter' },
+    { name: 'YouTube Premium', amount: 28.90, categoryName: 'Lazer', day: 5, account: 'cc_inter' },
+  ]
+
+  for (let month = 0; month < 12; month++) {
+    for (const sub of subscriptions) {
+      const date = new Date(startDate)
+      date.setMonth(date.getMonth() + month)
+      date.setDate(sub.day)
+
+      transactions.push({
+        description: sub.name,
+        amount: sub.amount,
+        type: 'EXPENSE',
+        userCategoryId: findCategory(sub.categoryName)?.id,
+        accountId: sub.account,
+        userId: sandboxUser.id,
+        status: 'COMPLETED',
+        date,
+      })
+    }
+  }
+
+  // Monthly phone bill
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(18)
+
+    transactions.push({
+      description: 'Vivo Celular',
+      amount: 89.90,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Serviços')?.id,
+      accountId: 'cc_inter',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Gym membership
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(1)
+
+    transactions.push({
+      description: 'Academia Smart Fit',
+      amount: 79.90,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Saúde')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Gas bill (every 2 months)
+  for (let month = 0; month < 12; month += 2) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(22)
+
+    transactions.push({
+      description: 'Conta de Gás',
+      amount: 45.00 + (Math.random() * 25),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Moradia')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Water bill (monthly)
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(25)
+
+    transactions.push({
+      description: 'Conta de Água',
+      amount: 35.00 + (Math.random() * 20),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Moradia')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Education - Online courses (sporadic)
+  const educationDates = [
+    new Date('2024-11-10'),
+    new Date('2025-02-15'),
+    new Date('2025-05-20'),
+    new Date('2025-08-12'),
+  ]
+
+  const educationCourses = ['Udemy - React Avançado', 'Coursera - Data Science', 'Alura - NodeJS', 'Rocketseat GoStack']
+  for (const date of educationDates) {
+    transactions.push({
+      description: educationCourses[Math.floor(Math.random() * educationCourses.length)],
+      amount: 50.00 + (Math.random() * 200),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Educação')?.id,
+      accountId: 'cc_pao_acucar',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Pet expenses (monthly)
+  for (let month = 6; month < 12; month++) { // Last 6 months
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(Math.floor(Math.random() * 28) + 1)
+
+    const petExpenses = ['Ração Premium', 'Veterinário', 'Petshop Banho e Tosa', 'Remédio pet']
+    transactions.push({
+      description: petExpenses[Math.floor(Math.random() * petExpenses.length)],
+      amount: 80.00 + (Math.random() * 220),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Pet')?.id,
+      accountId: ['acc_itau', 'cc_inter'][Math.floor(Math.random() * 2)],
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Beauty & personal care (sporadic)
+  const beautyCareCount = 24 // ~2 per month for last year
+  for (let i = 0; i < beautyCareCount; i++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + Math.floor(i / 2))
+    date.setDate(Math.floor(Math.random() * 28) + 1)
+
+    const beautyServices = ['Cabeleleiro', 'Barbearia', 'Manicure', 'Farmácia - Cosméticos']
+    transactions.push({
+      description: beautyServices[Math.floor(Math.random() * beautyServices.length)],
+      amount: 30.00 + (Math.random() * 120),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Beleza')?.id,
+      accountId: ['acc_carteira', 'cc_inter'][Math.floor(Math.random() * 2)],
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Clothing & fashion (sporadic)
+  const clothingCount = 15
+  for (let i = 0; i < clothingCount; i++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + Math.floor(Math.random() * 12))
+    date.setDate(Math.floor(Math.random() * 28) + 1)
+
+    const clothingStores = ['Zara', 'Renner', 'C&A', 'Nike Store', 'Adidas', 'Shein']
+    transactions.push({
+      description: clothingStores[Math.floor(Math.random() * clothingStores.length)],
+      amount: 100.00 + (Math.random() * 400),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Vestuário')?.id,
+      accountId: ['cc_pao_acucar', 'cc_personallite'][Math.floor(Math.random() * 2)],
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Restaurants & food delivery (frequent - last 6 months)
+  const restaurantCount = 60 // ~10 per month for last 6 months
+  for (let i = 0; i < restaurantCount; i++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + 6 + Math.floor(i / 10))
+    date.setDate(Math.floor(Math.random() * 28) + 1)
+
+    const foodServices = ['iFood', 'Rappi', 'Restaurante Japonês', 'Pizzaria', 'Burguer King', 'McDonalds', 'Padaria']
+    transactions.push({
+      description: foodServices[Math.floor(Math.random() * foodServices.length)],
+      amount: 25.00 + (Math.random() * 125),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Alimentação')?.id,
+      accountId: ['cc_inter', 'cc_pao_acucar', 'acc_carteira'][Math.floor(Math.random() * 3)],
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Coffee & snacks (very frequent - last 3 months)
+  const coffeeCount = 40 // ~3-4 per week
+  for (let i = 0; i < coffeeCount; i++) {
+    const date = new Date('2025-07-01')
+    date.setDate(date.getDate() + (i * 2)) // Every 2 days
+
+    const coffeeShops = ['Starbucks', 'Kopenhagen', 'Padaria', 'Café local']
+    transactions.push({
+      description: coffeeShops[Math.floor(Math.random() * coffeeShops.length)],
+      amount: 8.00 + (Math.random() * 22),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Alimentação')?.id,
+      accountId: 'acc_carteira',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Transfers between accounts
+  const transfers = [
+    { from: 'acc_itau', to: 'acc_caixa', amount: 500.00, date: new Date('2025-07-10'), desc: 'Transferência para Caixa' },
+    { from: 'acc_itau', to: 'acc_inter', amount: 1000.00, date: new Date('2025-08-05'), desc: 'Transferência para Inter' },
+    { from: 'acc_inter', to: 'acc_mercadopago', amount: 200.00, date: new Date('2025-08-15'), desc: 'Transferência MercadoPago' },
+    { from: 'acc_itau', to: 'acc_carteira', amount: 300.00, date: new Date('2025-09-01'), desc: 'Saque em dinheiro' },
+  ]
+
+  for (const transfer of transfers) {
+    // Debit from origin account
+    transactions.push({
+      description: transfer.desc,
+      amount: transfer.amount,
+      type: 'TRANSFER',
+      accountId: transfer.from,
+      toAccountId: transfer.to,
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date: transfer.date,
+    })
+  }
+
+  // Insurance payments (annual or semi-annual)
+  const insuranceDates = [
+    new Date('2024-11-01'),
+    new Date('2025-05-01'),
+  ]
+
+  for (const date of insuranceDates) {
+    transactions.push({
+      description: 'Seguro Auto',
+      amount: 1200.00 + (Math.random() * 300),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Seguros')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Taxes (IPTU, IPVA)
+  const taxDates = [
+    { date: new Date('2025-02-28'), desc: 'IPVA 2025', amount: 850.00 },
+    { date: new Date('2025-03-15'), desc: 'IPTU 2025 - 1ª parcela', amount: 250.00 },
+    { date: new Date('2025-04-15'), desc: 'IPTU 2025 - 2ª parcela', amount: 250.00 },
+    { date: new Date('2025-05-15'), desc: 'IPTU 2025 - 3ª parcela', amount: 250.00 },
+  ]
+
+  for (const tax of taxDates) {
+    transactions.push({
+      description: tax.desc,
+      amount: tax.amount,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Impostos')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date: tax.date,
+    })
+  }
+
+  // Special occasions (birthdays, gifts, etc)
+  const specialDates = [
+    { date: new Date('2024-12-25'), desc: 'Presentes de Natal', amount: 800.00 },
+    { date: new Date('2025-03-08'), desc: 'Presente Dia da Mulher', amount: 250.00 },
+    { date: new Date('2025-06-12'), desc: 'Presente Dia dos Namorados', amount: 350.00 },
+    { date: new Date('2025-08-14'), desc: 'Presente Aniversário', amount: 420.00 },
+  ]
+
+  for (const special of specialDates) {
+    transactions.push({
+      description: special.desc,
+      amount: special.amount,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Outros')?.id,
+      accountId: 'cc_personallite',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date: special.date,
+    })
+  }
+
+  // Bonus income (sporadic)
+  const bonusDates = [
+    { date: new Date('2024-12-20'), desc: 'Bônus Fim de Ano', amount: 5000.00 },
+    { date: new Date('2025-06-15'), desc: 'Bônus Semestral', amount: 3500.00 },
+  ]
+
+  for (const bonus of bonusDates) {
+    transactions.push({
+      description: bonus.desc,
+      amount: bonus.amount,
+      type: 'INCOME',
+      userCategoryId: findCategory('Bônus')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date: bonus.date,
+    })
+  }
+
   // Create all transactions
   for (const transactionData of transactions) {
     await prisma.transaction.create({
