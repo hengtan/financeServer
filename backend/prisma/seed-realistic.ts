@@ -99,12 +99,28 @@ async function main() {
   // ============================================================
   const legacyCategories: any[] = []
 
-  // Create a few legacy categories for budgets
+  // Create legacy categories for all main expense and income types
   const legacyCategoryData = [
+    // EXPENSE CATEGORIES
     { id: 'legacy_alimentacao', name: 'Alimentação', type: 'EXPENSE', color: '#f59e0b', icon: '🍽️' },
     { id: 'legacy_transporte', name: 'Transporte', type: 'EXPENSE', color: '#3b82f6', icon: '🚗' },
+    { id: 'legacy_moradia', name: 'Moradia', type: 'EXPENSE', color: '#8b5cf6', icon: '🏠' },
+    { id: 'legacy_saude', name: 'Saúde', type: 'EXPENSE', color: '#ec4899', icon: '⚕️' },
+    { id: 'legacy_educacao', name: 'Educação', type: 'EXPENSE', color: '#6366f1', icon: '📚' },
     { id: 'legacy_lazer', name: 'Lazer', type: 'EXPENSE', color: '#a855f7', icon: '🎬' },
     { id: 'legacy_compras', name: 'Compras', type: 'EXPENSE', color: '#ef4444', icon: '🛍️' },
+    { id: 'legacy_servicos', name: 'Serviços', type: 'EXPENSE', color: '#f97316', icon: '🔧' },
+    { id: 'legacy_vestuario', name: 'Vestuário', type: 'EXPENSE', color: '#84cc16', icon: '👕' },
+    { id: 'legacy_beleza', name: 'Beleza', type: 'EXPENSE', color: '#d946ef', icon: '💄' },
+    { id: 'legacy_pet', name: 'Pet', type: 'EXPENSE', color: '#0ea5e9', icon: '🐾' },
+    { id: 'legacy_seguros', name: 'Seguros', type: 'EXPENSE', color: '#78716c', icon: '🛡️' },
+    { id: 'legacy_impostos', name: 'Impostos', type: 'EXPENSE', color: '#dc2626', icon: '📋' },
+    { id: 'legacy_outros', name: 'Outros', type: 'EXPENSE', color: '#6b7280', icon: '📦' },
+    // INCOME CATEGORIES
+    { id: 'legacy_salario', name: 'Salário', type: 'INCOME', color: '#10b981', icon: '💼' },
+    { id: 'legacy_freelance', name: 'Freelance', type: 'INCOME', color: '#059669', icon: '💻' },
+    { id: 'legacy_investimentos', name: 'Investimentos', type: 'INCOME', color: '#0d9488', icon: '📈' },
+    { id: 'legacy_bonus', name: 'Bônus', type: 'INCOME', color: '#14b8a6', icon: '🎁' },
   ]
 
   for (const catData of legacyCategoryData) {
@@ -133,6 +149,17 @@ async function main() {
   // Helper to find legacy category by name
   const findLegacyCategory = (name: string) => {
     return legacyCategories.find(c => c.name === name)
+  }
+
+  // Helper to get both category IDs for transactions
+  const getCategoryIds = (categoryName: string) => {
+    const userCategory = findCategory(categoryName)
+    const legacyCategory = legacyCategories.find(c => c.name === categoryName)
+
+    return {
+      userCategoryId: userCategory?.id,
+      categoryId: legacyCategory?.id || userCategory?.id // Fallback to userCategory if no legacy
+    }
   }
 
   // ============================================================
@@ -270,11 +297,12 @@ async function main() {
     date.setMonth(date.getMonth() + month)
     date.setDate(5) // Salary on 5th of each month
 
+    const categoryIds = getCategoryIds('Salário')
     transactions.push({
       description: 'Salário',
       amount: 6500.00 + (Math.random() * 500), // 6500-7000
       type: 'INCOME',
-      userCategoryId: findCategory('Salário')?.id,
+      ...categoryIds,
       accountId: 'acc_itau',
       userId: sandboxUser.id,
       status: 'COMPLETED',
@@ -832,11 +860,37 @@ async function main() {
   }
 
   // Create all transactions
+  let categorizedCount = 0
+  let uncategorizedCount = 0
+
   for (const transactionData of transactions) {
+    // If userCategoryId is set but categoryId is not, find the matching legacy category
+    if (transactionData.userCategoryId && !transactionData.categoryId) {
+      const userCategory = userCategories.find(uc => uc.id === transactionData.userCategoryId)
+      if (userCategory) {
+        const legacyCategory = legacyCategories.find(lc => lc.name === userCategory.name)
+        if (legacyCategory) {
+          transactionData.categoryId = legacyCategory.id
+          categorizedCount++
+        } else {
+          // If no legacy category exists, use userCategoryId as fallback
+          transactionData.categoryId = transactionData.userCategoryId
+          categorizedCount++
+        }
+      }
+    }
+
+    if (!transactionData.categoryId) {
+      uncategorizedCount++
+    }
+
     await prisma.transaction.create({
       data: transactionData,
     })
   }
+
+  console.log(`   - Categorized: ${categorizedCount}`)
+  console.log(`   - Uncategorized: ${uncategorizedCount}`)
 
   console.log(`💳 Created ${transactions.length} realistic transactions over 12 months`)
 

@@ -128,6 +128,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       where,
       include: {
         category: true,
+        userCategory: true, // 🚀 Include new userCategory relation
         account: true,
         toAccount: true
       },
@@ -300,7 +301,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
   }
 
   private toDomainEntity(prismaTransaction: any): Transaction {
-    return new Transaction({
+    const transaction = new Transaction({
       id: prismaTransaction.id,
       userId: prismaTransaction.userId,
       description: prismaTransaction.description,
@@ -317,5 +318,28 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       updatedAt: prismaTransaction.updatedAt,
       metadata: prismaTransaction.metadata as Record<string, any> || undefined
     })
+
+    // Add category info as additional properties for API responses
+    if (prismaTransaction.category) {
+      ;(transaction as any).category = {
+        id: prismaTransaction.category.id,
+        name: prismaTransaction.category.name,
+        type: prismaTransaction.category.type,
+        color: prismaTransaction.category.color,
+        icon: prismaTransaction.category.icon
+      }
+    }
+
+    if (prismaTransaction.userCategory) {
+      ;(transaction as any).userCategory = {
+        id: prismaTransaction.userCategory.id,
+        name: prismaTransaction.userCategory.name,
+        type: prismaTransaction.userCategory.type,
+        color: prismaTransaction.userCategory.color,
+        icon: prismaTransaction.userCategory.icon
+      }
+    }
+
+    return transaction
   }
 }
