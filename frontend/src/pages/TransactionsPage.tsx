@@ -476,7 +476,7 @@ export const TransactionsPage = () => {
                       }
                     }}
                     placeholder="R$ Min"
-                    className="w-32 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    className="w-40 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
                   <span className="text-muted-foreground">-</span>
                   <input
@@ -492,7 +492,7 @@ export const TransactionsPage = () => {
                       }
                     }}
                     placeholder="R$ Max"
-                    className="w-32 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    className="w-40 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
                 </div>
 
