@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { SecurityProvider } from '@/contexts/SecurityContext'
 import { Header } from '@/components/Header'
+import { Sidebar } from '@/components/Sidebar'
 import { Footer } from '@/components/Footer'
 import { ScrollToTop } from '@/components/ScrollToTop'
 import { Toaster } from '@/components/ui/toaster'
@@ -14,7 +15,7 @@ import { ContactPage } from '@/pages/ContactPage'
 import { DemoPage } from '@/pages/DemoPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
-import { DashboardPageWrapper } from '@/pages/DashboardPageWrapper'
+import { NewDashboardPage } from '@/pages/NewDashboardPage'
 import { FeaturesPage } from '@/pages/FeaturesPage'
 import { PricingPage } from '@/pages/PricingPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
@@ -58,12 +59,24 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? <Navigate to="/dashboard" /> : <>{children}</>
 }
 
-const AppLayout = ({ children, showFooter = true }: { children: React.ReactNode, showFooter?: boolean }) => {
+const AppLayout = ({ children, showFooter = true, showSidebar = false }: { children: React.ReactNode, showFooter?: boolean, showSidebar?: boolean }) => {
+  const { isAuthenticated } = useAuth()
+  const useSidebar = showSidebar && isAuthenticated
+
   return (
     <div className="min-h-screen">
-      <Header />
-      <main>{children}</main>
-      {showFooter && <Footer />}
+      {useSidebar ? (
+        <>
+          <Sidebar />
+          <main className="ml-20 transition-all duration-300">{children}</main>
+        </>
+      ) : (
+        <>
+          <Header />
+          <main>{children}</main>
+          {showFooter && <Footer />}
+        </>
+      )}
     </div>
   )
 }
@@ -140,15 +153,15 @@ function App() {
 
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
-                <DashboardPageWrapper />
+              <AppLayout showFooter={false} showSidebar={true}>
+                <NewDashboardPage />
               </AppLayout>
             </ProtectedRoute>
           } />
 
           <Route path="/dashboard/customizado" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <CustomDashboardPage />
               </AppLayout>
             </ProtectedRoute>
@@ -156,7 +169,7 @@ function App() {
 
           <Route path="/dashboard/especializados" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <MultiDashboardPage />
               </AppLayout>
             </ProtectedRoute>
@@ -164,7 +177,7 @@ function App() {
 
           <Route path="/transacoes" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <TransactionsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -172,7 +185,7 @@ function App() {
 
           <Route path="/relatorios" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <ReportsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -180,7 +193,7 @@ function App() {
 
           <Route path="/metas" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <GoalsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -188,7 +201,7 @@ function App() {
 
           <Route path="/configuracoes" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <SettingsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -196,7 +209,7 @@ function App() {
 
           <Route path="/perfil" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <ProfilePage />
               </AppLayout>
             </ProtectedRoute>
@@ -204,7 +217,7 @@ function App() {
 
           <Route path="/notificacoes" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <NotificationsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -212,7 +225,7 @@ function App() {
 
           <Route path="/alertas" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <AlertsPage />
               </AppLayout>
             </ProtectedRoute>
@@ -220,7 +233,7 @@ function App() {
 
           <Route path="/calculadoras" element={
             <ProtectedRoute>
-              <AppLayout showFooter={false}>
+              <AppLayout showFooter={false} showSidebar={true}>
                 <CalculatorsPage />
               </AppLayout>
             </ProtectedRoute>

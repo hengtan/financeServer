@@ -134,7 +134,7 @@ class AuthService {
     otherStorage.removeItem('refreshToken')
   }
 
-  private clearTokens(): void {
+  clearTokens(): void {
     localStorage.removeItem('authToken')
     localStorage.removeItem('refreshToken')
     sessionStorage.removeItem('authToken')

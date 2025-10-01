@@ -4,9 +4,10 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Light mode - Soft mint green background */
+    --background: 150 25% 96%;           /* Verdinho claro suave */
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                   /* Cards brancos para contraste */
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -14,14 +15,14 @@
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
+    --muted: 150 20% 92%;                /* Muted com toque de verde */
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
+    --accent: 150 25% 93%;               /* Accent com verde claro */
     --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    --border: 150 15% 88%;               /* Bordas sutis com verde */
+    --input: 0 0% 100%;                  /* Inputs brancos */
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
 
