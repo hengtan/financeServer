@@ -359,9 +359,9 @@ async function main() {
     })
   }
 
-  // Weekly groceries (last 3 months only for realism)
+  // Weekly groceries (last 6 months - July to December 2025)
   const weeklyStartDate = new Date('2025-07-01')
-  for (let week = 0; week < 13; week++) { // ~3 months
+  for (let week = 0; week < 26; week++) { // ~6 months
     const date = new Date(weeklyStartDate)
     date.setDate(date.getDate() + (week * 7))
 
@@ -379,10 +379,10 @@ async function main() {
 
   // Transportation (Uber, Gas, etc)
   const transportDates = []
-  for (let month = 0; month < 6; month++) { // Last 6 months
+  for (let month = 0; month < 12; month++) { // Last 12 months
     for (let i = 0; i < 8; i++) { // 8 transport expenses per month
       const date = new Date(startDate)
-      date.setMonth(date.getMonth() + 6 + month)
+      date.setMonth(date.getMonth() + month)
       date.setDate(Math.floor(Math.random() * 28) + 1)
       transportDates.push(date)
     }
@@ -404,10 +404,10 @@ async function main() {
 
   // Leisure & Entertainment
   const leisureDates = []
-  for (let month = 0; month < 6; month++) {
+  for (let month = 0; month < 12; month++) {
     for (let i = 0; i < 4; i++) { // 4 leisure expenses per month
       const date = new Date(startDate)
-      date.setMonth(date.getMonth() + 6 + month)
+      date.setMonth(date.getMonth() + month)
       date.setDate(Math.floor(Math.random() * 28) + 1)
       leisureDates.push(date)
     }
@@ -450,9 +450,9 @@ async function main() {
   }
 
   // Random health expenses (pharmacy, doctor)
-  for (let month = 0; month < 8; month++) {
+  for (let month = 0; month < 12; month++) {
     const date = new Date(startDate)
-    date.setMonth(date.getMonth() + month + 2)
+    date.setMonth(date.getMonth() + month)
     date.setDate(Math.floor(Math.random() * 28) + 1)
 
     transactions.push({
@@ -476,6 +476,9 @@ async function main() {
     new Date('2025-06-12'),
     new Date('2025-08-22'),
     new Date('2025-09-15'),
+    new Date('2025-10-18'),
+    new Date('2025-11-10'),
+    new Date('2025-12-05'),
   ]
 
   for (const date of freelanceDates) {
@@ -496,7 +499,7 @@ async function main() {
     new Date('2025-01-15'),
     new Date('2025-04-15'),
     new Date('2025-07-15'),
-    new Date('2025-10-01'), // Future
+    new Date('2025-10-15'),
   ]
 
   for (const date of investmentDates) {
@@ -514,10 +517,10 @@ async function main() {
 
   // Shopping (sporadic)
   const shoppingDates = []
-  for (let month = 0; month < 8; month++) {
+  for (let month = 0; month < 12; month++) {
     for (let i = 0; i < 2; i++) {
       const date = new Date(startDate)
-      date.setMonth(date.getMonth() + month + 2)
+      date.setMonth(date.getMonth() + month)
       date.setDate(Math.floor(Math.random() * 28) + 1)
       shoppingDates.push(date)
     }
@@ -643,6 +646,10 @@ async function main() {
     new Date('2025-02-15'),
     new Date('2025-05-20'),
     new Date('2025-08-12'),
+    new Date('2025-09-25'),
+    new Date('2025-10-15'),
+    new Date('2025-11-20'),
+    new Date('2025-12-10'),
   ]
 
   const educationCourses = ['Udemy - React Avançado', 'Coursera - Data Science', 'Alura - NodeJS', 'Rocketseat GoStack']
@@ -660,7 +667,7 @@ async function main() {
   }
 
   // Pet expenses (monthly)
-  for (let month = 6; month < 12; month++) { // Last 6 months
+  for (let month = 0; month < 12; month++) { // All 12 months
     const date = new Date(startDate)
     date.setMonth(date.getMonth() + month)
     date.setDate(Math.floor(Math.random() * 28) + 1)
@@ -718,11 +725,11 @@ async function main() {
     })
   }
 
-  // Restaurants & food delivery (frequent - last 6 months)
-  const restaurantCount = 60 // ~10 per month for last 6 months
+  // Restaurants & food delivery (frequent - all 12 months)
+  const restaurantCount = 120 // ~10 per month for 12 months
   for (let i = 0; i < restaurantCount; i++) {
     const date = new Date(startDate)
-    date.setMonth(date.getMonth() + 6 + Math.floor(i / 10))
+    date.setMonth(date.getMonth() + Math.floor(i / 10))
     date.setDate(Math.floor(Math.random() * 28) + 1)
 
     const foodServices = ['iFood', 'Rappi', 'Restaurante Japonês', 'Pizzaria', 'Burguer King', 'McDonalds', 'Padaria']
@@ -738,8 +745,8 @@ async function main() {
     })
   }
 
-  // Coffee & snacks (very frequent - last 3 months)
-  const coffeeCount = 40 // ~3-4 per week
+  // Coffee & snacks (very frequent - last 6 months)
+  const coffeeCount = 80 // ~3-4 per week for 6 months
   for (let i = 0; i < coffeeCount; i++) {
     const date = new Date('2025-07-01')
     date.setDate(date.getDate() + (i * 2)) // Every 2 days

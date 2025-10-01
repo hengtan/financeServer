@@ -30,6 +30,7 @@ export default async function dashboardRoutes(
   // GET /api/dashboard/overview - Visão geral financeira completa
   fastify.get(`${prefix}/overview`, async (request, reply) => {
     try {
+      console.log('📊 Dashboard overview request:', request.query)
       const user = await getUserFromToken(request.headers.authorization)
       if (!user) {
         return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
@@ -40,14 +41,17 @@ export default async function dashboardRoutes(
       // Aceitar period (dias) OU startDate/endDate específicas
       let startDate: Date
       let endDate: Date
+      let period: string
 
       if (query.startDate && query.endDate) {
         // Usar datas específicas se fornecidas
         startDate = new Date(query.startDate)
         endDate = new Date(query.endDate)
+        // Calculate period in days for response
+        period = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)).toString()
       } else {
         // Fallback: usar period (dias retroativos)
-        const period = query.period || '30'
+        period = query.period || '30'
         endDate = new Date()
         endDate.setDate(endDate.getDate() + 30) // Include 30 days in the future
         startDate = new Date()
@@ -149,10 +153,10 @@ export default async function dashboardRoutes(
         .slice(0, 5)
 
       // Tendência de gastos (últimos 7 dias vs 7 dias anteriores)
-      const last7Days = new Date()
-      last7Days.setDate(endDate.getDate() - 7)
-      const previous7Days = new Date()
-      previous7Days.setDate(endDate.getDate() - 14)
+      const last7Days = new Date(endDate)
+      last7Days.setDate(last7Days.getDate() - 7)
+      const previous7Days = new Date(endDate)
+      previous7Days.setDate(previous7Days.getDate() - 14)
 
       const [recentExpenses, previousExpenses] = await Promise.all([
         transactionRepository.findByUserIdAndPeriod(
@@ -237,7 +241,9 @@ export default async function dashboardRoutes(
         }
       }
     } catch (error) {
+      console.error('❌ Dashboard overview error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+      const errorStack = error instanceof Error ? error.stack : ''
 
       if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
         return reply.status(401).send({
@@ -246,6 +252,7 @@ export default async function dashboardRoutes(
         })
       }
 
+      console.error('Stack trace:', errorStack)
       return reply.status(500).send({
         success: false,
         message: 'Erro interno do servidor',
@@ -365,6 +372,73 @@ export default async function dashboardRoutes(
 
     return recommendations
   }
+
+  // GET /api/dashboard/daily-expenses - Gastos diários agrupados
+  fastify.get(`${prefix}/daily-expenses`, async (request, reply) => {
+    try {
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const query = request.query as any
+      const days = parseInt(query.days || '30')
+
+      // Calcular período
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+
+      // Buscar transações do período
+      const transactions = await transactionRepository.findByUserIdAndPeriod(
+        user.id,
+        startDate.toISOString(),
+        endDate.toISOString()
+      )
+
+      // Agrupar por dia
+      const dailyExpenses: { [key: string]: number } = {}
+
+      // Inicializar todos os dias com 0
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate)
+        date.setDate(date.getDate() + i)
+        const dateKey = date.toISOString().split('T')[0]
+        dailyExpenses[dateKey] = 0
+      }
+
+      // Somar gastos por dia
+      const expenseTransactions = transactions?.filter((t: any) => t.type === 'EXPENSE') || []
+      for (const transaction of expenseTransactions) {
+        const dateKey = new Date(transaction.date).toISOString().split('T')[0]
+        if (dailyExpenses[dateKey] !== undefined) {
+          dailyExpenses[dateKey] += Math.abs(parseFloat(transaction.amount?.toString() || '0'))
+        }
+      }
+
+      // Converter para array ordenado
+      const dailyData = Object.entries(dailyExpenses)
+        .map(([date, total]) => ({
+          date,
+          total: Number(total.toFixed(2))
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+
+      return {
+        success: true,
+        data: dailyData
+      }
+    } catch (error) {
+      console.error('❌ Daily expenses error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro ao buscar gastos diários',
+        errors: [errorMessage]
+      })
+    }
+  })
 
   // Rota de teste
   fastify.get(`${prefix}/test`, async (request, reply) => {

@@ -115,9 +115,10 @@ export class Transaction {
       throw new Error('Source and destination accounts cannot be the same')
     }
 
-    if (this.date > new Date()) {
-      throw new Error('Transaction date cannot be in the future')
-    }
+    // Allow future transactions for scheduled/recurring transactions
+    // if (this.date > new Date()) {
+    //   throw new Error('Transaction date cannot be in the future')
+    // }
   }
 
   // Domain methods (Business Logic)

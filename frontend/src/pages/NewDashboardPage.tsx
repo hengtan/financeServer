@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useAuth } from '@/contexts/AuthContext'
 import { DashboardWithRealData } from '@/components/DashboardWithRealData'
+import { useDailyExpenses } from '@/hooks/useDailyExpenses'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -27,6 +28,7 @@ import {
   Bar,
   LineChart as RechartsLine,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -39,7 +41,8 @@ export const NewDashboardPage = () => {
   usePageTitle('Dashboard')
   const { user } = useAuth()
   // Iniciar em Julho/2025 que tem 62 transações no seed (ao invés do mês atual que pode ter poucos dados)
-  const [selectedDate, setSelectedDate] = useState(new Date(2025, 6, 1)) // Julho = mês 6 (0-indexed)
+  const [selectedDate, setSelectedDate] = useState(new Date()) // Mês atual
+  const [activeDonutIndex, setActiveDonutIndex] = useState<number | undefined>(undefined)
 
   return (
     <DashboardWithRealData selectedDate={selectedDate}>
@@ -49,6 +52,8 @@ export const NewDashboardPage = () => {
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
           dashboardData={dashboardData}
+          activeDonutIndex={activeDonutIndex}
+          setActiveDonutIndex={setActiveDonutIndex}
         />
       )}
     </DashboardWithRealData>
@@ -56,8 +61,71 @@ export const NewDashboardPage = () => {
 }
 
 // Componente interno com o conteúdo do dashboard
-const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: apiData }: any) => {
+const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: apiData, activeDonutIndex, setActiveDonutIndex }: any) => {
   const navigate = useNavigate()
+  const [spendingPeriod, setSpendingPeriod] = useState<'7d' | '30d' | '1y'>('30d')
+
+  // Buscar dados reais de gastos diários
+  const daysToFetch = spendingPeriod === '7d' ? 7 : spendingPeriod === '30d' ? 30 : 365
+  const { data: dailyExpensesData, isLoading: loadingDaily } = useDailyExpenses(daysToFetch)
+
+  // Formatar dados para o gráfico
+  const chartData = useMemo(() => {
+    console.log('📈 Chart data raw:', dailyExpensesData)
+
+    if (!dailyExpensesData || dailyExpensesData.length === 0) {
+      console.warn('⚠️ No daily expenses data available')
+      return []
+    }
+
+    // Se for 1 ano, agrupar por mês
+    if (spendingPeriod === '1y') {
+      const monthlyData: { [key: string]: number } = {}
+
+      // Agrupar gastos por mês
+      dailyExpensesData.forEach(item => {
+        const date = new Date(item.date)
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = 0
+        }
+        monthlyData[monthKey] += item.total
+      })
+
+      // Converter para array e formatar
+      const formatted = Object.entries(monthlyData)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([monthKey, total]) => {
+          const [year, month] = monthKey.split('-')
+          const date = new Date(parseInt(year), parseInt(month) - 1, 1)
+
+          return {
+            name: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+            value: Number(total.toFixed(2)),
+            fullDate: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+            date: monthKey
+          }
+        })
+
+      console.log('📊 Chart data formatted (monthly):', formatted)
+      return formatted
+    }
+
+    // Para 7d e 30d, mostrar por dia
+    const formatted = dailyExpensesData.map(item => {
+      const date = new Date(item.date)
+      return {
+        name: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+        value: item.total,
+        fullDate: date.toLocaleDateString('pt-BR'),
+        date: item.date
+      }
+    })
+
+    console.log('📊 Chart data formatted (daily):', formatted)
+    return formatted
+  }, [dailyExpensesData, spendingPeriod])
 
   // Usar dados da API ou fallback se não existirem
   const dashboardData = apiData || {
@@ -282,76 +350,285 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
               </Button>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <RechartsPie>
-                  <Pie
-                    data={dashboardData.expensesByCategory}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percentage }) => `${percentage}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {dashboardData.expensesByCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </RechartsPie>
-              </ResponsiveContainer>
-              <div className="mt-4 space-y-2">
-                {dashboardData.expensesByCategory.map((category) => (
-                  <div key={category.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: category.color }}
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                {/* Donut Chart with Gradient and Shadow */}
+                <div className="relative flex-shrink-0 z-10">
+                  {/* Outer glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 rounded-full blur-2xl opacity-50 -z-10" />
+
+                  <ResponsiveContainer width={280} height={280}>
+                    <RechartsPie>
+                      <defs>
+                        {dashboardData.expensesByCategory.map((entry, index) => (
+                          <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
+                            <stop offset="100%" stopColor={entry.color} stopOpacity={0.7} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <Pie
+                        data={dashboardData.expensesByCategory}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={85}
+                        outerRadius={120}
+                        paddingAngle={4}
+                        dataKey="value"
+                        strokeWidth={3}
+                        stroke="hsl(var(--background))"
+                        animationBegin={0}
+                        animationDuration={800}
+                        activeIndex={activeDonutIndex}
+                        activeShape={{
+                          outerRadius: 130,
+                          strokeWidth: 4,
+                        }}
+                        onMouseEnter={(_, index) => setActiveDonutIndex(index)}
+                        onMouseLeave={() => setActiveDonutIndex(undefined)}
+                      >
+                        {dashboardData.expensesByCategory.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={`url(#gradient-${index})`}
+                            className="cursor-pointer transition-all"
+                            style={{
+                              filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))'
+                            }}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        wrapperStyle={{ zIndex: 9999 }}
+                        position={{ y: 20 }}
+                        offset={20}
+                        allowEscapeViewBox={{ x: true, y: true }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-background/95 backdrop-blur-sm border-2 border-border rounded-lg p-3 shadow-2xl">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: dashboardData.expensesByCategory.find(c => c.name === payload[0].name)?.color }}
+                                  />
+                                  <p className="text-xs font-semibold">{payload[0].name}</p>
+                                </div>
+                                <p className="text-sm font-bold text-primary">
+                                  {formatCurrency(payload[0].value as number)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {((payload[0].value as number / dashboardData.expenses) * 100).toFixed(1)}% do total
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
                       />
-                      <span className="text-sm text-muted-foreground">{category.name}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{formatCurrency(category.value)}</span>
-                      <span className="text-xs text-muted-foreground">{category.percentage}%</span>
+                    </RechartsPie>
+                  </ResponsiveContainer>
+
+                  {/* Center content with gradient background */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none -z-10">
+                    <div className="text-center">
+                      <p className="text-[9px] font-medium text-muted-foreground/70 uppercase tracking-wider">Total</p>
+                      <p className="text-xl font-bold bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent mt-0.5">
+                        {formatCurrency(dashboardData.expenses)}
+                      </p>
+                      <p className="text-[8px] text-muted-foreground/60 mt-0.5">
+                        {dashboardData.expensesByCategory.length} categorias
+                      </p>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Modern Legend with Progress Bars */}
+                <div className="flex-1 w-full space-y-2">
+                  {dashboardData.expensesByCategory.map((category, index) => (
+                    <div
+                      key={category.name}
+                      className="group relative overflow-hidden rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-2.5 hover:border-primary/50 hover:bg-accent/30 transition-all duration-300 hover:shadow-lg"
+                    >
+                      {/* Background gradient on hover */}
+                      <div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+                        style={{
+                          background: `linear-gradient(135deg, ${category.color}20 0%, transparent 100%)`
+                        }}
+                      />
+
+                      <div className="relative flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2.5 flex-1">
+                          <div className="relative">
+                            <div
+                              className="w-4 h-4 rounded-md shadow-md transition-transform group-hover:scale-110"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <div
+                              className="absolute inset-0 rounded-md blur-sm opacity-50"
+                              style={{ backgroundColor: category.color }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate">{category.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right ml-3">
+                          <p className="text-xs font-bold">{formatCurrency(category.value)}</p>
+                          <p className="text-[10px] text-muted-foreground">{category.percentage}%</p>
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="relative w-full h-1 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 shadow-sm"
+                          style={{
+                            width: `${category.percentage}%`,
+                            background: `linear-gradient(90deg, ${category.color} 0%, ${category.color}CC 100%)`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Frequência de Gastos */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Frequência de gastos</CardTitle>
-                <CardDescription>Últimos 7 dias</CardDescription>
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <CardTitle>Frequência de gastos</CardTitle>
+                  <CardDescription className="mt-1">
+                    Evolução diária de gastos
+                  </CardDescription>
+                </div>
+                <Button variant="ghost" size="sm">
+                  VER MAIS <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
-              <Button variant="ghost" size="sm">
-                VER MAIS <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+              <div className="flex justify-center">
+                <Tabs value={spendingPeriod} onValueChange={(value) => setSpendingPeriod(value as '7d' | '30d' | '1y')} className="w-auto">
+                  <TabsList className="grid grid-cols-3 h-9">
+                    <TabsTrigger value="7d" className="text-xs px-4">7 dias</TabsTrigger>
+                    <TabsTrigger value="30d" className="text-xs px-4">30 dias</TabsTrigger>
+                    <TabsTrigger value="1y" className="text-xs px-4">1 ano</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={320}>
-                <RechartsBar data={dashboardData.spendingFrequency}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                  />
-                  <YAxis
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickFormatter={(value) => `R$ ${value}`}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    dataKey="value"
-                    fill="#3b82f6"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </RechartsBar>
-              </ResponsiveContainer>
+            <CardContent className="relative">
+              {loadingDaily ? (
+                <div className="h-[320px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Carregando dados...</p>
+                  </div>
+                </div>
+              ) : chartData.length === 0 ? (
+                <div className="h-[320px] flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Nenhum dado disponível para o período selecionado</p>
+                    <p className="text-xs text-muted-foreground">Tente selecionar outro período</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Glow effect behind chart */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-pink-500/5 rounded-lg blur-3xl -z-10" />
+
+                  <ResponsiveContainer width="100%" height={320}>
+                    <RechartsLine data={chartData}>
+                      <defs>
+                        {/* Gradient for area fill */}
+                        <linearGradient id="colorExpenseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#9333ea" stopOpacity={0.4}/>
+                          <stop offset="50%" stopColor="#c026d3" stopOpacity={0.2}/>
+                          <stop offset="100%" stopColor="#ec4899" stopOpacity={0}/>
+                        </linearGradient>
+                        {/* Gradient for line */}
+                        <linearGradient id="colorLineGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#9333ea"/>
+                          <stop offset="50%" stopColor="#c026d3"/>
+                          <stop offset="100%" stopColor="#ec4899"/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} opacity={0.3} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                        interval="preserveStartEnd"
+                        minTickGap={30}
+                      />
+                      <YAxis
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
+                        tickFormatter={(value) => `R$${value}`}
+                        tickLine={false}
+                        axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                        width={60}
+                      />
+                      <Tooltip
+                        wrapperStyle={{ zIndex: 9999 }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-gradient-to-br from-background/95 to-background/90 backdrop-blur-md border-2 border-purple-500/50 rounded-xl p-4 shadow-2xl">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600" />
+                                  <p className="text-xs font-medium text-muted-foreground">{payload[0].payload.fullDate}</p>
+                                </div>
+                                <p className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                  {formatCurrency(payload[0].value as number)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  Gastos do dia
+                                </p>
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="none"
+                        fillOpacity={1}
+                        fill="url(#colorExpenseGradient)"
+                        animationDuration={1000}
+                        animationEasing="ease-out"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="url(#colorLineGradient)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: '#9333ea',
+                          strokeWidth: 3,
+                          r: 5,
+                          stroke: '#fff',
+                          filter: 'drop-shadow(0 2px 4px rgba(147, 51, 234, 0.3))'
+                        }}
+                        activeDot={{
+                          r: 7,
+                          strokeWidth: 3,
+                          stroke: '#fff',
+                          fill: '#c026d3',
+                          filter: 'drop-shadow(0 4px 8px rgba(192, 38, 211, 0.5))'
+                        }}
+                        animationDuration={1000}
+                        animationEasing="ease-out"
+                      />
+                    </RechartsLine>
+                  </ResponsiveContainer>
+                </>
+              )}
             </CardContent>
           </Card>
 
