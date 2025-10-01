@@ -47,6 +47,20 @@ export const TransactionsPage = () => {
     amountMax: ''
   })
 
+  // Estados para máscara de valores dos filtros (em centavos)
+  const [amountMinCents, setAmountMinCents] = useState('')
+  const [amountMaxCents, setAmountMaxCents] = useState('')
+
+  // Função para formatar centavos para display
+  const formatAmountDisplay = (centavos: string): string => {
+    if (!centavos) return ''
+    const num = parseInt(centavos) || 0
+    const reais = Math.floor(num / 100)
+    const cents = num % 100
+    const reaisFormatted = reais.toLocaleString('pt-BR')
+    return `${reaisFormatted},${cents.toString().padStart(2, '0')}`
+  }
+
   useEffect(() => {
     console.log('🔍 Frontend: Checking authentication status...')
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken')
@@ -450,21 +464,35 @@ export const TransactionsPage = () => {
                 {/* Valor */}
                 <div className="flex items-center gap-2">
                   <input
-                    type="number"
-                    step="0.01"
-                    value={filters.amountMin}
-                    onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
-                    placeholder="Min R$"
-                    className="w-24 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    type="text"
+                    value={formatAmountDisplay(amountMinCents)}
+                    onChange={(e) => {
+                      const onlyNumbers = e.target.value.replace(/\D/g, '')
+                      const maxValue = 100000000000 // 1 bilhão em centavos
+                      const numValue = parseInt(onlyNumbers) || 0
+                      if (numValue <= maxValue) {
+                        setAmountMinCents(onlyNumbers)
+                        setFilters({ ...filters, amountMin: (numValue / 100).toString() })
+                      }
+                    }}
+                    placeholder="R$ Min"
+                    className="w-32 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
                   <span className="text-muted-foreground">-</span>
                   <input
-                    type="number"
-                    step="0.01"
-                    value={filters.amountMax}
-                    onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
-                    placeholder="Max R$"
-                    className="w-24 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    type="text"
+                    value={formatAmountDisplay(amountMaxCents)}
+                    onChange={(e) => {
+                      const onlyNumbers = e.target.value.replace(/\D/g, '')
+                      const maxValue = 100000000000 // 1 bilhão em centavos
+                      const numValue = parseInt(onlyNumbers) || 0
+                      if (numValue <= maxValue) {
+                        setAmountMaxCents(onlyNumbers)
+                        setFilters({ ...filters, amountMax: (numValue / 100).toString() })
+                      }
+                    }}
+                    placeholder="R$ Max"
+                    className="w-32 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
                 </div>
 
@@ -481,6 +509,8 @@ export const TransactionsPage = () => {
                       amountMin: '',
                       amountMax: ''
                     })
+                    setAmountMinCents('')
+                    setAmountMaxCents('')
                   }}
                   className="ml-auto text-xs"
                 >
