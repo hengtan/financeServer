@@ -139,17 +139,17 @@ export const TransactionsPage = () => {
   }
 
   const summary = {
-    total: transactions.reduce((sum, t) => sum + t.amount, 0),
-    income: transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0),
-    expenses: transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    total: transactions.reduce((sum, t) => {
+      return sum + (t.type === 'income' ? t.amount : -t.amount)
+    }, 0),
+    income: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+    expenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
     count: transactions.length
   }
 
-  const getTransactionIcon = (type: string, amount: number) => {
-    if (type === 'cartão') return '💳'
-    if (type === 'pix') return '🔄'
-    if (type === 'transferência') return '🔀'
-    return amount > 0 ? '↗️' : '↙️'
+  const getTransactionIcon = (transactionType: string) => {
+    // transactionType é 'income' ou 'expense'
+    return transactionType === 'income' ? '↗️' : '↙️'
   }
 
   const getStatusColor = (status: string) => {
@@ -363,7 +363,7 @@ export const TransactionsPage = () => {
                 <div key={transaction.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getCategoryColor(transaction.category)}`}>
-                      {getTransactionIcon(transaction.type, transaction.amount)}
+                      {getTransactionIcon(transaction.type)}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{transaction.description}</p>
@@ -382,12 +382,12 @@ export const TransactionsPage = () => {
                   </div>
                   <div className="text-right">
                     <div className={`font-bold text-lg ${
-                      transaction.amount > 0 ? 'text-success' : 'text-destructive'
+                      transaction.type === 'income' ? 'text-success' : 'text-destructive'
                     }`}>
-                      {transaction.amount > 0 ? '+' : ''}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {transaction.type === 'income' ? '+' : '-'}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                     <div className="text-sm text-muted-foreground capitalize">
-                      {transaction.type}
+                      {transaction.type === 'income' ? 'receita' : 'despesa'}
                     </div>
                   </div>
                 </div>
