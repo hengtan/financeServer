@@ -401,85 +401,77 @@ export const TransactionsPage = () => {
             </div>
           </CardHeader>
 
-          {/* Painel de Filtros */}
+          {/* Painel de Filtros - Design Compacto */}
           {showFilters && (
-            <div className="px-6 py-4 border-b border-border bg-muted/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Tipo</label>
-                  <select
-                    value={filters.type}
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="income">Receitas</option>
-                    <option value="expense">Despesas</option>
-                  </select>
-                </div>
+            <div className="px-6 py-3 border-b border-border bg-muted/30">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Tipo */}
+                <select
+                  value={filters.type}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                  className="px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors"
+                >
+                  <option value="all">📊 Tipo: Todos</option>
+                  <option value="income">↗️ Receitas</option>
+                  <option value="expense">↙️ Despesas</option>
+                </select>
 
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                  >
-                    <option value="all">Todos</option>
-                    <option value="pending">Pendente</option>
-                    <option value="confirmed">Confirmado</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
+                {/* Status */}
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  className="px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors"
+                >
+                  <option value="all">🔘 Status: Todos</option>
+                  <option value="pending">⏳ Pendente</option>
+                  <option value="confirmed">✓ Confirmado</option>
+                  <option value="cancelled">✗ Cancelado</option>
+                </select>
 
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Data Inicial</label>
+                {/* Período */}
+                <div className="flex items-center gap-2">
                   <input
                     type="date"
                     value={filters.dateFrom}
                     onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                    className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    placeholder="De"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Data Final</label>
+                  <span className="text-muted-foreground">até</span>
                   <input
                     type="date"
                     value={filters.dateTo}
                     onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                    className="px-3 py-1.5 text-sm border border-border rounded-md bg-background"
+                    placeholder="Até"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Valor Mínimo</label>
+                {/* Valor */}
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     step="0.01"
                     value={filters.amountMin}
                     onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
-                    placeholder="0,00"
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                    placeholder="Min R$"
+                    className="w-24 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">Valor Máximo</label>
+                  <span className="text-muted-foreground">-</span>
                   <input
                     type="number"
                     step="0.01"
                     value={filters.amountMax}
                     onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
-                    placeholder="0,00"
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
+                    placeholder="Max R$"
+                    className="w-24 px-3 py-1.5 text-sm border border-border rounded-md bg-background"
                   />
                 </div>
-              </div>
 
-              <div className="flex justify-end gap-2 mt-4">
+                {/* Botão Limpar */}
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setFilters({
                       type: 'all',
@@ -490,8 +482,9 @@ export const TransactionsPage = () => {
                       amountMax: ''
                     })
                   }}
+                  className="ml-auto text-xs"
                 >
-                  Limpar Filtros
+                  Limpar
                 </Button>
               </div>
             </div>
