@@ -27,6 +27,7 @@ export const TransactionsPage = () => {
 
   const [selectedPeriod, setSelectedPeriod] = useState('30-dias')
   const [selectedCategory, setSelectedCategory] = useState('todas')
+  const [searchTerm, setSearchTerm] = useState('')
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false)
   const { isLoading, startLoading, stopLoading } = useLoading({ minimumDuration: 800 })
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -199,6 +200,18 @@ export const TransactionsPage = () => {
   }
 
   const filteredTransactions = transactions.filter(transaction => {
+    // Filtro de pesquisa (descrição, categoria, conta)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      const matchesDescription = transaction.description?.toLowerCase().includes(search)
+      const matchesCategory = transaction.category?.toLowerCase().includes(search)
+      const matchesAccount = transaction.account?.toLowerCase().includes(search)
+
+      if (!matchesDescription && !matchesCategory && !matchesAccount) {
+        return false
+      }
+    }
+
     // Filtro de categoria
     if (selectedCategory !== 'todas' && transaction.category !== selectedCategory) {
       return false
@@ -408,6 +421,8 @@ export const TransactionsPage = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <input
                     type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Buscar transações..."
                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64 text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-400"
                   />
