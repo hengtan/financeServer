@@ -411,9 +411,9 @@ export const TransactionsPage = () => {
                   onChange={(e) => setFilters({ ...filters, type: e.target.value })}
                   className="px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors"
                 >
-                  <option value="all">📊 Tipo: Todos</option>
-                  <option value="income">↗️ Receitas</option>
-                  <option value="expense">↙️ Despesas</option>
+                  <option value="all">Tipo: Todos</option>
+                  <option value="income">Receitas</option>
+                  <option value="expense">Despesas</option>
                 </select>
 
                 {/* Status */}
@@ -422,10 +422,10 @@ export const TransactionsPage = () => {
                   onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                   className="px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors"
                 >
-                  <option value="all">🔘 Status: Todos</option>
-                  <option value="pending">⏳ Pendente</option>
-                  <option value="confirmed">✓ Confirmado</option>
-                  <option value="cancelled">✗ Cancelado</option>
+                  <option value="all">Status: Todos</option>
+                  <option value="pending">Pendente</option>
+                  <option value="confirmed">Confirmado</option>
+                  <option value="cancelled">Cancelado</option>
                 </select>
 
                 {/* Período */}
