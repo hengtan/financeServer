@@ -110,6 +110,18 @@ class AuthService {
     })
   }
 
+  async checkSandboxStatus(): Promise<ApiResponse<{ isSandbox: boolean; email: string }>> {
+    return apiService.get<{ isSandbox: boolean; email: string }>('/sandbox/status')
+  }
+
+  async seedSandbox(): Promise<ApiResponse<void>> {
+    return apiService.post<void>('/sandbox/seed', {})
+  }
+
+  async resetSandbox(): Promise<ApiResponse<void>> {
+    return apiService.post<void>('/sandbox/reset', {})
+  }
+
   isAuthenticated(): boolean {
     return !!this.getToken()
   }

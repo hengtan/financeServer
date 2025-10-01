@@ -65,6 +65,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success) {
         setUser(response.data.user)
         authService.setCurrentUser(response.data.user)
+
+        // Check if sandbox user and reset+seed data for clean state
+        try {
+          const sandboxStatus = await authService.checkSandboxStatus()
+          if (sandboxStatus.success && sandboxStatus.data.isSandbox) {
+            console.log('🌱 Sandbox user detected, resetting and seeding data...')
+            await authService.resetSandbox()
+            console.log('✅ Sandbox data reset and seeded successfully')
+          }
+        } catch (sandboxError) {
+          console.warn('Sandbox check/reset failed:', sandboxError)
+          // Don't fail login if sandbox operations fail
+        }
+
         setIsLoading(false)
         return { success: true }
       } else {
@@ -84,6 +98,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const logout = async () => {
+    // Check if sandbox user and reset data before logout
+    try {
+      const sandboxStatus = await authService.checkSandboxStatus()
+      if (sandboxStatus.success && sandboxStatus.data.isSandbox) {
+        console.log('🧹 Sandbox user detected, resetting data...')
+        await authService.resetSandbox()
+        console.log('✅ Sandbox data reset successfully')
+      }
+    } catch (sandboxError) {
+      console.warn('Sandbox check/reset failed:', sandboxError)
+      // Continue with logout even if sandbox reset fails
+    }
+
     try {
       await authService.logout()
     } catch (error) {
