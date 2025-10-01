@@ -166,6 +166,9 @@ export const NewTransactionModal = ({
     defaultValues.amount ? (defaultValues.amount * 100).toString() : ''
   )
 
+  // Estado para indicar se é receita ou despesa
+  const [isIncome, setIsIncome] = useState(false)
+
   // Estado para o modal de criar categoria
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -236,7 +239,14 @@ export const NewTransactionModal = ({
 
     // Converter centavos para reais (ex: 1000 centavos → 10.00 reais)
     const centavos = parseInt(amountString) || 0
-    const finalAmount = centavos / 100
+    let finalAmount = centavos / 100
+
+    // Aplicar sinal negativo se for despesa
+    if (!isIncome) {
+      finalAmount = -Math.abs(finalAmount)
+    } else {
+      finalAmount = Math.abs(finalAmount)
+    }
 
     const transaction: TransactionFormData = {
       description: formData.description,
@@ -277,6 +287,39 @@ export const NewTransactionModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={finalLabels.title!} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Toggle de Receita/Despesa */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tipo de Movimentação
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIsIncome(false)}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                !isIncome
+                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 font-semibold'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-red-300'
+              }`}
+            >
+              <div className="text-2xl mb-1">↓</div>
+              <div className="text-sm">Despesa</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsIncome(true)}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                isIncome
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-semibold'
+                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-300'
+              }`}
+            >
+              <div className="text-2xl mb-1">↑</div>
+              <div className="text-sm">Receita</div>
+            </button>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {finalLabels.description}
@@ -296,18 +339,32 @@ export const NewTransactionModal = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {finalLabels.amount}
             </label>
-            <input
-              type="text"
-              value={displayAmount}
-              onChange={(e) => {
-                // Remover tudo exceto dígitos
-                const onlyNumbers = e.target.value.replace(/\D/g, '')
-                setAmountString(onlyNumbers)
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
-              placeholder="0,00"
-              required
-            />
+            <div className="relative">
+              <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-lg font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                {isIncome ? '+' : '-'}
+              </span>
+              <input
+                type="text"
+                value={displayAmount}
+                onChange={(e) => {
+                  // Remover tudo exceto dígitos
+                  const onlyNumbers = e.target.value.replace(/\D/g, '')
+                  // Limitar a 1 bilhão (100.000.000.000 centavos)
+                  const maxValue = 100000000000 // 1 bilhão em centavos
+                  const numValue = parseInt(onlyNumbers) || 0
+                  if (numValue <= maxValue) {
+                    setAmountString(onlyNumbers)
+                  }
+                }}
+                className={`w-full pl-8 pr-3 py-2 border-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 ${
+                  isIncome
+                    ? 'border-green-300 text-green-700 dark:text-green-300 dark:border-green-600'
+                    : 'border-red-300 text-red-700 dark:text-red-300 dark:border-red-600'
+                }`}
+                placeholder="0,00"
+                required
+              />
+            </div>
           </div>
 
           <div>
