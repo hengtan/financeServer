@@ -1,0 +1,782 @@
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcrypt'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  console.log('🌱 Starting comprehensive database seeding with realistic data...')
+
+  // ============================================================
+  // 1. CREATE SANDBOX USER
+  // ============================================================
+  const passwordHash = await bcrypt.hash('sandbox', 12)
+
+  const sandboxUser = await prisma.user.upsert({
+    where: { email: 'sandbox@financeserver.dev' },
+    update: {},
+    create: {
+      email: 'sandbox@financeserver.dev',
+      name: 'Henrique Santos',
+      passwordHash,
+      role: 'USER',
+      status: 'ACTIVE',
+      emailVerifiedAt: new Date(),
+      phoneNumber: '+5511987654321',
+    },
+  })
+
+  console.log('👤 Sandbox user created:', sandboxUser.email)
+
+  // ============================================================
+  // 2. CREATE CATEGORY TEMPLATES (System-wide)
+  // ============================================================
+  const categoryTemplates = [
+    // INCOME CATEGORIES
+    { name: 'Salário', type: 'INCOME', color: '#10b981', icon: '💼', isDefault: true, sortOrder: 1 },
+    { name: 'Freelance', type: 'INCOME', color: '#059669', icon: '💻', isDefault: true, sortOrder: 2 },
+    { name: 'Investimentos', type: 'INCOME', color: '#0d9488', icon: '📈', isDefault: true, sortOrder: 3 },
+    { name: 'Bônus', type: 'INCOME', color: '#14b8a6', icon: '🎁', isDefault: false, sortOrder: 4 },
+    { name: 'Aluguel Recebido', type: 'INCOME', color: '#06b6d4', icon: '🏠', isDefault: false, sortOrder: 5 },
+
+    // EXPENSE CATEGORIES
+    { name: 'Alimentação', type: 'EXPENSE', color: '#f59e0b', icon: '🍽️', isDefault: true, sortOrder: 101 },
+    { name: 'Transporte', type: 'EXPENSE', color: '#3b82f6', icon: '🚗', isDefault: true, sortOrder: 102 },
+    { name: 'Moradia', type: 'EXPENSE', color: '#8b5cf6', icon: '🏠', isDefault: true, sortOrder: 103 },
+    { name: 'Saúde', type: 'EXPENSE', color: '#ec4899', icon: '⚕️', isDefault: true, sortOrder: 104 },
+    { name: 'Educação', type: 'EXPENSE', color: '#6366f1', icon: '📚', isDefault: true, sortOrder: 105 },
+    { name: 'Lazer', type: 'EXPENSE', color: '#a855f7', icon: '🎬', isDefault: true, sortOrder: 106 },
+    { name: 'Compras', type: 'EXPENSE', color: '#ef4444', icon: '🛍️', isDefault: true, sortOrder: 107 },
+    { name: 'Serviços', type: 'EXPENSE', color: '#f97316', icon: '🔧', isDefault: true, sortOrder: 108 },
+    { name: 'Vestuário', type: 'EXPENSE', color: '#84cc16', icon: '👕', isDefault: false, sortOrder: 109 },
+    { name: 'Beleza', type: 'EXPENSE', color: '#d946ef', icon: '💄', isDefault: false, sortOrder: 110 },
+    { name: 'Pet', type: 'EXPENSE', color: '#0ea5e9', icon: '🐾', isDefault: false, sortOrder: 111 },
+    { name: 'Seguros', type: 'EXPENSE', color: '#78716c', icon: '🛡️', isDefault: false, sortOrder: 112 },
+    { name: 'Impostos', type: 'EXPENSE', color: '#dc2626', icon: '📋', isDefault: false, sortOrder: 113 },
+    { name: 'Outros', type: 'EXPENSE', color: '#6b7280', icon: '📦', isDefault: true, sortOrder: 199 },
+  ]
+
+  const createdTemplates: any[] = []
+  for (const template of categoryTemplates) {
+    const created = await prisma.categoryTemplate.upsert({
+      where: { name_type: { name: template.name, type: template.type as any } },
+      update: {},
+      create: template as any,
+    })
+    createdTemplates.push(created)
+  }
+
+  console.log(`📑 Created ${createdTemplates.length} category templates`)
+
+  // ============================================================
+  // 3. CREATE USER CATEGORIES (based on templates)
+  // ============================================================
+  const userCategories: any[] = []
+  for (const template of createdTemplates) {
+    const userCategory = await prisma.userCategory.create({
+      data: {
+        userId: sandboxUser.id,
+        categoryTemplateId: template.id,
+        name: template.name,
+        description: `Categoria ${template.name}`,
+        type: template.type,
+        color: template.color,
+        icon: template.icon,
+        status: 'ACTIVE',
+        isActive: true,
+        isCustom: false,
+        isDefault: template.isDefault,
+        sortOrder: template.sortOrder,
+        tags: [template.type.toLowerCase()],
+      },
+    })
+    userCategories.push(userCategory)
+  }
+
+  console.log(`📂 Created ${userCategories.length} user categories`)
+
+  // ============================================================
+  // 3.5 CREATE LEGACY CATEGORIES (for Budget compatibility)
+  // ============================================================
+  const legacyCategories: any[] = []
+
+  // Create a few legacy categories for budgets
+  const legacyCategoryData = [
+    { id: 'legacy_alimentacao', name: 'Alimentação', type: 'EXPENSE', color: '#f59e0b', icon: '🍽️' },
+    { id: 'legacy_transporte', name: 'Transporte', type: 'EXPENSE', color: '#3b82f6', icon: '🚗' },
+    { id: 'legacy_lazer', name: 'Lazer', type: 'EXPENSE', color: '#a855f7', icon: '🎬' },
+    { id: 'legacy_compras', name: 'Compras', type: 'EXPENSE', color: '#ef4444', icon: '🛍️' },
+  ]
+
+  for (const catData of legacyCategoryData) {
+    const legacyCat = await prisma.category.upsert({
+      where: { id: catData.id },
+      update: {},
+      create: {
+        ...catData,
+        userId: sandboxUser.id,
+        status: 'ACTIVE',
+        isSystem: false,
+        isDefault: false,
+        tags: [catData.type.toLowerCase()],
+      } as any,
+    })
+    legacyCategories.push(legacyCat)
+  }
+
+  console.log(`📁 Created ${legacyCategories.length} legacy categories for budget compatibility`)
+
+  // Helper to find user category by name
+  const findCategory = (name: string) => {
+    return userCategories.find(c => c.name === name)
+  }
+
+  // Helper to find legacy category by name
+  const findLegacyCategory = (name: string) => {
+    return legacyCategories.find(c => c.name === name)
+  }
+
+  // ============================================================
+  // 4. CREATE ACCOUNTS (Caixa, Inter, Itaú, Carteira, Mercado Pago + Credit Cards)
+  // ============================================================
+  const accounts = [
+    {
+      id: 'acc_caixa',
+      name: 'Banco Caixa',
+      type: 'CHECKING',
+      balance: 100.81,
+      currency: 'BRL',
+      bankName: 'Caixa Econômica Federal',
+      color: '#0066CC',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'acc_inter',
+      name: 'Banco Inter',
+      type: 'CHECKING',
+      balance: 0.01,
+      currency: 'BRL',
+      bankName: 'Banco Inter',
+      color: '#FF7A00',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'acc_itau',
+      name: 'Banco Itau',
+      type: 'CHECKING',
+      balance: 3272.33,
+      currency: 'BRL',
+      bankName: 'Itaú Unibanco',
+      color: '#EC7000',
+      isDefault: true,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'acc_carteira',
+      name: 'Carteira',
+      type: 'CHECKING',
+      balance: 30.00,
+      currency: 'BRL',
+      color: '#10b981',
+      description: 'Dinheiro em espécie',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'acc_mercadopago',
+      name: 'Mercado Pago',
+      type: 'CHECKING',
+      balance: 0.01,
+      currency: 'BRL',
+      bankName: 'Mercado Pago',
+      color: '#00AAFF',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    // Credit Cards
+    {
+      id: 'cc_inter',
+      name: 'Cartao Inter',
+      type: 'CREDIT_CARD',
+      balance: -153.01, // Negative balance = debt
+      currency: 'BRL',
+      creditLimit: 969.96,
+      color: '#FF7A00',
+      bankName: 'Banco Inter',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'cc_pao_acucar',
+      name: 'Pao de Acucar',
+      type: 'CREDIT_CARD',
+      balance: -633.12,
+      currency: 'BRL',
+      creditLimit: 984.59,
+      color: '#228B22',
+      bankName: 'Pão de Açúcar',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'cc_personallite',
+      name: 'Personallite Black',
+      type: 'CREDIT_CARD',
+      balance: -1987.73,
+      currency: 'BRL',
+      creditLimit: 53725.00,
+      color: '#000000',
+      bankName: 'Personallite',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+    {
+      id: 'cc_latam',
+      name: 'Latam Black',
+      type: 'CREDIT_CARD',
+      balance: -2182.76,
+      currency: 'BRL',
+      creditLimit: 14903.90,
+      color: '#6B0F82',
+      bankName: 'Latam Pass',
+      isDefault: false,
+      status: 'ACTIVE',
+    },
+  ]
+
+  for (const accountData of accounts) {
+    await prisma.account.upsert({
+      where: { id: accountData.id },
+      update: {},
+      create: {
+        ...accountData,
+        userId: sandboxUser.id,
+      },
+    })
+  }
+
+  console.log(`🏦 Created ${accounts.length} accounts (including ${accounts.filter(a => a.type === 'CREDIT_CARD').length} credit cards)`)
+
+  // ============================================================
+  // 5. CREATE REALISTIC TRANSACTIONS (Last 12 months)
+  // ============================================================
+  const startDate = new Date('2024-10-01') // October 2024
+  const transactions: any[] = []
+
+  // Monthly recurring income (Salary)
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(5) // Salary on 5th of each month
+
+    transactions.push({
+      description: 'Salário',
+      amount: 6500.00 + (Math.random() * 500), // 6500-7000
+      type: 'INCOME',
+      userCategoryId: findCategory('Salário')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Monthly recurring expenses - Moradia (Rent)
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(10)
+
+    transactions.push({
+      description: 'Aluguel',
+      amount: 1800.00,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Moradia')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Monthly utility bills
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(15)
+
+    // Electricity
+    transactions.push({
+      description: 'Conta de Luz',
+      amount: 150.00 + (Math.random() * 100),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Moradia')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+
+    // Internet
+    transactions.push({
+      description: 'Internet Fibra',
+      amount: 99.90,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Serviços')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date: new Date(date.getTime() + 86400000), // Next day
+    })
+  }
+
+  // Weekly groceries (last 3 months only for realism)
+  const weeklyStartDate = new Date('2025-07-01')
+  for (let week = 0; week < 13; week++) { // ~3 months
+    const date = new Date(weeklyStartDate)
+    date.setDate(date.getDate() + (week * 7))
+
+    transactions.push({
+      description: ['Supermercado', 'Mercado', 'Feira', 'Açougue'][Math.floor(Math.random() * 4)],
+      amount: 200.00 + (Math.random() * 250), // 200-450
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Alimentação')?.id,
+      accountId: ['acc_itau', 'acc_caixa', 'cc_inter'][Math.floor(Math.random() * 3)],
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Transportation (Uber, Gas, etc)
+  const transportDates = []
+  for (let month = 0; month < 6; month++) { // Last 6 months
+    for (let i = 0; i < 8; i++) { // 8 transport expenses per month
+      const date = new Date(startDate)
+      date.setMonth(date.getMonth() + 6 + month)
+      date.setDate(Math.floor(Math.random() * 28) + 1)
+      transportDates.push(date)
+    }
+  }
+
+  for (const date of transportDates) {
+    const isUber = Math.random() > 0.4
+    transactions.push({
+      description: isUber ? 'Uber' : 'Gasolina',
+      amount: isUber ? 15.00 + (Math.random() * 50) : 200.00 + (Math.random() * 150),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Transporte')?.id,
+      accountId: isUber ? 'cc_inter' : 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Leisure & Entertainment
+  const leisureDates = []
+  for (let month = 0; month < 6; month++) {
+    for (let i = 0; i < 4; i++) { // 4 leisure expenses per month
+      const date = new Date(startDate)
+      date.setMonth(date.getMonth() + 6 + month)
+      date.setDate(Math.floor(Math.random() * 28) + 1)
+      leisureDates.push(date)
+    }
+  }
+
+  const leisureDescriptions = ['Netflix', 'Spotify', 'Cinema', 'Restaurante', 'Bar', 'Teatro', 'Show']
+  for (const date of leisureDates) {
+    const desc = leisureDescriptions[Math.floor(Math.random() * leisureDescriptions.length)]
+    const isSubscription = ['Netflix', 'Spotify'].includes(desc)
+
+    transactions.push({
+      description: desc,
+      amount: isSubscription ? 32.90 : 50.00 + (Math.random() * 200),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Lazer')?.id,
+      accountId: isSubscription ? 'cc_inter' : 'cc_pao_acucar',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Health expenses
+  for (let month = 0; month < 12; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month)
+    date.setDate(20)
+
+    // Health insurance
+    transactions.push({
+      description: 'Plano de Saúde',
+      amount: 450.00,
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Saúde')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Random health expenses (pharmacy, doctor)
+  for (let month = 0; month < 8; month++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + month + 2)
+    date.setDate(Math.floor(Math.random() * 28) + 1)
+
+    transactions.push({
+      description: Math.random() > 0.5 ? 'Farmácia' : 'Consulta Médica',
+      amount: 50.00 + (Math.random() * 250),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Saúde')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Freelance income (sporadic)
+  const freelanceDates = [
+    new Date('2024-11-15'),
+    new Date('2024-12-20'),
+    new Date('2025-02-10'),
+    new Date('2025-04-05'),
+    new Date('2025-06-12'),
+    new Date('2025-08-22'),
+    new Date('2025-09-15'),
+  ]
+
+  for (const date of freelanceDates) {
+    transactions.push({
+      description: 'Projeto Freelance',
+      amount: 1500.00 + (Math.random() * 2500), // 1500-4000
+      type: 'INCOME',
+      userCategoryId: findCategory('Freelance')?.id,
+      accountId: 'acc_inter',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Investment income (quarterly)
+  const investmentDates = [
+    new Date('2025-01-15'),
+    new Date('2025-04-15'),
+    new Date('2025-07-15'),
+    new Date('2025-10-01'), // Future
+  ]
+
+  for (const date of investmentDates) {
+    transactions.push({
+      description: 'Rendimento CDB',
+      amount: 250.00 + (Math.random() * 200),
+      type: 'INCOME',
+      userCategoryId: findCategory('Investimentos')?.id,
+      accountId: 'acc_itau',
+      userId: sandboxUser.id,
+      status: date > new Date() ? 'PENDING' : 'COMPLETED',
+      date,
+    })
+  }
+
+  // Shopping (sporadic)
+  const shoppingDates = []
+  for (let month = 0; month < 8; month++) {
+    for (let i = 0; i < 2; i++) {
+      const date = new Date(startDate)
+      date.setMonth(date.getMonth() + month + 2)
+      date.setDate(Math.floor(Math.random() * 28) + 1)
+      shoppingDates.push(date)
+    }
+  }
+
+  const shoppingDescriptions = ['Amazon', 'Mercado Livre', 'Magazine Luiza', 'Americanas', 'Shopee']
+  for (const date of shoppingDates) {
+    transactions.push({
+      description: shoppingDescriptions[Math.floor(Math.random() * shoppingDescriptions.length)],
+      amount: 50.00 + (Math.random() * 400),
+      type: 'EXPENSE',
+      userCategoryId: findCategory('Compras')?.id,
+      accountId: 'cc_pao_acucar',
+      userId: sandboxUser.id,
+      status: 'COMPLETED',
+      date,
+    })
+  }
+
+  // Create all transactions
+  for (const transactionData of transactions) {
+    await prisma.transaction.create({
+      data: transactionData,
+    })
+  }
+
+  console.log(`💳 Created ${transactions.length} realistic transactions over 12 months`)
+
+  // ============================================================
+  // 6. CREATE FINANCIAL GOALS
+  // ============================================================
+  const goals = [
+    {
+      id: 'goal_emergency',
+      name: 'Reserva de Emergência',
+      description: 'Fundo de emergência equivalente a 6 meses de despesas',
+      targetAmount: 35000.00,
+      currentAmount: 12450.00,
+      currency: 'BRL',
+      targetDate: new Date('2026-06-30'),
+      status: 'ACTIVE',
+      color: '#ef4444',
+    },
+    {
+      id: 'goal_vacation',
+      name: 'Viagem para Europa',
+      description: 'Economizar para viagem de 15 dias pela Europa',
+      targetAmount: 15000.00,
+      currentAmount: 4200.00,
+      currency: 'BRL',
+      targetDate: new Date('2025-12-15'),
+      status: 'ACTIVE',
+      color: '#3b82f6',
+    },
+    {
+      id: 'goal_car',
+      name: 'Carro Novo',
+      description: 'Entrada para carro 0km',
+      targetAmount: 25000.00,
+      currentAmount: 8750.00,
+      currency: 'BRL',
+      targetDate: new Date('2026-03-01'),
+      status: 'ACTIVE',
+      color: '#8b5cf6',
+    },
+    {
+      id: 'goal_education',
+      name: 'Curso de MBA',
+      description: 'Investir em educação - MBA em Gestão',
+      targetAmount: 28000.00,
+      currentAmount: 3200.00,
+      currency: 'BRL',
+      targetDate: new Date('2026-08-01'),
+      status: 'ACTIVE',
+      color: '#6366f1',
+    },
+  ]
+
+  for (const goalData of goals) {
+    await prisma.goal.upsert({
+      where: { id: goalData.id },
+      update: {},
+      create: {
+        ...goalData,
+        userId: sandboxUser.id,
+      },
+    })
+  }
+
+  console.log(`🎯 Created ${goals.length} financial goals`)
+
+  // ============================================================
+  // 7. CREATE BUDGETS (Monthly budgets for main categories)
+  // ============================================================
+  const currentDate = new Date()
+  const budgetStartDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+  const budgetEndDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+
+  const budgets = [
+    {
+      id: 'budget_alimentacao',
+      name: 'Orçamento Alimentação',
+      amount: 1500.00,
+      spent: 0, // Will be calculated
+      currency: 'BRL',
+      period: 'MONTHLY',
+      status: 'ACTIVE',
+      categoryName: 'Alimentação',
+    },
+    {
+      id: 'budget_transporte',
+      name: 'Orçamento Transporte',
+      amount: 800.00,
+      spent: 0,
+      currency: 'BRL',
+      period: 'MONTHLY',
+      status: 'ACTIVE',
+      categoryName: 'Transporte',
+    },
+    {
+      id: 'budget_lazer',
+      name: 'Orçamento Lazer',
+      amount: 600.00,
+      spent: 0,
+      currency: 'BRL',
+      period: 'MONTHLY',
+      status: 'ACTIVE',
+      categoryName: 'Lazer',
+    },
+    {
+      id: 'budget_compras',
+      name: 'Orçamento Compras',
+      amount: 500.00,
+      spent: 0,
+      currency: 'BRL',
+      period: 'MONTHLY',
+      status: 'ACTIVE',
+      categoryName: 'Compras',
+    },
+  ]
+
+  for (const budgetData of budgets) {
+    const legacyCategory = findLegacyCategory(budgetData.categoryName)
+    const userCategory = findCategory(budgetData.categoryName)
+
+    await prisma.budget.upsert({
+      where: { id: budgetData.id },
+      update: {},
+      create: {
+        id: budgetData.id,
+        name: budgetData.name,
+        amount: budgetData.amount,
+        spent: budgetData.spent,
+        currency: budgetData.currency,
+        period: budgetData.period as any,
+        status: budgetData.status as any,
+        userId: sandboxUser.id,
+        categoryId: legacyCategory!.id, // Legacy field (required)
+        userCategoryId: userCategory?.id, // New hybrid architecture field
+        startDate: budgetStartDate,
+        endDate: budgetEndDate,
+      },
+    })
+  }
+
+  console.log(`💰 Created ${budgets.length} monthly budgets`)
+
+  // ============================================================
+  // 8. CREATE ALERTS
+  // ============================================================
+  const alerts = [
+    {
+      id: 'alert_budget_exceeded_alimentacao',
+      type: 'BUDGET_EXCEEDED',
+      severity: 'HIGH',
+      status: 'ACTIVE',
+      title: 'Orçamento de Alimentação Excedido',
+      message: 'Você excedeu seu orçamento de alimentação em 15%!',
+      description: 'Seus gastos com alimentação ultrapassaram R$ 1.500,00 este mês.',
+      data: {
+        budget: 1500.00,
+        spent: 1725.00,
+        difference: 225.00,
+        percentage: 115,
+        category: 'Alimentação',
+      },
+      actionUrl: '/budgets',
+      actionText: 'Ver Orçamentos',
+      triggeredAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      channels: ['IN_APP', 'EMAIL'],
+    },
+    {
+      id: 'alert_low_balance_caixa',
+      type: 'LOW_BALANCE',
+      severity: 'MEDIUM',
+      status: 'ACTIVE',
+      title: 'Saldo Baixo - Banco Caixa',
+      message: 'O saldo da conta Banco Caixa está abaixo de R$ 200,00',
+      description: 'Considere transferir fundos para esta conta.',
+      data: {
+        account: 'Banco Caixa',
+        balance: 100.81,
+        threshold: 200.00,
+      },
+      actionUrl: '/contas',
+      actionText: 'Ver Contas',
+      triggeredAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      channels: ['IN_APP'],
+    },
+    {
+      id: 'alert_goal_milestone_vacation',
+      type: 'GOAL_MILESTONE',
+      severity: 'LOW',
+      status: 'READ',
+      title: 'Meta de Viagem: 25% Alcançado! 🎉',
+      message: 'Parabéns! Você atingiu 25% da sua meta de viagem para Europa.',
+      description: 'Continue economizando para realizar seu sonho!',
+      data: {
+        goal: 'Viagem para Europa',
+        targetAmount: 15000.00,
+        currentAmount: 4200.00,
+        percentage: 28,
+        milestone: 25,
+      },
+      actionUrl: '/metas',
+      actionText: 'Ver Metas',
+      triggeredAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      readAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      channels: ['IN_APP'],
+    },
+    {
+      id: 'alert_income_received_freelance',
+      type: 'INCOME_RECEIVED',
+      severity: 'LOW',
+      status: 'ACTIVE',
+      title: 'Receita Recebida: Freelance',
+      message: 'Você recebeu R$ 2.350,00 do projeto freelance.',
+      description: 'O pagamento foi creditado na conta Banco Inter.',
+      data: {
+        amount: 2350.00,
+        account: 'Banco Inter',
+        description: 'Projeto Freelance',
+      },
+      actionUrl: '/transacoes',
+      actionText: 'Ver Transações',
+      triggeredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      channels: ['IN_APP', 'EMAIL'],
+    },
+  ]
+
+  for (const alertData of alerts) {
+    await prisma.alert.upsert({
+      where: { id: alertData.id },
+      update: {},
+      create: {
+        ...alertData,
+        userId: sandboxUser.id,
+      } as any,
+    })
+  }
+
+  console.log(`🚨 Created ${alerts.length} alerts`)
+
+  console.log('✅ Comprehensive database seeding completed successfully!')
+  console.log('\n📊 Summary:')
+  console.log(`   - 1 User (sandbox@financeserver.dev / password: sandbox)`)
+  console.log(`   - ${createdTemplates.length} Category Templates`)
+  console.log(`   - ${userCategories.length} User Categories`)
+  console.log(`   - ${accounts.length} Accounts (5 checking + 4 credit cards)`)
+  console.log(`   - ${transactions.length} Transactions (12 months)`)
+  console.log(`   - ${goals.length} Financial Goals`)
+  console.log(`   - ${budgets.length} Monthly Budgets`)
+  console.log(`   - ${alerts.length} Alerts`)
+  console.log('\n🔐 Login credentials:')
+  console.log('   Email: sandbox@financeserver.dev')
+  console.log('   Password: sandbox')
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
