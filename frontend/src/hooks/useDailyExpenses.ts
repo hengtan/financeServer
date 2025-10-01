@@ -19,7 +19,7 @@ export function useDailyExpenses(days: number = 30) {
 
         console.log('🔍 Fetching daily expenses for', days, 'days')
 
-        const response = await apiService.get<{ success: boolean; data: DailyExpense[] }>(
+        const response = await apiService.get<DailyExpense[]>(
           `/dashboard/daily-expenses?days=${days}`
         )
 

@@ -39,7 +39,7 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
       if (response.success && response.data) {
         setData(response.data)
       } else {
-        setError(response.error || 'Erro ao carregar dados do dashboard')
+        setError(response.errors?.[0] || 'Erro ao carregar dados do dashboard')
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err)

@@ -14,16 +14,51 @@ import {
   TrendingDown,
   DollarSign,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  Edit,
+  Paperclip,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  List,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { transactionsService, Transaction } from '@/services/transactions'
 import { userCategoriesService, UserCategory } from '@/services/userCategories'
 import { LoadingWrapper } from '@/components/LoadingWrapper'
 import { useLoading } from '@/hooks/useLoading'
+import { MonthYearPicker } from '@/components/MonthYearPicker'
 
 export const TransactionsPage = () => {
   usePageTitle('Transações')
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeFromUrl = searchParams.get('type')
 
   const [selectedPeriod, setSelectedPeriod] = useState('30-dias')
   const [selectedCategory, setSelectedCategory] = useState('todas')
@@ -37,17 +72,32 @@ export const TransactionsPage = () => {
   const [accounts, setAccounts] = useState<any[]>([])
   const [userCategories, setUserCategories] = useState<UserCategory[]>([])
   const [realCategories, setRealCategories] = useState<any[]>([])
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
   // Estados para filtros
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
-    type: 'all', // 'all', 'income', 'expense'
+    type: typeFromUrl?.toLowerCase() || 'all', // Converter INCOME/EXPENSE para income/expense
     status: 'all', // 'all', 'pending', 'confirmed', 'cancelled'
     dateFrom: '',
     dateTo: '',
     amountMin: '',
     amountMax: ''
   })
+
+  // Estado para tipo selecionado (seleção única)
+  const [selectedType, setSelectedType] = useState<'all' | 'income' | 'expense' | 'transfer'>(
+    typeFromUrl?.toLowerCase() === 'income' ? 'income' :
+    typeFromUrl?.toLowerCase() === 'expense' ? 'expense' : 'all'
+  )
+
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(50)
+
+  // Estados para ordenação
+  const [sortColumn, setSortColumn] = useState<'date' | 'description' | 'category' | 'account' | 'amount' | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Estados para máscara de valores dos filtros (em centavos)
   const [amountMinCents, setAmountMinCents] = useState('')
@@ -183,6 +233,19 @@ export const TransactionsPage = () => {
     return status === 'confirmada' ? 'text-success' : 'text-warning'
   }
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-red-600" />
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />
+    }
+  }
+
   const getCategoryColor = (category: string) => {
     const categoryColors: Record<string, string> = {
       'Renda': 'bg-success-background text-success',
@@ -197,6 +260,28 @@ export const TransactionsPage = () => {
       'Transferência': 'bg-gray-50 text-gray-600 dark:bg-gray-200/20 dark:text-gray-200'
     }
     return categoryColors[category] || 'bg-gray-50 text-gray-600 dark:bg-gray-200/20 dark:text-gray-200'
+  }
+
+  // Função para lidar com ordenação
+  const handleSort = (column: 'date' | 'description' | 'category' | 'account' | 'amount') => {
+    if (sortColumn === column) {
+      // Se já está ordenando por esta coluna, inverte a direção
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      // Nova coluna, começa com ascendente
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+  }
+
+  // Componente para o ícone de ordenação
+  const SortIcon = ({ column }: { column: 'date' | 'description' | 'category' | 'account' | 'amount' }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-0 group-hover:opacity-50 transition-opacity" />
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3.5 w-3.5 ml-1" />
+      : <ArrowDown className="h-3.5 w-3.5 ml-1" />
   }
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -217,8 +302,8 @@ export const TransactionsPage = () => {
       return false
     }
 
-    // Filtro de tipo (receita/despesa)
-    if (filters.type !== 'all' && transaction.type !== filters.type) {
+    // Filtro de tipo (seleção única)
+    if (selectedType !== 'all' && transaction.type !== selectedType) {
       return false
     }
 
@@ -249,6 +334,51 @@ export const TransactionsPage = () => {
 
     return true
   })
+
+  // Ordenação
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    if (!sortColumn) return 0
+
+    let comparison = 0
+
+    switch (sortColumn) {
+      case 'date':
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime()
+        break
+      case 'description':
+        comparison = (a.description || '').localeCompare(b.description || '')
+        break
+      case 'category':
+        comparison = (a.category || '').localeCompare(b.category || '')
+        break
+      case 'account':
+        comparison = (a.account || '').localeCompare(b.account || '')
+        break
+      case 'amount':
+        comparison = a.amount - b.amount
+        break
+    }
+
+    return sortDirection === 'asc' ? comparison : -comparison
+  })
+
+  // Paginação
+  const totalItems = sortedTransactions.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
+  const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex)
+
+  // Funções de navegação de página
+  const goToFirstPage = () => setCurrentPage(1)
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1))
+  const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1))
+  const goToLastPage = () => setCurrentPage(totalPages)
+
+  // Reset página quando mudar filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedCategory, selectedType, itemsPerPage])
 
   const handleNewTransaction = async (transaction: any) => {
     try {
@@ -339,33 +469,76 @@ export const TransactionsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Transações</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Transações
+              {selectedType === 'income' && (
+                <span className="ml-3 text-lg font-normal text-green-600">
+                  • Receitas
+                </span>
+              )}
+              {selectedType === 'expense' && (
+                <span className="ml-3 text-lg font-normal text-red-600">
+                  • Despesas
+                </span>
+              )}
+              {selectedType === 'transfer' && (
+                <span className="ml-3 text-lg font-normal text-blue-600">
+                  • Transferências
+                </span>
+              )}
+            </h1>
             <p className="text-muted-foreground">Gerencie e acompanhe todas suas movimentações financeiras</p>
           </div>
-          <Button
-            onClick={() => setIsNewTransactionOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Transação
-          </Button>
+          <div className="flex items-center gap-3">
+            <MonthYearPicker
+              date={selectedDate}
+              onDateChange={setSelectedDate}
+            />
+
+            {/* Select de Tipos - Background Branco */}
+            <Select value={selectedType} onValueChange={(value: any) => setSelectedType(value)}>
+              <SelectTrigger className="w-[180px] bg-white dark:bg-gray-800">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <List className="h-4 w-4" />
+                    Transações
+                  </div>
+                </SelectItem>
+                <SelectItem value="income">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpRight className="h-4 w-4 text-green-600" />
+                    Receitas
+                  </div>
+                </SelectItem>
+                <SelectItem value="expense">
+                  <div className="flex items-center gap-2">
+                    <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                    Despesas
+                  </div>
+                </SelectItem>
+                <SelectItem value="transfer">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    Transferências
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={() => setIsNewTransactionOpen(true)}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Transação
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Saldo Total</p>
-                  <p className={`text-2xl font-bold ${summary.total >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {summary.total >= 0 ? '+' : ''}R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-                <DollarSign className="h-8 w-8 text-info" />
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -390,6 +563,20 @@ export const TransactionsPage = () => {
                   </p>
                 </div>
                 <ArrowDownLeft className="h-8 w-8 text-destructive" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Balanço Mensal</p>
+                  <p className={`text-2xl font-bold ${summary.total >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {summary.total >= 0 ? '+' : ''}R$ {summary.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <DollarSign className="h-8 w-8 text-info" />
               </div>
             </CardContent>
           </Card>
@@ -437,6 +624,7 @@ export const TransactionsPage = () => {
                     </button>
                   )}
                 </div>
+
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
@@ -450,7 +638,7 @@ export const TransactionsPage = () => {
                 </select>
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
                   <Filter className="h-4 w-4 mr-2" />
-                  Filtros
+                  Mais Filtros
                 </Button>
                 <Button variant="outline" onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
@@ -566,47 +754,252 @@ export const TransactionsPage = () => {
           )}
 
           <CardContent>
-            <div className="space-y-4">
-              {filteredTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getCategoryColor(transaction.category)}`}>
-                      {getTransactionIcon(transaction.type)}
+            {filteredTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                  {selectedType === 'income' ? (
+                    <ArrowUpRight className="h-10 w-10 text-green-600" />
+                  ) : selectedType === 'expense' ? (
+                    <ArrowDownLeft className="h-10 w-10 text-red-600" />
+                  ) : (
+                    <Calendar className="h-10 w-10 text-muted-foreground" />
+                  )}
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {selectedType === 'income'
+                    ? 'Nenhuma receita encontrada'
+                    : selectedType === 'expense'
+                    ? 'Nenhuma despesa encontrada'
+                    : 'Nenhuma transação encontrada'}
+                </h3>
+                <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+                  {selectedType === 'income'
+                    ? 'Você ainda não tem receitas registradas para este período. Adicione sua primeira receita para começar!'
+                    : selectedType === 'expense'
+                    ? 'Você ainda não tem despesas registradas para este período. Adicione sua primeira despesa para começar!'
+                    : 'Você ainda não tem transações registradas. Adicione sua primeira transação para começar a controlar suas finanças!'}
+                </p>
+                <Button
+                  onClick={() => setIsNewTransactionOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {selectedType === 'income'
+                    ? 'Adicionar Receita'
+                    : selectedType === 'expense'
+                    ? 'Adicionar Despesa'
+                    : 'Nova Transação'}
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Tabela de Transações - Estilo Moderno e Limpo */}
+                <div className="overflow-x-auto">
+                  <div className="min-w-full">
+                    {/* Header da Tabela */}
+                    <div className="grid grid-cols-[60px_100px_1fr_150px_150px_120px_90px] gap-4 px-4 py-3 bg-muted/10 rounded-t-lg border-b">
+                      <div className="text-xs font-medium text-muted-foreground uppercase"></div>
+
+                      {/* Data - Clicável */}
+                      <button
+                        onClick={() => handleSort('date')}
+                        className="flex items-center text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors group"
+                      >
+                        Data
+                        <SortIcon column="date" />
+                      </button>
+
+                      {/* Descrição - Clicável */}
+                      <button
+                        onClick={() => handleSort('description')}
+                        className="flex items-center text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors group text-left"
+                      >
+                        Descrição
+                        <SortIcon column="description" />
+                      </button>
+
+                      {/* Categoria - Clicável */}
+                      <button
+                        onClick={() => handleSort('category')}
+                        className="flex items-center text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors group"
+                      >
+                        Categoria
+                        <SortIcon column="category" />
+                      </button>
+
+                      {/* Conta - Clicável */}
+                      <button
+                        onClick={() => handleSort('account')}
+                        className="flex items-center text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors group"
+                      >
+                        Conta
+                        <SortIcon column="account" />
+                      </button>
+
+                      {/* Valor - Clicável */}
+                      <button
+                        onClick={() => handleSort('amount')}
+                        className="flex items-center justify-end text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors group"
+                      >
+                        Valor
+                        <SortIcon column="amount" />
+                      </button>
+
+                      {/* Ações - Não clicável */}
+                      <div className="text-xs font-medium text-muted-foreground uppercase text-center">Ações</div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{transaction.description}</p>
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <span>{transaction.category}</span>
-                        <span>•</span>
-                        <span>{transaction.account}</span>
-                        <span>•</span>
-                        <span>{new Date(transaction.date).toLocaleDateString('pt-BR')}</span>
-                        <span>•</span>
-                        <span className={`font-medium ${getStatusColor(transaction.status)}`}>
-                          {transaction.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-bold text-lg ${
-                      transaction.type === 'income' ? 'text-success' : 'text-destructive'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className="text-sm text-muted-foreground capitalize">
-                      {transaction.type === 'income' ? 'receita' : 'despesa'}
+
+                    {/* Linhas da Tabela */}
+                    <div className="divide-y divide-border">
+                      {paginatedTransactions.map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          className="grid grid-cols-[60px_100px_1fr_150px_150px_120px_90px] gap-4 px-4 py-3.5 hover:bg-muted/5 transition-colors group"
+                        >
+                          {/* Ícone de Situação - Discreto */}
+                          <div className="flex items-center justify-center">
+                            {getStatusIcon(transaction.status)}
+                          </div>
+
+                          {/* Data */}
+                          <div className="flex items-center">
+                            <span className="text-sm text-foreground">
+                              {new Date(transaction.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </span>
+                          </div>
+
+                          {/* Descrição - Mais destaque */}
+                          <div className="flex flex-col justify-center gap-0.5">
+                            <p className="font-medium text-foreground text-sm leading-tight">
+                              {transaction.description}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {transaction.status === 'confirmed' ? 'Confirmado' : transaction.status === 'pending' ? 'Pendente' : 'Cancelado'}
+                            </p>
+                          </div>
+
+                          {/* Categoria - Simples e limpa */}
+                          <div className="flex items-center">
+                            <span className="text-sm text-muted-foreground">
+                              {transaction.category}
+                            </span>
+                          </div>
+
+                          {/* Conta */}
+                          <div className="flex items-center">
+                            <span className="text-sm text-muted-foreground">
+                              {transaction.account}
+                            </span>
+                          </div>
+
+                          {/* Valor */}
+                          <div className="flex items-center justify-end">
+                            <span className={`font-semibold text-sm ${
+                              transaction.type === 'income' ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
+                            }`}>
+                              {transaction.type === 'income' ? '+' : '-'}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+
+                          {/* Ações - Ícones minimalistas */}
+                          <div className="flex items-center justify-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                              title="Editar"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-purple-100 hover:text-purple-600 dark:hover:bg-purple-900/20 dark:hover:text-purple-400"
+                              title="Anexar arquivo"
+                            >
+                              <Paperclip className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                              title="Excluir"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-8 flex justify-center">
-              <Button variant="outline">
-                Carregar Mais Transações
-              </Button>
-            </div>
+                {/* Paginação - Alinhada à direita */}
+                <div className="mt-6 flex items-center justify-end gap-6 px-2">
+                  {/* Linhas por página */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">Linhas por página:</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                      <SelectTrigger className="w-[70px] h-8 bg-transparent">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Informação de página */}
+                  <div className="text-sm text-muted-foreground whitespace-nowrap">
+                    {startIndex + 1}-{endIndex} de {totalItems}
+                  </div>
+
+                  {/* Botões de navegação */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToFirstPage}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={goToLastPage}
+                      disabled={currentPage === totalPages}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

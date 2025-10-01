@@ -277,7 +277,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
           </Card>
 
           {/* Receitas */}
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/transacoes?type=INCOME')}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -294,7 +294,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
           </Card>
 
           {/* Despesas */}
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/transacoes?type=EXPENSE')}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -311,7 +311,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
           </Card>
 
           {/* Cartão de Crédito */}
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
