@@ -28,7 +28,7 @@ function PersonalDashboard({ template }: { template: DashboardTemplate }) {
 
   const loadData = async () => {
     try {
-      const response = await dashboardService.getOverview()
+      const response = await dashboardService.getOverview(365)
       if (response.success && response.data) {
         const financial = response.data.financial
         setData({
@@ -105,7 +105,7 @@ function BusinessDashboard({ template }: { template: DashboardTemplate }) {
 
   const loadData = async () => {
     try {
-      const response = await dashboardService.getOverview()
+      const response = await dashboardService.getOverview(365)
       if (response.success && response.data) {
         const financial = response.data.financial
         const revenue = financial.totalIncome
@@ -174,7 +174,7 @@ function InvestmentDashboard({ template }: { template: DashboardTemplate }) {
 
   const loadData = async () => {
     try {
-      const response = await dashboardService.getOverview()
+      const response = await dashboardService.getOverview(365)
       if (response.success && response.data) {
         const financial = response.data.financial
         setData({
@@ -246,7 +246,7 @@ function AnalyticsDashboard({ template }: { template: DashboardTemplate }) {
 
   const loadData = async () => {
     try {
-      const response = await dashboardService.getOverview()
+      const response = await dashboardService.getOverview(365)
       if (response.success && response.data) {
         const financial = response.data.financial
         const score = financial.netIncome > 0 ? Math.min(10, (financial.netIncome / financial.totalIncome) * 20) : 0

@@ -26,7 +26,7 @@ export function BalanceWidget({ widget, isEditing, onSettings, onRemove, onResiz
 
   const loadBalanceData = async () => {
     try {
-      const response = await dashboardService.getOverview()
+      const response = await dashboardService.getOverview(365)
       if (response.success && response.data) {
         const data = response.data.financial
         setBalanceData({

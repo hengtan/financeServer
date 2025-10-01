@@ -61,9 +61,9 @@ export const DashboardPageWrapper = () => {
       setLoading(true)
       setError(null)
 
-      // Carregar dados do dashboard em paralelo
+      // Carregar dados do dashboard em paralelo (365 dias para mostrar todos os dados)
       const [dashboardResponse, transactionsResponse, goalsResponse, categoriesResponse] = await Promise.all([
-        dashboardService.getOverview(),
+        dashboardService.getOverview(365),
         transactionsService.getTransactions({ limit: 5 }),
         goalsService.getGoals(),
         transactionsService.getCategoriesSummary()
