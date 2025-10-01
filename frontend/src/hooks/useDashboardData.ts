@@ -30,8 +30,6 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
       const endDate = new Date(year, month + 1, 0) // Dia 0 do próximo mês = último dia do mês atual
       endDate.setHours(23, 59, 59, 999)
 
-      console.log(`📅 Fetching dashboard data for ${startDate.toLocaleDateString('pt-BR')} - ${endDate.toLocaleDateString('pt-BR')}`)
-
       // Passar datas específicas ao backend
       const response = await dashboardService.getOverview({
         startDate: startDate.toISOString(),
