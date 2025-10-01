@@ -162,13 +162,28 @@ export const NewTransactionModal = ({
   }, [defaultValues.accountId, defaultValues.categoryId, defaultValues.typeId])
 
   const [amountString, setAmountString] = useState(
-    defaultValues.amount ? defaultValues.amount.toString() : ''
+    defaultValues.amount ? (defaultValues.amount * 100).toString() : ''
   )
+
+  // Função para formatar o valor em centavos para display (ex: 1000 → 10,00)
+  const formatAmountDisplay = (centavos: string): string => {
+    if (!centavos) return '0,00'
+    const num = parseInt(centavos) || 0
+    const reais = Math.floor(num / 100)
+    const cents = num % 100
+    return `${reais},${cents.toString().padStart(2, '0')}`
+  }
+
+  // Valor formatado para exibição
+  const displayAmount = formatAmountDisplay(amountString)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const finalAmount = parseFloat(amountString) || 0
+    // Converter centavos para reais (ex: 1000 centavos → 10.00 reais)
+    const centavos = parseInt(amountString) || 0
+    const finalAmount = centavos / 100
+
     const transaction: TransactionFormData = {
       description: formData.description,
       amount: finalAmount,
@@ -228,15 +243,15 @@ export const NewTransactionModal = ({
               {finalLabels.amount}
             </label>
             <input
-              type="number"
-              step="0.01"
-              value={amountString}
+              type="text"
+              value={displayAmount}
               onChange={(e) => {
-                setAmountString(e.target.value)
-                setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                // Remover tudo exceto dígitos
+                const onlyNumbers = e.target.value.replace(/\D/g, '')
+                setAmountString(onlyNumbers)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
-              placeholder={finalLabels.amountPlaceholder}
+              placeholder="0,00"
               required
             />
           </div>
@@ -261,7 +276,14 @@ export const NewTransactionModal = ({
           </label>
           <select
             value={formData.categoryId}
-            onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+            onChange={(e) => {
+              if (e.target.value === '__create_new__') {
+                // TODO: Abrir modal de criação de categoria
+                alert('Funcionalidade de criar nova categoria será implementada')
+              } else {
+                setFormData({ ...formData, categoryId: e.target.value })
+              }
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
           >
             {finalCategories.map(cat => (
@@ -269,6 +291,9 @@ export const NewTransactionModal = ({
                 {cat.name}
               </option>
             ))}
+            <option value="__create_new__" className="font-semibold text-blue-600">
+              + Incluir nova categoria
+            </option>
           </select>
         </div>
 
