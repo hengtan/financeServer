@@ -22,6 +22,8 @@ export enum AlertType {
   INCOME_RECEIVED = 'INCOME_RECEIVED',
   EXPENSE_ANOMALY = 'EXPENSE_ANOMALY',
   SAVINGS_OPPORTUNITY = 'SAVINGS_OPPORTUNITY',
+  TRANSACTION_CREATED = 'TRANSACTION_CREATED',
+  TRANSACTION_DELETED = 'TRANSACTION_DELETED',
   CUSTOM = 'CUSTOM'
 }
 
@@ -307,6 +309,10 @@ export class AlertUtils {
         return '📈'
       case AlertType.SAVINGS_OPPORTUNITY:
         return '💡'
+      case AlertType.TRANSACTION_CREATED:
+        return '✅'
+      case AlertType.TRANSACTION_DELETED:
+        return '🗑️'
       default:
         return '🔔'
     }

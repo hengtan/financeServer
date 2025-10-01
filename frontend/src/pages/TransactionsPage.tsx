@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { NewTransactionModal } from '@/components/NewTransactionModal'
 import { apiService } from '@/services/api'
+import { alertsService, AlertType, AlertSeverity, AlertChannel } from '@/services/alerts'
 import {
   Calendar,
   Filter,
@@ -267,6 +268,25 @@ export const TransactionsPage = () => {
           date: new Date(response.data.date).toLocaleDateString('pt-BR')
         }
         setTransactions([savedTransaction, ...transactions])
+
+        // Criar alerta de transação criada
+        try {
+          await alertsService.createAlert({
+            type: AlertType.TRANSACTION_CREATED,
+            severity: AlertSeverity.LOW,
+            title: transaction.isIncome ? 'Receita Adicionada' : 'Despesa Adicionada',
+            message: `${transaction.isIncome ? 'Receita' : 'Despesa'} de R$ ${transaction.amount.toFixed(2)} foi registrada com sucesso`,
+            description: `Descrição: ${transaction.description}`,
+            data: {
+              amount: transaction.amount,
+              transaction: response.data
+            },
+            channels: [AlertChannel.IN_APP],
+            expiresInHours: 24
+          })
+        } catch (alertError) {
+          console.error('Erro ao criar alerta:', alertError)
+        }
 
         // Recarregar transações para ter dados atualizados
         loadTransactions()
