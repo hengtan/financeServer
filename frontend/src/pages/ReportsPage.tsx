@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { TimelineChart } from '@/components/TimelineChart'
 import { PeriodComparison } from '@/components/PeriodComparison'
-import { TrendForecast } from '@/components/TrendForecast'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BarChart3,
@@ -450,37 +449,580 @@ export const ReportsPage = () => {
           </TabsContent>
 
           <TabsContent value="breakdown" className="space-y-6">
+            {/* Análise por Categoria */}
             <Card>
               <CardHeader>
-                <CardTitle>Detalhamento Avançado</CardTitle>
+                <CardTitle>Despesas por Categoria</CardTitle>
                 <CardDescription>
-                  Análise detalhada por categoria e subcategoria
+                  Distribuição detalhada dos seus gastos por categoria
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">Detalhamento avançado será implementado em breve...</p>
-                </div>
+                {categoryExpenses.length > 0 ? (
+                  <div className="space-y-4">
+                    {categoryExpenses.map((cat, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: `hsl(${index * 60}, 70%, 50%)` }} />
+                            <span className="font-medium">{cat.category}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.total)}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {cat.percentage.toFixed(1)}% do total
+                            </div>
+                          </div>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full transition-all"
+                            style={{
+                              width: `${cat.percentage}%`,
+                              backgroundColor: `hsl(${index * 60}, 70%, 50%)`
+                            }}
+                          />
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {cat.count} transações
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nenhuma despesa encontrada no período</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Receitas por Fonte */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Receitas por Fonte</CardTitle>
+                <CardDescription>
+                  Origem das suas receitas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {incomeBreakdown.length > 0 ? (
+                  <div className="space-y-4">
+                    {incomeBreakdown.map((source, index) => (
+                      <div key={index} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                            <span className="font-medium">{source.source}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-green-600">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(source.total)}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {source.percentage.toFixed(1)}% do total
+                            </div>
+                          </div>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full bg-green-500 transition-all"
+                            style={{ width: `${source.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nenhuma receita encontrada no período</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Saldos por Conta */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Saldos por Conta</CardTitle>
+                <CardDescription>
+                  Distribuição do seu patrimônio entre contas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {accountBalances.length > 0 ? (
+                  <div className="space-y-4">
+                    {accountBalances.map((account, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
+                        <div>
+                          <div className="font-medium">{account.name}</div>
+                          <div className="text-sm text-muted-foreground">{account.type}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-semibold ${parseFloat(account.balance) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(account.balance))}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {account.status === 'ACTIVE' ? 'Ativa' : 'Inativa'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nenhuma conta cadastrada</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="forecasts" className="space-y-6">
-            <TrendForecast />
-          </TabsContent>
-
-          <TabsContent value="insights" className="space-y-6">
+            {/* Projeções Mensais */}
             <Card>
               <CardHeader>
-                <CardTitle>Insights Avançados</CardTitle>
+                <CardTitle>Projeções para os Próximos Meses</CardTitle>
                 <CardDescription>
-                  Análises preditivas e recomendações personalizadas
+                  Estimativas baseadas nos seus padrões históricos de gastos e receitas
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">Insights avançados serão implementados em breve...</p>
+                {monthlyData.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Médias Calculadas */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                        <div className="text-sm text-green-700 dark:text-green-300 mb-1">Receita Média Mensal</div>
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                            monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+                        <div className="text-sm text-red-700 dark:text-red-300 mb-1">Despesa Média Mensal</div>
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                            monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                        <div className="text-sm text-blue-700 dark:text-blue-300 mb-1">Economia Média Mensal</div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                            monthlyData.reduce((sum, m) => sum + m.netIncome, 0) / monthlyData.length
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Projeções Futuras */}
+                    <div>
+                      <h3 className="font-semibold mb-4">Projeções para os próximos 3 meses</h3>
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((month) => {
+                          const avgIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                          const avgExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                          const avgSavings = avgIncome - avgExpenses
+
+                          // Adicionar pequena variação (±5%)
+                          const variation = 1 + ((Math.random() - 0.5) * 0.1)
+                          const projectedIncome = avgIncome * variation
+                          const projectedExpenses = avgExpenses * variation
+                          const projectedSavings = projectedIncome - projectedExpenses
+
+                          const futureDate = new Date()
+                          futureDate.setMonth(futureDate.getMonth() + month)
+                          const monthName = futureDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+
+                          return (
+                            <div key={month} className="p-4 rounded-lg border">
+                              <div className="font-medium mb-3 capitalize">{monthName}</div>
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <div className="text-muted-foreground">Receita</div>
+                                  <div className="font-semibold text-green-600">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(projectedIncome)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground">Despesas</div>
+                                  <div className="font-semibold text-red-600">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(projectedExpenses)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground">Economia</div>
+                                  <div className={`font-semibold ${projectedSavings >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(projectedSavings)}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Dados insuficientes para projeções. Adicione mais transações.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tendências por Categoria */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tendências por Categoria</CardTitle>
+                <CardDescription>
+                  Categorias com maior crescimento ou redução de gastos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {categoryExpenses.length > 0 ? (
+                  <div className="space-y-4">
+                    {categoryExpenses.slice(0, 5).map((cat, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${index * 60}, 70%, 50%)` }} />
+                          <div>
+                            <div className="font-medium">{cat.category}</div>
+                            <div className="text-sm text-muted-foreground">{cat.count} transações</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cat.total)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{cat.percentage.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nenhum dado disponível</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Meta de Economia */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Potencial de Economia</CardTitle>
+                <CardDescription>
+                  Quanto você pode economizar otimizando seus gastos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {monthlyData.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border border-blue-200 dark:border-blue-800">
+                      <div className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                        Reduzindo 10% das despesas mensais
+                      </div>
+                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          (monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length) * 0.1
+                        )}
+                      </div>
+                      <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        por mês
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border border-purple-200 dark:border-purple-800">
+                      <div className="text-sm text-purple-700 dark:text-purple-300 mb-2">
+                        Economia potencial em 12 meses
+                      </div>
+                      <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                          (monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length) * 0.1 * 12
+                        )}
+                      </div>
+                      <div className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                        com 10% de redução mensal
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Dados insuficientes para cálculo de economia</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="insights" className="space-y-6">
+            {/* Resumo de Insights */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {insights.map((insight, index) => (
+                <Card key={index} className="border-l-4" style={{ borderLeftColor: insight.trend === 'up' ? '#10b981' : '#ef4444' }}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-sm font-medium">{insight.title}</CardTitle>
+                      {insight.trend === 'up' ? (
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-600" />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold mb-2">{insight.value}</div>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Análise de Padrões */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Análise de Padrões de Gastos</CardTitle>
+                <CardDescription>
+                  Identificação de comportamentos financeiros
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {monthlyData.length > 1 ? (
+                  <div className="space-y-4">
+                    {/* Padrão de Gastos */}
+                    <div className="p-4 rounded-lg border">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                          <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold mb-2">Consistência de Gastos</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Suas despesas mensais {monthlyData.length >= 3 &&
+                              Math.abs(monthlyData[0].expenses - monthlyData[1].expenses) / monthlyData[1].expenses < 0.15
+                              ? 'são consistentes, o que facilita o planejamento financeiro.'
+                              : 'variam significativamente. Considere criar um orçamento mensal fixo.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Padrão de Receitas */}
+                    <div className="p-4 rounded-lg border">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                          <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold mb-2">Estabilidade de Renda</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {monthlyData.length >= 2 &&
+                              Math.abs(monthlyData[0].income - monthlyData[1].income) / monthlyData[1].income < 0.1
+                              ? 'Sua renda é estável, permitindo um planejamento financeiro mais previsível.'
+                              : 'Sua renda apresenta variações. Considere criar uma reserva de emergência.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Taxa de Economia */}
+                    <div className="p-4 rounded-lg border">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                          <PiggyBank className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold mb-2">Taxa de Poupança</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {(() => {
+                              const avgIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                              const avgExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                              const savingsRate = avgIncome > 0 ? ((avgIncome - avgExpenses) / avgIncome) * 100 : 0
+
+                              if (savingsRate >= 20) {
+                                return `Excelente! Você está economizando ${savingsRate.toFixed(1)}% da sua renda. Continue assim!`
+                              } else if (savingsRate >= 10) {
+                                return `Bom! Você economiza ${savingsRate.toFixed(1)}% da sua renda. Tente aumentar para 20%.`
+                              } else if (savingsRate > 0) {
+                                return `Você economiza ${savingsRate.toFixed(1)}% da sua renda. Tente aumentar para pelo menos 10%.`
+                              } else {
+                                return 'Suas despesas são iguais ou superiores à renda. É importante criar uma margem de economia.'
+                              }
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Dados insuficientes para análise de padrões. Adicione mais transações.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recomendações Personalizadas */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recomendações Personalizadas</CardTitle>
+                <CardDescription>
+                  Ações sugeridas para melhorar sua saúde financeira
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {/* Recomendações baseadas em dados */}
+                  {categoryExpenses.length > 0 && categoryExpenses[0].percentage > 40 && (
+                    <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-orange-600 mt-2" />
+                        <div>
+                          <div className="font-semibold text-orange-900 dark:text-orange-100">
+                            Categoria dominante detectada
+                          </div>
+                          <p className="text-sm text-orange-800 dark:text-orange-200 mt-1">
+                            {categoryExpenses[0].category} representa {categoryExpenses[0].percentage.toFixed(1)}% dos seus gastos.
+                            Considere revisar essa categoria para oportunidades de economia.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {monthlyData.length > 0 && (() => {
+                    const avgIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                    const avgExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                    return avgExpenses > avgIncome * 0.9
+                  })() && (
+                    <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-red-600 mt-2" />
+                        <div>
+                          <div className="font-semibold text-red-900 dark:text-red-100">
+                            Margem de segurança baixa
+                          </div>
+                          <p className="text-sm text-red-800 dark:text-red-200 mt-1">
+                            Suas despesas estão muito próximas da sua renda. Tente reduzir gastos ou aumentar receitas.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {accountBalances.length === 0 && (
+                    <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-600 mt-2" />
+                        <div>
+                          <div className="font-semibold text-blue-900 dark:text-blue-100">
+                            Diversifique suas contas
+                          </div>
+                          <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                            Considere ter pelo menos duas contas: uma para despesas do dia a dia e outra para poupança.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {monthlyData.length > 0 && (() => {
+                    const avgIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                    const avgExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                    const savingsRate = avgIncome > 0 ? ((avgIncome - avgExpenses) / avgIncome) * 100 : 0
+                    return savingsRate >= 20
+                  })() && (
+                    <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-green-600 mt-2" />
+                        <div>
+                          <div className="font-semibold text-green-900 dark:text-green-100">
+                            Ótima taxa de poupança! 🎉
+                          </div>
+                          <p className="text-sm text-green-800 dark:text-green-200 mt-1">
+                            Você está economizando bem. Considere investir esse dinheiro para fazê-lo crescer.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recomendação padrão */}
+                  {insights.length === 0 && categoryExpenses.length === 0 && (
+                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border">
+                      <p className="text-sm text-muted-foreground">
+                        Continue registrando suas transações para receber recomendações personalizadas baseadas nos seus hábitos financeiros.
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Score de Saúde Financeira */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Score de Saúde Financeira</CardTitle>
+                <CardDescription>
+                  Avaliação geral da sua situação financeira
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {monthlyData.length > 0 ? (
+                  <div className="space-y-4">
+                    {(() => {
+                      const avgIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / monthlyData.length
+                      const avgExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / monthlyData.length
+                      const avgSavings = avgIncome - avgExpenses
+                      const savingsRate = avgIncome > 0 ? (avgSavings / avgIncome) * 100 : 0
+
+                      // Calcular score (0-100)
+                      let score = 0
+                      if (savingsRate >= 20) score += 40
+                      else if (savingsRate >= 10) score += 25
+                      else if (savingsRate > 0) score += 10
+
+                      if (categoryExpenses.length > 0 && categoryExpenses[0].percentage < 40) score += 20
+                      if (accountBalances.length >= 2) score += 20
+                      if (monthlyData.length >= 3) score += 20
+
+                      const scoreColor = score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-blue-500' : score >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                      const scoreText = score >= 80 ? 'Excelente' : score >= 60 ? 'Bom' : score >= 40 ? 'Regular' : 'Precisa melhorar'
+
+                      return (
+                        <>
+                          <div className="flex items-center justify-between mb-6">
+                            <div>
+                              <div className="text-5xl font-bold">{score}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{scoreText}</div>
+                            </div>
+                            <div className={`w-24 h-24 rounded-full ${scoreColor} flex items-center justify-center text-white text-2xl font-bold`}>
+                              {score}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Taxa de Poupança</span>
+                              <span className="font-medium">{savingsRate.toFixed(1)}%</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div
+                                className="h-2 rounded-full bg-blue-500 transition-all"
+                                style={{ width: `${Math.min(savingsRate * 5, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t">
+                            <h4 className="font-semibold mb-2">Como melhorar seu score:</h4>
+                            <ul className="space-y-1 text-sm text-muted-foreground">
+                              {savingsRate < 20 && <li>• Aumente sua taxa de poupança para pelo menos 20%</li>}
+                              {categoryExpenses.length > 0 && categoryExpenses[0].percentage >= 40 && (
+                                <li>• Reduza gastos na categoria {categoryExpenses[0].category}</li>
+                              )}
+                              {accountBalances.length < 2 && <li>• Diversifique suas contas financeiras</li>}
+                              {monthlyData.length < 3 && <li>• Continue registrando transações por mais meses</li>}
+                            </ul>
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Dados insuficientes para calcular score. Adicione mais transações.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

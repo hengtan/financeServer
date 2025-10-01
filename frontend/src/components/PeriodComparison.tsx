@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import {
   PiggyBank
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { dashboardService } from '@/services/dashboard'
 
 interface PeriodData {
   label: string
@@ -56,30 +57,77 @@ const comparisonPeriods: ComparisonPeriod[] = [
   }
 ]
 
-// Dados simulados para demonstração
-const getMockData = (periodId: string): PeriodData[] => {
-  const baseData = {
-    month: [
-      { label: 'Receitas', amount: 8500, change: 12.5, changeType: 'increase' as const },
-      { label: 'Despesas', amount: 6200, change: -8.3, changeType: 'decrease' as const },
-      { label: 'Economia', amount: 2300, change: 45.2, changeType: 'increase' as const },
-      { label: 'Investimentos', amount: 1500, change: 23.1, changeType: 'increase' as const }
-    ],
-    quarter: [
-      { label: 'Receitas', amount: 25500, change: 18.7, changeType: 'increase' as const },
-      { label: 'Despesas', amount: 18600, change: -5.4, changeType: 'decrease' as const },
-      { label: 'Economia', amount: 6900, change: 62.3, changeType: 'increase' as const },
-      { label: 'Investimentos', amount: 4500, change: 31.8, changeType: 'increase' as const }
-    ],
-    year: [
-      { label: 'Receitas', amount: 102000, change: 15.2, changeType: 'increase' as const },
-      { label: 'Despesas', amount: 74400, change: -3.8, changeType: 'decrease' as const },
-      { label: 'Economia', amount: 27600, change: 58.9, changeType: 'increase' as const },
-      { label: 'Investimentos', amount: 18000, change: 42.1, changeType: 'increase' as const }
-    ]
-  }
+// Função para calcular dados reais de comparação
+const getComparisonData = async (periodId: string): Promise<PeriodData[]> => {
+  try {
+    // Definir períodos de comparação
+    const periodDays: Record<string, number> = {
+      month: 30,
+      quarter: 90,
+      year: 365,
+      custom: 30
+    }
 
-  return baseData[periodId as keyof typeof baseData] || baseData.month
+    const currentPeriod = periodDays[periodId] || 30
+    const previousPeriod = currentPeriod * 2 // Dobro para comparar período anterior
+
+    // Buscar dados dos dois períodos
+    const [currentData, previousData] = await Promise.all([
+      dashboardService.getOverview(currentPeriod),
+      dashboardService.getOverview(previousPeriod)
+    ])
+
+    if (!currentData.success || !currentData.data || !previousData.success || !previousData.data) {
+      return []
+    }
+
+    const current = currentData.data.financial
+    const previous = previousData.data.financial
+
+    // Calcular mudanças percentuais
+    const calculateChange = (currentVal: number, previousVal: number) => {
+      if (previousVal === 0) return 0
+      return ((currentVal - previousVal) / previousVal) * 100
+    }
+
+    // Economia = receitas - despesas
+    const currentSavings = current.totalIncome - current.totalExpenses
+    const previousSavings = previous.totalIncome - previous.totalExpenses
+
+    // Investimentos (usando saldo líquido como proxy)
+    const currentInvestments = current.netIncome
+    const previousInvestments = previous.netIncome
+
+    return [
+      {
+        label: 'Receitas',
+        amount: current.totalIncome,
+        change: calculateChange(current.totalIncome, previous.totalIncome),
+        changeType: 'increase' as const
+      },
+      {
+        label: 'Despesas',
+        amount: current.totalExpenses,
+        change: calculateChange(current.totalExpenses, previous.totalExpenses),
+        changeType: 'decrease' as const
+      },
+      {
+        label: 'Economia',
+        amount: currentSavings,
+        change: calculateChange(currentSavings, previousSavings),
+        changeType: 'increase' as const
+      },
+      {
+        label: 'Investimentos',
+        amount: currentInvestments,
+        change: calculateChange(currentInvestments, previousInvestments),
+        changeType: 'increase' as const
+      }
+    ]
+  } catch (error) {
+    console.error('Erro ao carregar dados de comparação:', error)
+    return []
+  }
 }
 
 const formatCurrency = (amount: number) => {
@@ -126,16 +174,27 @@ export interface PeriodComparisonProps {
 
 export function PeriodComparison({ className }: PeriodComparisonProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('month')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [data, setData] = useState<PeriodData[]>([])
 
   const currentPeriod = comparisonPeriods.find(p => p.id === selectedPeriod)
-  const data = getMockData(selectedPeriod)
+
+  useEffect(() => {
+    loadComparisonData()
+  }, [])
+
+  const loadComparisonData = async () => {
+    setIsLoading(true)
+    const comparisonData = await getComparisonData(selectedPeriod)
+    setData(comparisonData)
+    setIsLoading(false)
+  }
 
   const handlePeriodChange = async (periodId: string) => {
     setIsLoading(true)
-    // Simula carregamento de dados
-    await new Promise(resolve => setTimeout(resolve, 500))
     setSelectedPeriod(periodId)
+    const comparisonData = await getComparisonData(periodId)
+    setData(comparisonData)
     setIsLoading(false)
   }
 
@@ -184,7 +243,12 @@ export function PeriodComparison({ className }: PeriodComparisonProps) {
       )}
 
       {/* Grid de comparações */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {data.map((item, index) => (
           <Card key={index} className="overflow-hidden transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -246,8 +310,10 @@ export function PeriodComparison({ className }: PeriodComparisonProps) {
           </Card>
         ))}
       </div>
+      )}
 
       {/* Resumo da comparação */}
+      {!isLoading && data.length > 0 && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -292,6 +358,7 @@ export function PeriodComparison({ className }: PeriodComparisonProps) {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }
