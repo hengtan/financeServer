@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useAuth } from '@/contexts/AuthContext'
 import { DashboardWithRealData } from '@/components/DashboardWithRealData'
@@ -55,6 +56,8 @@ export const NewDashboardPage = () => {
 
 // Componente interno com o conteúdo do dashboard
 const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: apiData }: any) => {
+  const navigate = useNavigate()
+
   // Usar dados da API ou fallback se não existirem
   const dashboardData = apiData || {
     balance: 0,
@@ -188,7 +191,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Saldo Atual */}
-          <Card className="hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/contas')}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
