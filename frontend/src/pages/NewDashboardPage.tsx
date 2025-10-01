@@ -17,7 +17,11 @@ import {
   Target,
   ChevronRight,
   CalendarDays,
-  PiggyBank
+  PiggyBank,
+  Wallet,
+  ShoppingCart,
+  Scale,
+  Landmark
 } from 'lucide-react'
 import { MonthYearPicker } from '@/components/MonthYearPicker'
 import {
@@ -270,7 +274,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                  <ArrowUpCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </CardContent>
@@ -287,7 +291,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-                  <ArrowDownCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  <ShoppingCart className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
               </div>
             </CardContent>
@@ -312,7 +316,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                     ? 'bg-green-100 dark:bg-green-900/20'
                     : 'bg-red-100 dark:bg-red-900/20'
                 }`}>
-                  <DollarSign className={`h-6 w-6 ${
+                  <Scale className={`h-6 w-6 ${
                     (dashboardData.income - dashboardData.expenses) >= 0
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-red-600 dark:text-red-400'
@@ -333,7 +337,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <Wallet className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
