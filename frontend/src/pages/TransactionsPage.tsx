@@ -85,6 +85,10 @@ export const TransactionsPage = () => {
           type: t.type === 'INCOME' ? 'income' : 'expense',
           status: t.status === 'COMPLETED' ? 'confirmed' : t.status === 'PENDING' ? 'pending' : 'cancelled'
         }))
+
+        // Ordenar por data (mais recente primeiro)
+        formattedTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
         setTransactions(formattedTransactions)
       }
 
