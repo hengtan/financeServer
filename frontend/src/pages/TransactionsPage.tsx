@@ -186,7 +186,7 @@ export const TransactionsPage = () => {
       const payload = {
         description: transaction.description,
         amount: transaction.amount,
-        type: transaction.typeId === 'credit' ? 'INCOME' : 'EXPENSE',
+        type: transaction.isIncome ? 'INCOME' : 'EXPENSE', // Usar o campo isIncome
         userCategoryId: transaction.categoryId, // 🚀 Usando nova arquitetura híbrida
         accountId: transaction.accountId,
         date: new Date(transaction.date).toISOString()

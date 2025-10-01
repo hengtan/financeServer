@@ -33,6 +33,7 @@ export interface TransactionFormData {
   typeId: string
   date: string
   notes?: string
+  isIncome?: boolean // Indica se é receita (true) ou despesa (false)
 }
 
 export interface TransactionLabels {
@@ -239,14 +240,7 @@ export const NewTransactionModal = ({
 
     // Converter centavos para reais (ex: 1000 centavos → 10.00 reais)
     const centavos = parseInt(amountString) || 0
-    let finalAmount = centavos / 100
-
-    // Aplicar sinal negativo se for despesa
-    if (!isIncome) {
-      finalAmount = -Math.abs(finalAmount)
-    } else {
-      finalAmount = Math.abs(finalAmount)
-    }
+    const finalAmount = Math.abs(centavos / 100) // Sempre positivo
 
     const transaction: TransactionFormData = {
       description: formData.description,
@@ -255,6 +249,7 @@ export const NewTransactionModal = ({
       accountId: formData.accountId,
       typeId: formData.typeId,
       date: formData.date,
+      isIncome: isIncome, // Passar informação de receita/despesa
       ...(showNotes && { notes: formData.notes })
     }
 
