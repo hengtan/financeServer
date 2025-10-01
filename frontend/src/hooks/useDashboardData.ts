@@ -18,9 +18,9 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
       setIsLoading(true)
       setError(null)
 
-      // Para agora, usar 30 dias como período padrão
+      // Usar 365 dias para mostrar todos os dados do seed (447 transações ao longo de 12 meses)
       // No futuro, podemos calcular com base no selectedDate
-      const response = await dashboardService.getOverview(30)
+      const response = await dashboardService.getOverview(365)
 
       if (response.success && response.data) {
         setData(response.data)
