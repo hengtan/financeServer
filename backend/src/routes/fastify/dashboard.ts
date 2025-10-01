@@ -39,8 +39,9 @@ export default async function dashboardRoutes(
       const period = query.period || '30' // dias
 
       const endDate = new Date()
+      endDate.setDate(endDate.getDate() + 30) // Include 30 days in the future
       const startDate = new Date()
-      startDate.setDate(endDate.getDate() - parseInt(period))
+      startDate.setDate(startDate.getDate() - parseInt(period))
 
       // Buscar dados em paralelo para melhor performance
       const [accountsResult, transactions, goalsResult, budgetsResult] = await Promise.all([
