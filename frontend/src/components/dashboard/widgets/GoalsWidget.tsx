@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import { Target, TrendingUp } from 'lucide-react'
 import { WidgetBase, WidgetConfig } from '../WidgetBase'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { goalsService } from '@/services/goals'
 
 interface GoalsWidgetProps {
   widget: WidgetConfig
@@ -12,32 +14,44 @@ interface GoalsWidgetProps {
 }
 
 export function GoalsWidget({ widget, isEditing, onSettings, onRemove, onResize }: GoalsWidgetProps) {
-  const goals = [
-    {
-      id: 1,
-      title: "Reserva de Emergência",
-      target: 30000,
-      current: 22500,
-      progress: 75,
-      color: "#ef4444"
-    },
-    {
-      id: 2,
-      title: "Viagem para Europa",
-      target: 15000,
-      current: 8500,
-      progress: 57,
-      color: "#3b82f6"
-    },
-    {
-      id: 3,
-      title: "Carro Novo",
-      target: 50000,
-      current: 12000,
-      progress: 24,
-      color: "#8b5cf6"
+  const [goals, setGoals] = useState<Array<{
+    id: number
+    title: string
+    target: number
+    current: number
+    progress: number
+    color: string
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadGoals()
+  }, [])
+
+  const loadGoals = async () => {
+    try {
+      const response = await goalsService.getGoals()
+      if (response.success && response.data) {
+        const formatted = response.data.slice(0, 3).map((g: any, index: number) => {
+          const target = parseFloat(g.targetAmount || 0)
+          const current = parseFloat(g.currentAmount || 0)
+          return {
+            id: g.id,
+            title: g.name,
+            target,
+            current,
+            progress: target > 0 ? (current / target) * 100 : 0,
+            color: ['#ef4444', '#3b82f6', '#8b5cf6'][index] || '#6b7280'
+          }
+        })
+        setGoals(formatted)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar metas:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

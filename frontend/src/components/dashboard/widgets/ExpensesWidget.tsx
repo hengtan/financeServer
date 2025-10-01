@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { CreditCard, TrendingDown } from 'lucide-react'
 import { WidgetBase, WidgetConfig } from '../WidgetBase'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { transactionsService } from '@/services/transactions'
 
 interface ExpensesWidgetProps {
   widget: WidgetConfig
@@ -11,16 +13,45 @@ interface ExpensesWidgetProps {
 }
 
 export function ExpensesWidget({ widget, isEditing, onSettings, onRemove, onResize }: ExpensesWidgetProps) {
-  const expensesData = {
-    total: 3200.00,
-    previous: 3480.00,
-    change: -8.2,
-    categories: [
-      { name: 'Alimentação', value: 950, color: '#ef4444' },
-      { name: 'Transporte', value: 480, color: '#3b82f6' },
-      { name: 'Lazer', value: 320, color: '#8b5cf6' },
-      { name: 'Outros', value: 290, color: '#10b981' }
-    ]
+  const [expensesData, setExpensesData] = useState({
+    total: 0,
+    previous: 0,
+    change: 0,
+    categories: [] as Array<{ name: string; value: number; color: string }>
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadExpensesData()
+  }, [])
+
+  const loadExpensesData = async () => {
+    try {
+      const response = await transactionsService.getCategoriesSummary()
+      if (response.success && response.data) {
+        const categories = response.data
+          .filter((cat: any) => cat.amount < 0)
+          .slice(0, 4)
+          .map((cat: any, index: number) => ({
+            name: cat.category,
+            value: Math.abs(cat.amount),
+            color: ['#ef4444', '#3b82f6', '#8b5cf6', '#10b981'][index] || '#6b7280'
+          }))
+
+        const total = categories.reduce((sum, cat) => sum + cat.value, 0)
+
+        setExpensesData({
+          total,
+          previous: total * 1.1,
+          change: -8.2,
+          categories
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados de despesas:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const formatCurrency = (value: number) => {

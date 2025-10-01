@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react'
 import { Calendar, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { WidgetBase, WidgetConfig } from '../WidgetBase'
 import { Button } from '@/components/ui/button'
+import { transactionsService, Transaction } from '@/services/transactions'
 
 interface TransactionsWidgetProps {
   widget: WidgetConfig
@@ -11,13 +13,38 @@ interface TransactionsWidgetProps {
 }
 
 export function TransactionsWidget({ widget, isEditing, onSettings, onRemove, onResize }: TransactionsWidgetProps) {
-  const transactions = [
-    { id: 1, description: "Salário - Empresa XYZ", amount: 5200.00, date: "2024-01-15", type: "income" },
-    { id: 2, description: "Supermercado Extra", amount: -234.50, date: "2024-01-16", type: "expense" },
-    { id: 3, description: "Netflix Streaming", amount: -29.90, date: "2024-01-14", type: "expense" },
-    { id: 4, description: "Freelance - Projeto ABC", amount: 1200.00, date: "2024-01-12", type: "income" },
-    { id: 5, description: "Uber - Corrida Centro", amount: -18.50, date: "2024-01-14", type: "expense" },
-  ]
+  const [transactions, setTransactions] = useState<Array<{
+    id: number
+    description: string
+    amount: number
+    date: string
+    type: 'income' | 'expense'
+  }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadTransactions()
+  }, [])
+
+  const loadTransactions = async () => {
+    try {
+      const response = await transactionsService.getTransactions({ limit: 5 })
+      if (response.success && response.data.data) {
+        const formatted = response.data.data.map((t: any) => ({
+          id: t.id,
+          description: t.description,
+          amount: t.type === 'INCOME' ? parseFloat(t.amount) : -parseFloat(t.amount),
+          date: t.date,
+          type: t.type === 'INCOME' ? 'income' as const : 'expense' as const
+        }))
+        setTransactions(formatted)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar transações:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {

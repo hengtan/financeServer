@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { WidgetBase, WidgetConfig } from '../WidgetBase'
+import { dashboardService } from '@/services/dashboard'
 
 interface BalanceWidgetProps {
   widget: WidgetConfig
@@ -10,11 +12,35 @@ interface BalanceWidgetProps {
 }
 
 export function BalanceWidget({ widget, isEditing, onSettings, onRemove, onResize }: BalanceWidgetProps) {
-  const balanceData = {
-    current: 15430.50,
-    previous: 13750.20,
-    change: 12.2,
+  const [balanceData, setBalanceData] = useState({
+    current: 0,
+    previous: 0,
+    change: 0,
     trend: 'up' as const
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadBalanceData()
+  }, [])
+
+  const loadBalanceData = async () => {
+    try {
+      const response = await dashboardService.getOverview()
+      if (response.success && response.data) {
+        const data = response.data.financial
+        setBalanceData({
+          current: data.totalBalance,
+          previous: data.totalBalance - data.netIncome,
+          change: data.expenseTrend.percentage,
+          trend: data.expenseTrend.direction === 'UP' ? 'up' : 'down'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados de saldo:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const formatCurrency = (value: number) => {

@@ -13,6 +13,13 @@ export const DashboardPageWrapper = () => {
   const [stats, setStats] = useState<DashboardStats[]>([])
   const [transactions, setTransactions] = useState<RecentTransaction[]>([])
   const [goals, setGoals] = useState<FinancialGoal[]>([])
+  const [summaryData, setSummaryData] = useState({
+    month: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+    income: 0,
+    expenses: 0,
+    balance: 0,
+    topCategories: [] as Array<{ name: string; amount: number; icon?: string }>
+  })
   const [error, setError] = useState<string | null>(null)
   const [showTour, setShowTour] = useState(false)
   const [showTourButton, setShowTourButton] = useState(false)
@@ -55,10 +62,11 @@ export const DashboardPageWrapper = () => {
       setError(null)
 
       // Carregar dados do dashboard em paralelo
-      const [dashboardResponse, transactionsResponse, goalsResponse] = await Promise.all([
+      const [dashboardResponse, transactionsResponse, goalsResponse, categoriesResponse] = await Promise.all([
         dashboardService.getOverview(),
         transactionsService.getTransactions({ limit: 5 }),
-        goalsService.getGoals()
+        goalsService.getGoals(),
+        transactionsService.getCategoriesSummary()
       ])
 
       // Processar dados do dashboard
@@ -129,6 +137,36 @@ export const DashboardPageWrapper = () => {
           deadline: g.targetDate
         }))
         setGoals(formattedGoals)
+      }
+
+      // Processar categorias para o summary
+      const categoryIcons: Record<string, string> = {
+        'Alimentação': '🍽️',
+        'Transporte': '🚗',
+        'Entretenimento': '🎯',
+        'Saúde': '💊',
+        'Educação': '📚',
+        'Casa': '🏠',
+        'Vestuário': '👕'
+      }
+
+      if (categoriesResponse.success && categoriesResponse.data) {
+        const topCategories = categoriesResponse.data
+          .filter((cat: any) => cat.amount < 0)
+          .slice(0, 3)
+          .map((cat: any) => ({
+            name: cat.category,
+            amount: Math.abs(cat.amount),
+            icon: categoryIcons[cat.category] || '📊'
+          }))
+
+        setSummaryData({
+          month: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+          income: dashboardResponse.data?.financial.totalIncome || 0,
+          expenses: dashboardResponse.data?.financial.totalExpenses || 0,
+          balance: dashboardResponse.data?.financial.netIncome || 0,
+          topCategories
+        })
       }
 
     } catch (error) {
@@ -207,16 +245,7 @@ export const DashboardPageWrapper = () => {
         transactions={transactions}
         goals={goals}
         alerts={[]} // Por enquanto, sem alertas
-        summary={{
-          month: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
-          income: stats.find(s => s.id === 'income') ?
-            parseFloat(stats.find(s => s.id === 'income')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-          expenses: stats.find(s => s.id === 'expenses') ?
-            parseFloat(stats.find(s => s.id === 'expenses')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-          balance: stats.find(s => s.id === 'balance_net') ?
-            parseFloat(stats.find(s => s.id === 'balance_net')!.value.replace(/[R$\s.,]/g, '').replace(/(\d{2})$/, '.$1')) : 0,
-          topCategories: []
-        }}
+        summary={summaryData}
         labels={{
           welcome: `Olá, ${user?.name?.split(' ')[0] || 'Usuário'}! 👋`,
           totalBalance: 'Saldo Total',
