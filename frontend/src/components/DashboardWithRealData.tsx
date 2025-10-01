@@ -90,7 +90,7 @@ export const DashboardWithRealData = ({ selectedDate, children }: DashboardWithR
 
   // Transformar dados da API para o formato esperado
   const transformedData = {
-    balance: dashboardOverview.financial.totalBalance,
+    balance: dashboardOverview.accounts.totalBalance, // Soma de todas as contas (banco, carteira, etc)
     income: dashboardOverview.financial.totalIncome,
     expenses: dashboardOverview.financial.totalExpenses,
     creditCards: 0, // TODO: Adicionar quando houver endpoint

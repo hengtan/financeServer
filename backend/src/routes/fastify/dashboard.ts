@@ -85,7 +85,7 @@ export default async function dashboardRoutes(
 
       const netIncome = totalIncome - totalExpenses
 
-      // Saldo total = todas as receitas - todas as despesas (histórico completo)
+      // Balanço do período = receitas - despesas (usado para análise financeira)
       const totalBalance = netIncome
 
       // Calcular progresso das metas
