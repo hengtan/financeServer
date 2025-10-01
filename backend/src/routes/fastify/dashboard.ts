@@ -57,7 +57,7 @@ export default async function dashboardRoutes(
       const budgets = budgetsResult?.budgets || []
 
       // Calcular métricas financeiras
-      const totalBalance = accounts.reduce((sum: number, acc: any) =>
+      const accountsBalance = accounts.reduce((sum: number, acc: any) =>
         sum + parseFloat(acc.balance || '0'), 0)
 
       const incomeTransactions = transactions?.filter((t: any) => t.type === 'INCOME') || []
@@ -69,6 +69,9 @@ export default async function dashboardRoutes(
         sum + Math.abs(parseFloat(t.amount || '0')), 0)
 
       const netIncome = totalIncome - totalExpenses
+
+      // Saldo total = todas as receitas - todas as despesas (histórico completo)
+      const totalBalance = netIncome
 
       // Calcular progresso das metas
       const goalsProgress = goals?.map((goal: any) => {
@@ -180,7 +183,7 @@ export default async function dashboardRoutes(
           accounts: {
             total: accounts.length,
             active: accounts.filter((acc: any) => acc.status === 'ACTIVE').length,
-            totalBalance
+            totalBalance: accountsBalance
           },
           transactions: {
             total: transactions?.length || 0,
