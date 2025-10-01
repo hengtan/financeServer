@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { userCategoriesService } from '@/services/userCategories'
 
 export interface TransactionCategory {
   id: string
@@ -165,13 +166,66 @@ export const NewTransactionModal = ({
     defaultValues.amount ? (defaultValues.amount * 100).toString() : ''
   )
 
-  // Função para formatar o valor em centavos para display (ex: 1000 → 10,00)
+  // Estado para o modal de criar categoria
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryType, setNewCategoryType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE')
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+
+  // Função para criar nova categoria
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      alert('Digite um nome para a categoria')
+      return
+    }
+
+    setIsCreatingCategory(true)
+    try {
+      const response = await userCategoriesService.createUserCategory({
+        name: newCategoryName.trim(),
+        type: newCategoryType,
+        isDefault: false,
+        tags: []
+      })
+
+      if (response.success && response.data) {
+        // Adicionar nova categoria à lista
+        const newCategory: TransactionCategory = {
+          id: response.data.id,
+          name: response.data.name
+        }
+
+        // Atualizar o estado com a nova categoria
+        setFormData({ ...formData, categoryId: newCategory.id })
+
+        // Fechar modal
+        setShowCreateCategoryModal(false)
+        setNewCategoryName('')
+
+        alert(`Categoria "${newCategory.name}" criada com sucesso!`)
+
+        // Recarregar a página para atualizar a lista de categorias
+        window.location.reload()
+      } else {
+        alert('Erro ao criar categoria')
+      }
+    } catch (error) {
+      console.error('Erro ao criar categoria:', error)
+      alert('Erro ao criar categoria')
+    } finally {
+      setIsCreatingCategory(false)
+    }
+  }
+
+  // Função para formatar o valor em centavos para display (ex: 100000 → 1.000,00)
   const formatAmountDisplay = (centavos: string): string => {
     if (!centavos) return '0,00'
     const num = parseInt(centavos) || 0
     const reais = Math.floor(num / 100)
     const cents = num % 100
-    return `${reais},${cents.toString().padStart(2, '0')}`
+    // Adicionar separador de milhares
+    const reaisFormatted = reais.toLocaleString('pt-BR')
+    return `${reaisFormatted},${cents.toString().padStart(2, '0')}`
   }
 
   // Valor formatado para exibição
@@ -278,8 +332,13 @@ export const NewTransactionModal = ({
             value={formData.categoryId}
             onChange={(e) => {
               if (e.target.value === '__create_new__') {
-                // TODO: Abrir modal de criação de categoria
-                alert('Funcionalidade de criar nova categoria será implementada')
+                setShowCreateCategoryModal(true)
+                // Resetar para a categoria anterior
+                setTimeout(() => {
+                  if (finalCategories[0]?.id) {
+                    setFormData({ ...formData, categoryId: finalCategories[0].id })
+                  }
+                }, 0)
               } else {
                 setFormData({ ...formData, categoryId: e.target.value })
               }
@@ -371,6 +430,92 @@ export const NewTransactionModal = ({
           </Button>
         </div>
       </form>
+
+      {/* Modal para criar nova categoria */}
+      <Modal
+        isOpen={showCreateCategoryModal}
+        onClose={() => setShowCreateCategoryModal(false)}
+        title="Criar Nova Categoria"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Nome da Categoria
+            </label>
+            <input
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
+              placeholder="Ex: Freelance, Aluguel, etc."
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tipo
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="categoryType"
+                  value="EXPENSE"
+                  checked={newCategoryType === 'EXPENSE'}
+                  onChange={() => setNewCategoryType('EXPENSE')}
+                  className="sr-only"
+                />
+                <Card className={`p-3 text-center transition-all ${newCategoryType === 'EXPENSE' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'}`}>
+                  <CardContent className="p-0">
+                    <div className="text-sm font-medium">Despesa</div>
+                  </CardContent>
+                </Card>
+              </label>
+
+              <label className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="categoryType"
+                  value="INCOME"
+                  checked={newCategoryType === 'INCOME'}
+                  onChange={() => setNewCategoryType('INCOME')}
+                  className="sr-only"
+                />
+                <Card className={`p-3 text-center transition-all ${newCategoryType === 'INCOME' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'}`}>
+                  <CardContent className="p-0">
+                    <div className="text-sm font-medium">Receita</div>
+                  </CardContent>
+                </Card>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCreateCategoryModal(false)
+                setNewCategoryName('')
+              }}
+              className="flex-1"
+              disabled={isCreatingCategory}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateCategory}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isCreatingCategory || !newCategoryName.trim()}
+            >
+              {isCreatingCategory ? 'Criando...' : 'Criar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   )
 }
