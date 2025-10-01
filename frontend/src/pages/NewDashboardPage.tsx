@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useAuth } from '@/contexts/AuthContext'
+import { DashboardWithRealData } from '@/components/DashboardWithRealData'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -36,15 +37,30 @@ import {
 export const NewDashboardPage = () => {
   usePageTitle('Dashboard')
   const { user } = useAuth()
-
   const [selectedDate, setSelectedDate] = useState(new Date())
 
-  // Dados mockados - substituir por API
-  const dashboardData = {
-    balance: 3654.49,
+  return (
+    <DashboardWithRealData selectedDate={selectedDate}>
+      {(dashboardData) => (
+        <DashboardContent
+          user={user}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          dashboardData={dashboardData}
+        />
+      )}
+    </DashboardWithRealData>
+  )
+}
+
+// Componente interno com o conteúdo do dashboard
+const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: apiData }: any) => {
+  // Usar dados da API ou fallback se não existirem
+  const dashboardData = apiData || {
+    balance: 0,
     income: 0,
-    expenses: 2581.45,
-    creditCards: 2011.58,
+    expenses: 0,
+    creditCards: 0,
     monthlyBalance: {
       income: 0,
       expenses: 2581.45,
