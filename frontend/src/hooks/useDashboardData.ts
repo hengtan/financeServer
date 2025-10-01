@@ -18,9 +18,25 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
       setIsLoading(true)
       setError(null)
 
-      // Usar 365 dias para mostrar todos os dados do seed (447 transações ao longo de 12 meses)
-      // No futuro, podemos calcular com base no selectedDate
-      const response = await dashboardService.getOverview(365)
+      // Calcular primeiro e último dia do mês selecionado
+      const year = selectedDate.getFullYear()
+      const month = selectedDate.getMonth()
+
+      // Primeiro dia do mês às 00:00:00
+      const startDate = new Date(year, month, 1)
+      startDate.setHours(0, 0, 0, 0)
+
+      // Último dia do mês às 23:59:59
+      const endDate = new Date(year, month + 1, 0) // Dia 0 do próximo mês = último dia do mês atual
+      endDate.setHours(23, 59, 59, 999)
+
+      console.log(`📅 Fetching dashboard data for ${startDate.toLocaleDateString('pt-BR')} - ${endDate.toLocaleDateString('pt-BR')}`)
+
+      // Passar datas específicas ao backend
+      const response = await dashboardService.getOverview({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      })
 
       if (response.success && response.data) {
         setData(response.data)

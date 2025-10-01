@@ -38,7 +38,8 @@ import {
 export const NewDashboardPage = () => {
   usePageTitle('Dashboard')
   const { user } = useAuth()
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  // Iniciar em Julho/2025 que tem 62 transações no seed (ao invés do mês atual que pode ter poucos dados)
+  const [selectedDate, setSelectedDate] = useState(new Date(2025, 6, 1)) // Julho = mês 6 (0-indexed)
 
   return (
     <DashboardWithRealData selectedDate={selectedDate}>

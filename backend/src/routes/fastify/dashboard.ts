@@ -36,12 +36,23 @@ export default async function dashboardRoutes(
       }
 
       const query = request.query as any
-      const period = query.period || '30' // dias
 
-      const endDate = new Date()
-      endDate.setDate(endDate.getDate() + 30) // Include 30 days in the future
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - parseInt(period))
+      // Aceitar period (dias) OU startDate/endDate específicas
+      let startDate: Date
+      let endDate: Date
+
+      if (query.startDate && query.endDate) {
+        // Usar datas específicas se fornecidas
+        startDate = new Date(query.startDate)
+        endDate = new Date(query.endDate)
+      } else {
+        // Fallback: usar period (dias retroativos)
+        const period = query.period || '30'
+        endDate = new Date()
+        endDate.setDate(endDate.getDate() + 30) // Include 30 days in the future
+        startDate = new Date()
+        startDate.setDate(startDate.getDate() - parseInt(period))
+      }
 
       // Buscar dados em paralelo para melhor performance
       const [accountsResult, transactions, goalsResult, budgetsResult] = await Promise.all([

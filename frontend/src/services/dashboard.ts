@@ -97,8 +97,22 @@ class DashboardService {
   private readonly basePath = '/dashboard'
 
   // Obter visão geral financeira completa
-  async getOverview(period?: number): Promise<ApiResponse<DashboardOverview>> {
-    const params = period ? { period: period.toString() } : {}
+  async getOverview(
+    periodOrOptions?: number | { startDate: string; endDate: string }
+  ): Promise<ApiResponse<DashboardOverview>> {
+    let params: Record<string, string> = {}
+
+    if (typeof periodOrOptions === 'number') {
+      // Modo antigo: passar period (dias)
+      params = { period: periodOrOptions.toString() }
+    } else if (periodOrOptions && 'startDate' in periodOrOptions) {
+      // Modo novo: passar datas específicas
+      params = {
+        startDate: periodOrOptions.startDate,
+        endDate: periodOrOptions.endDate
+      }
+    }
+
     return apiService.get<DashboardOverview>(`${this.basePath}/overview`, { params })
   }
 
