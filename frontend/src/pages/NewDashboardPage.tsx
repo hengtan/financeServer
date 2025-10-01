@@ -259,23 +259,6 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Saldo Atual */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/contas')}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Saldo atual</p>
-                  <p className="text-2xl font-bold text-foreground mt-2">
-                    {formatCurrency(dashboardData.balance)}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                  <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Receitas */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/transacoes?type=INCOME')}>
             <CardContent className="p-6">
@@ -310,18 +293,47 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
             </CardContent>
           </Card>
 
-          {/* Cartão de Crédito */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          {/* Balanço Mensal */}
+          <Card className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cartão de crédito</p>
-                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-2">
-                    {formatCurrency(dashboardData.creditCards)}
+                  <p className="text-sm font-medium text-muted-foreground">Balanço Mensal</p>
+                  <p className={`text-2xl font-bold mt-2 ${
+                    (dashboardData.income - dashboardData.expenses) >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {formatCurrency(dashboardData.income - dashboardData.expenses)}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center">
-                  <CreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  (dashboardData.income - dashboardData.expenses) >= 0
+                    ? 'bg-green-100 dark:bg-green-900/20'
+                    : 'bg-red-100 dark:bg-red-900/20'
+                }`}>
+                  <DollarSign className={`h-6 w-6 ${
+                    (dashboardData.income - dashboardData.expenses) >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  }`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Saldo Atual */}
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/contas')}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Saldo atual</p>
+                  <p className="text-2xl font-bold text-foreground mt-2">
+                    {formatCurrency(dashboardData.balance)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
