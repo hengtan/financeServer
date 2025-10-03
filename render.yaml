@@ -115,4 +115,3 @@ databases:
   - name: finance-redis
     region: oregon
     plan: free # Free tier available
-    maxmemoryPolicy: allkeys-lru
