@@ -598,7 +598,7 @@ export const NewTransactionModal = ({
           <Button type="button" onClick={onClose} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
             {finalLabels.cancel}
           </Button>
-          <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+          <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
             {finalLabels.submit}
           </Button>
         </div>
@@ -680,7 +680,7 @@ export const NewTransactionModal = ({
             <Button
               type="button"
               onClick={handleCreateCategory}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               disabled={isCreatingCategory || !newCategoryName.trim()}
             >
               {isCreatingCategory ? 'Criando...' : 'Criar'}

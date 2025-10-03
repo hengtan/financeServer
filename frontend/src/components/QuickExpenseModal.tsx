@@ -321,7 +321,7 @@ export const QuickExpenseModal = ({
           </Button>
           <Button
             type="submit"
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             disabled={!description || parseInt(amountString) === 0}
           >
             Adicionar Despesa
