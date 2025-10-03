@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MonthYearPicker } from '@/components/MonthYearPicker'
 import { NewAccountModal } from '@/components/NewAccountModal'
+import { QuickExpenseModal } from '@/components/QuickExpenseModal'
+import { userCategoriesService } from '@/services/userCategories'
+import { transactionsService } from '@/services/transactions'
+import { useToast } from '@/hooks/use-toast'
 import {
   Building2,
   Wallet,
@@ -26,6 +30,10 @@ export const AccountsPage = () => {
   usePageTitle('Contas')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showNewAccountModal, setShowNewAccountModal] = useState(false)
+  const [showQuickExpenseModal, setShowQuickExpenseModal] = useState(false)
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null)
+  const [expenseCategories, setExpenseCategories] = useState<any[]>([])
+  const { toast } = useToast()
 
   // Mock data - substituir por dados da API
   const accounts: Account[] = [
@@ -73,6 +81,73 @@ export const AccountsPage = () => {
 
   const totalCurrent = accounts.reduce((sum, acc) => sum + acc.currentBalance, 0)
   const totalPredicted = accounts.reduce((sum, acc) => sum + acc.predictedBalance, 0)
+
+  // Buscar categorias de despesa
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await userCategoriesService.getUserCategories()
+        if (response.success && response.data) {
+          // Filtrar apenas categorias de despesa
+          const expenseCats = response.data.filter((cat: any) => cat.type === 'EXPENSE')
+          setExpenseCategories(expenseCats)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar categorias:', error)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  const handleAddExpense = (account: Account) => {
+    setSelectedAccount(account)
+    setShowQuickExpenseModal(true)
+  }
+
+  const handleSubmitExpense = async (expenseData: any) => {
+    try {
+      // Determinar status baseado em isPaid e ignoreBalance
+      let status = 'PENDING'
+      if (expenseData.isPaid && !expenseData.ignoreBalance) {
+        status = 'COMPLETED' // Atualiza saldo
+      } else if (expenseData.ignoreBalance) {
+        status = 'PENDING' // Não atualiza saldo
+      }
+
+      const transactionData = {
+        description: expenseData.description,
+        amount: expenseData.amount,
+        userCategoryId: expenseData.categoryId,
+        accountId: expenseData.accountId,
+        type: 'EXPENSE',
+        date: new Date(expenseData.date).toISOString(),
+        status: status
+      }
+
+      const response = await transactionsService.createTransaction(transactionData)
+
+      if (response.success) {
+        toast({
+          title: 'Despesa adicionada!',
+          description: `${expenseData.description} - R$ ${expenseData.amount.toFixed(2)}`,
+        })
+        // TODO: Atualizar lista de contas
+      } else {
+        toast({
+          title: 'Erro ao adicionar despesa',
+          description: response.message || 'Tente novamente',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Erro ao criar despesa:', error)
+      toast({
+        title: 'Erro ao adicionar despesa',
+        description: 'Ocorreu um erro. Tente novamente.',
+        variant: 'destructive'
+      })
+    }
+  }
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -213,6 +288,7 @@ export const AccountsPage = () => {
                   <Button
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                     size="sm"
+                    onClick={() => handleAddExpense(account)}
                   >
                     <ArrowDownCircle className="h-4 w-4 mr-2" />
                     Adicionar despesa
@@ -243,6 +319,21 @@ export const AccountsPage = () => {
           // TODO: Salvar conta via API
         }}
       />
+
+      {/* Quick Expense Modal */}
+      {selectedAccount && (
+        <QuickExpenseModal
+          isOpen={showQuickExpenseModal}
+          onClose={() => {
+            setShowQuickExpenseModal(false)
+            setSelectedAccount(null)
+          }}
+          onSubmit={handleSubmitExpense}
+          accountId={selectedAccount.id}
+          accountName={selectedAccount.name}
+          categories={expenseCategories}
+        />
+      )}
     </div>
   )
 }
