@@ -81,7 +81,7 @@ export const Sidebar = () => {
 
   const menuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <Home className="h-5 w-5" />, href: '/dashboard' },
-    { id: 'accounts', label: 'Contas', icon: <Building2 className="h-5 w-5" />, href: '/transacoes' },
+    { id: 'accounts', label: 'Contas', icon: <Building2 className="h-5 w-5" />, href: '/contas' },
     { id: 'cards', label: 'Cartões', icon: <CreditCard className="h-5 w-5" />, href: '/transacoes' },
     { id: 'transactions', label: 'Transações', icon: <Receipt className="h-5 w-5" />, href: '/transacoes' },
     { id: 'reports', label: 'Gráficos', icon: <BarChart3 className="h-5 w-5" />, href: '/relatorios' },
