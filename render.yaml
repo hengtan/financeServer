@@ -52,7 +52,7 @@ services:
 
       # CORS - Update after frontend deployment
       - key: CORS_ORIGIN
-        sync: false # You'll need to update this manually after frontend is deployed
+        value: https://finance.mocktstudio.com.br,https://finance-frontend.onrender.com
 
       # Rate Limiting
       - key: RATE_LIMIT_MAX
@@ -80,7 +80,7 @@ services:
     envVars:
       # API URL - Will be updated after backend is deployed
       - key: VITE_API_BASE_URL
-        sync: false # Update this manually to your backend URL
+        value: https://finance-backend.onrender.com
 
       - key: VITE_USE_REAL_API
         value: true
