@@ -150,7 +150,7 @@ $RECYCLE.BIN/
 *.sqlite3
 *.db-shm
 *.db-wal
-*/prisma/migrations/
+# IMPORTANT: Keep migrations/ tracked! Only ignore database files
 */prisma/*.db
 */prisma/*.db-journal
 
