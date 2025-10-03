@@ -6,6 +6,8 @@ import rateLimit from '@fastify/rate-limit'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import redisPlugin from '@fastify/redis'
+import staticPlugin from '@fastify/static'
+import path from 'path'
 import { RedisService } from '../cache/RedisService'
 import jwtPlugin from '../auth/JWTPlugin'
 
@@ -44,8 +46,10 @@ export class FastifyServer {
         directives: {
           defaultSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"]
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          imgSrc: ["'self'", "data:", "https:", "blob:"],
+          connectSrc: ["'self'", "https:"],
+          fontSrc: ["'self'", "data:"]
         }
       }
     })
@@ -72,6 +76,27 @@ export class FastifyServer {
       client: this.redisService.getClient(),
       namespace: 'redis'
     })
+
+    // Serve frontend static files in production
+    if (process.env.NODE_ENV === 'production') {
+      const frontendPath = path.join(__dirname, '..', '..', '..', '..', 'frontend', 'dist')
+
+      await this.app.register(staticPlugin, {
+        root: frontendPath,
+        prefix: '/',
+      })
+
+      // SPA fallback - serve index.html for all non-API routes
+      this.app.setNotFoundHandler(async (request, reply) => {
+        if (request.url.startsWith('/api/')) {
+          return reply.status(404).send({
+            error: 'Not Found',
+            message: `Route ${request.method} ${request.url} not found`
+          })
+        }
+        return reply.sendFile('index.html')
+      })
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       await this.app.register(swagger, {
@@ -183,12 +208,15 @@ export class FastifyServer {
       })
     })
 
-    this.app.setNotFoundHandler((request, reply) => {
-      reply.status(404).send({
-        error: 'Not Found',
-        message: `Route ${request.method} ${request.url} not found`
+    // Only set 404 handler for development (production uses SPA fallback)
+    if (process.env.NODE_ENV !== 'production') {
+      this.app.setNotFoundHandler((request, reply) => {
+        reply.status(404).send({
+          error: 'Not Found',
+          message: `Route ${request.method} ${request.url} not found`
+        })
       })
-    })
+    }
   }
 
 
