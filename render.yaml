@@ -10,13 +10,11 @@ services:
     region: oregon
     plan: free
     rootDirectory: backend
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    buildCommand: npm install --legacy-peer-deps && npx prisma generate && npm run build
     startCommand: npx prisma migrate deploy && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: HOST
         value: 0.0.0.0
       - key: LOG_LEVEL
