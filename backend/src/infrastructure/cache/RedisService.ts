@@ -7,16 +7,26 @@ export class RedisService {
   private readonly defaultTTL = 3600 // 1 hour
 
   constructor() {
-    this.client = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      db: parseInt(process.env.REDIS_DB || '0'),
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-      connectTimeout: 10000,
-      commandTimeout: 5000
-    })
+    // Use REDIS_URL if available (Railway/production), otherwise use individual config
+    const redisUrl = process.env.REDIS_URL
+
+    this.client = redisUrl
+      ? new Redis(redisUrl, {
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          connectTimeout: 10000,
+          commandTimeout: 5000
+        })
+      : new Redis({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          password: process.env.REDIS_PASSWORD,
+          db: parseInt(process.env.REDIS_DB || '0'),
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          connectTimeout: 10000,
+          commandTimeout: 5000
+        })
 
     this.client.on('connect', () => {
       console.log('✅ Redis connected successfully')
