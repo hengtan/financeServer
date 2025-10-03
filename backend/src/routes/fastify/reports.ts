@@ -12,11 +12,11 @@ export default async function reportRoutes(fastify: FastifyInstance) {
   const transactionRepository = Container.get('ITransactionRepository') as any
   const accountRepository = Container.get('IAccountRepository') as any
   const categoryRepository = Container.get('ICategoryRepository') as any
+  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
   const redisService = Container.get(RedisService)
-  const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, redisService)
+  const transactionService = new TransactionService(transactionRepository, accountRepository, categoryRepository, userCategoryRepository, redisService)
 
   const userRepository = Container.get('IUserRepository') as any
-  const userCategoryRepository = Container.get('IUserCategoryRepository') as any
   const authService = new AuthService(userRepository, userCategoryRepository, accountRepository, redisService)
   const prefix = '/api/reports'
 
@@ -242,7 +242,7 @@ export default async function reportRoutes(fastify: FastifyInstance) {
       const month = query.month || undefined
 
       const insights = await transactionService.getAdvancedInsights(user.id)
-      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month)
+      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month) as any
 
       // Calculate totals from category analysis
       const totalIncome = categoryAnalysis?.summary?.totalIncome || 0
@@ -284,7 +284,7 @@ export default async function reportRoutes(fastify: FastifyInstance) {
       const year = parseInt(query.year) || currentDate.getFullYear()
       const month = query.month ? parseInt(query.month) : undefined
 
-      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month)
+      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month) as any
 
       return {
         success: true,
@@ -311,7 +311,7 @@ export default async function reportRoutes(fastify: FastifyInstance) {
       // Get monthly data for the year
       const monthlyData = []
       for (let month = 1; month <= 12; month++) {
-        const monthlyStats = await transactionService.getMonthlyStats(user.id, year, month)
+        const monthlyStats = await transactionService.getMonthlyStats(user.id, year, month) as any
         if (monthlyStats) {
           monthlyData.push({
             month: month.toString().padStart(2, '0'),
@@ -355,12 +355,12 @@ export default async function reportRoutes(fastify: FastifyInstance) {
         transactionService.getMonthlyStats(user.id, lastMonthYear, lastMonth),
         transactionService.getTransactionsByUser(user.id, { page: 1, limit: 5 }),
         transactionService.getCategoryAnalysis(user.id, currentYear, currentMonth)
-      ])
+      ]) as any[]
 
       // Calculate year-to-date totals
       let yearToDateStats = { income: 0, expenses: 0, balance: 0, transactionsCount: 0 }
       for (let month = 1; month <= currentMonth; month++) {
-        const monthStats = await transactionService.getMonthlyStats(user.id, currentYear, month)
+        const monthStats = await transactionService.getMonthlyStats(user.id, currentYear, month) as any
         if (monthStats) {
           yearToDateStats.income += monthStats.totalIncome || 0
           yearToDateStats.expenses += monthStats.totalExpenses || 0
@@ -434,7 +434,7 @@ export default async function reportRoutes(fastify: FastifyInstance) {
       const year = parseInt(query.year) || currentDate.getFullYear()
       const month = query.month ? parseInt(query.month) : undefined
 
-      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month)
+      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month) as any
 
       // Filter only expenses and add colors
       const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
@@ -474,7 +474,7 @@ export default async function reportRoutes(fastify: FastifyInstance) {
       const year = parseInt(query.year) || currentDate.getFullYear()
       const month = query.month ? parseInt(query.month) : undefined
 
-      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month)
+      const categoryAnalysis = await transactionService.getCategoryAnalysis(user.id, year, month) as any
 
       // Filter only income and add colors
       const colors = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899']

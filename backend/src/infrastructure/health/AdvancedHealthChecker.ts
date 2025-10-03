@@ -520,9 +520,3 @@ export class AdvancedHealthChecker {
 
 // Instância singleton
 export const advancedHealthChecker = new AdvancedHealthChecker()
-
-export type {
-  HealthCheckResult,
-  ServiceHealthCheck,
-  SystemHealthStatus
-}

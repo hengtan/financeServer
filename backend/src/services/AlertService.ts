@@ -358,7 +358,7 @@ export class AlertService {
       const currentMonth = new Date().getMonth() + 1
       const currentYear = new Date().getFullYear()
 
-      const monthlyStats = await this.transactionService.getMonthlyStats(userId, currentYear, currentMonth)
+      const monthlyStats = await this.transactionService.getMonthlyStats(userId, currentYear, currentMonth) as any
 
       if (monthlyStats && monthlyStats.totalExpenses > config.highSpendingThreshold) {
         const alert = await this.createAlert({
@@ -405,7 +405,8 @@ export class AlertService {
 
     try {
       // Get user accounts and check balances
-      const accounts = await this.accountRepository.findByUserId(userId)
+      const accountsResult = await this.accountRepository.findByUserId(userId)
+      const accounts = Array.isArray(accountsResult) ? accountsResult : (accountsResult as any).accounts || []
 
       for (const account of accounts) {
         if (account.balance.toNumber() < config.lowBalanceThreshold) {

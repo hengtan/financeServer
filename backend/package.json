@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "prisma generate && tsc || exit 0",
+    "build": "prisma generate && tsc",
     "start": "node dist/main.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",

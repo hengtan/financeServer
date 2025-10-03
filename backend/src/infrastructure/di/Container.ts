@@ -54,7 +54,7 @@ export function setupContainer() {
 
   // Services
   const redisService = Container.get(RedisService)
-  Container.set(CategoryTemplateService, new CategoryTemplateService(categoryTemplateRepository))
+  Container.set(CategoryTemplateService, new CategoryTemplateService(categoryTemplateRepository, redisService))
   Container.set(UserCategoryService, new UserCategoryService(
     Container.get('IUserCategoryRepository') as any,
     categoryTemplateRepository,

@@ -167,7 +167,7 @@ export class ReportService {
     const targetMonth = month
 
     const insights = await this.transactionService.getAdvancedInsights(userId)
-    const categoryAnalysis = await this.transactionService.getCategoryAnalysis(userId, targetYear, targetMonth)
+    const categoryAnalysis = await this.transactionService.getCategoryAnalysis(userId, targetYear, targetMonth) as any
 
     const totalIncome = categoryAnalysis?.summary?.totalIncome || 0
     const totalExpenses = categoryAnalysis?.summary?.totalExpense || 0
@@ -196,9 +196,9 @@ export class ReportService {
     const currentDate = new Date()
     const targetYear = year || currentDate.getFullYear()
 
-    const analysis = await this.transactionService.getCategoryAnalysis(userId, targetYear, month)
+    const analysis = await this.transactionService.getCategoryAnalysis(userId, targetYear, month) as any
 
-    return analysis || {
+    return (analysis || {
       summary: {
         totalIncome: 0,
         totalExpense: 0,
@@ -206,20 +206,20 @@ export class ReportService {
         transactionCount: 0
       },
       categories: []
-    }
+    }) as CategoryAnalysisData
   }
 
   async generateMonthlyTrend(userId: string): Promise<MonthlyTrendData> {
-    const trendData = await this.transactionService.getTrendAnalysis(userId)
+    const trendData = await this.transactionService.getTrendAnalysis(userId) as any
 
-    return trendData || {
+    return (trendData || {
       monthlyTrend: [],
       averages: {
         monthlyIncome: 0,
         monthlyExpense: 0,
         monthlyNet: 0
       }
-    }
+    }) as MonthlyTrendData
   }
 
   async deleteReport(id: string, userId?: string): Promise<void> {

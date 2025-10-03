@@ -622,7 +622,7 @@ export class PrismaReportRepository implements IReportRepository {
       type: prismaReport.type as ReportType,
       status: prismaReport.status as ReportStatus,
       format: prismaReport.format as ReportFormat,
-      config: prismaReport.config as ReportConfig,
+      config: prismaReport.config as unknown as ReportConfig,
       data: prismaReport.data as ReportData,
       fileUrl: prismaReport.fileUrl,
       filePath: prismaReport.filePath,

@@ -279,9 +279,9 @@ export class StructuredLogger {
   // Logging de auditoria
   audit(auditLog: Omit<AuditLog, 'timestamp'>) {
     const completeAuditLog: AuditLog = {
-      ...auditLog,
+      ...(auditLog as any),
       timestamp: new Date()
-    }
+    } as AuditLog
 
     this.auditLogger.info('AUDIT_LOG', completeAuditLog)
     this.info(`AUDIT: ${auditLog.event}`, completeAuditLog)

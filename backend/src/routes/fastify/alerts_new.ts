@@ -26,6 +26,7 @@ export default async function alertRoutes(
     transactionRepository,
     accountRepository,
     categoryRepository,
+    userCategoryRepository,
     redisService
   )
   const alertService = new AlertService(

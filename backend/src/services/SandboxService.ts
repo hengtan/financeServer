@@ -127,7 +127,7 @@ export class SandboxService {
           ...acc,
           userId: sandboxUser.id,
           status: 'ACTIVE',
-        },
+        } as any,
       })
       createdAccounts.push(account)
     }
