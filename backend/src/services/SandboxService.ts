@@ -69,6 +69,9 @@ export class SandboxService {
       { name: 'Salário', type: 'INCOME', color: '#10b981', icon: '💼', isDefault: true, sortOrder: 1 },
       { name: 'Freelance', type: 'INCOME', color: '#059669', icon: '💻', isDefault: true, sortOrder: 2 },
       { name: 'Investimentos', type: 'INCOME', color: '#0d9488', icon: '📈', isDefault: true, sortOrder: 3 },
+      { name: 'Bônus', type: 'INCOME', color: '#14b8a6', icon: '🎁', isDefault: true, sortOrder: 4 },
+      { name: 'Dividendos', type: 'INCOME', color: '#06b6d4', icon: '💰', isDefault: true, sortOrder: 5 },
+      { name: 'Vendas', type: 'INCOME', color: '#22c55e', icon: '🏪', isDefault: true, sortOrder: 6 },
 
       // EXPENSE CATEGORIES
       { name: 'Alimentação', type: 'EXPENSE', color: '#f59e0b', icon: '🍽️', isDefault: true, sortOrder: 101 },
@@ -78,6 +81,13 @@ export class SandboxService {
       { name: 'Educação', type: 'EXPENSE', color: '#6366f1', icon: '📚', isDefault: true, sortOrder: 105 },
       { name: 'Lazer', type: 'EXPENSE', color: '#a855f7', icon: '🎬', isDefault: true, sortOrder: 106 },
       { name: 'Compras', type: 'EXPENSE', color: '#ef4444', icon: '🛍️', isDefault: true, sortOrder: 107 },
+      { name: 'Assinaturas', type: 'EXPENSE', color: '#f97316', icon: '📱', isDefault: true, sortOrder: 108 },
+      { name: 'Impostos', type: 'EXPENSE', color: '#dc2626', icon: '📄', isDefault: true, sortOrder: 109 },
+      { name: 'Pet', type: 'EXPENSE', color: '#fb923c', icon: '🐾', isDefault: true, sortOrder: 110 },
+      { name: 'Vestuário', type: 'EXPENSE', color: '#f472b6', icon: '👔', isDefault: true, sortOrder: 111 },
+      { name: 'Viagens', type: 'EXPENSE', color: '#38bdf8', icon: '✈️', isDefault: true, sortOrder: 112 },
+      { name: 'Seguros', type: 'EXPENSE', color: '#94a3b8', icon: '🛡️', isDefault: true, sortOrder: 113 },
+      { name: 'Manutenção', type: 'EXPENSE', color: '#64748b', icon: '🔧', isDefault: true, sortOrder: 114 },
     ]
 
     // Upsert category templates
@@ -145,10 +155,25 @@ export class SandboxService {
     const transporteCategory = userCategories.find(c => c.name === 'Transporte')
     const moradiaCategory = userCategories.find(c => c.name === 'Moradia')
     const lazerCategory = userCategories.find(c => c.name === 'Lazer')
+    const bonusCategory = userCategories.find(c => c.name === 'Bônus')
+    const dividendosCategory = userCategories.find(c => c.name === 'Dividendos')
+    const vendasCategory = userCategories.find(c => c.name === 'Vendas')
+    const assinaturasCategory = userCategories.find(c => c.name === 'Assinaturas')
+    const impostosCategory = userCategories.find(c => c.name === 'Impostos')
+    const petCategory = userCategories.find(c => c.name === 'Pet')
+    const vestuarioCategory = userCategories.find(c => c.name === 'Vestuário')
+    const viagensCategory = userCategories.find(c => c.name === 'Viagens')
+    const segurosCategory = userCategories.find(c => c.name === 'Seguros')
+    const manutencaoCategory = userCategories.find(c => c.name === 'Manutenção')
+    const saudeCategory = userCategories.find(c => c.name === 'Saúde')
+    const educacaoCategory = userCategories.find(c => c.name === 'Educação')
+    const comprasCategory = userCategories.find(c => c.name === 'Compras')
 
     const bancoCaixa = createdAccounts[0]
     const bancoInter = createdAccounts[1]
+    const bancoItau = createdAccounts[2]
     const carteira = createdAccounts[3]
+    const mercadoPago = createdAccounts[4]
 
     // Salário mensal (últimos 12 meses)
     for (let i = 11; i >= 0; i--) {
@@ -270,6 +295,350 @@ export class SandboxService {
           status: 'COMPLETED',
         })
       }
+    }
+
+    // ========== TRANSAÇÕES ADICIONAIS PARA OUT/NOV/DEZ 2025 ==========
+
+    // Bônus de fim de ano (Dezembro)
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: bonusCategory?.id,
+      description: 'Bônus Anual',
+      amount: 5000.00,
+      type: 'INCOME',
+      date: new Date('2025-12-20'),
+      status: 'COMPLETED',
+    })
+
+    // 13º Salário (Novembro e Dezembro)
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: salarioCategory?.id,
+      description: '13º Salário (1ª parcela)',
+      amount: 4250.00,
+      type: 'INCOME',
+      date: new Date('2025-11-30'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: salarioCategory?.id,
+      description: '13º Salário (2ª parcela)',
+      amount: 4250.00,
+      type: 'INCOME',
+      date: new Date('2025-12-20'),
+      status: 'COMPLETED',
+    })
+
+    // Dividendos (Outubro, Novembro)
+    const dividendDates = [
+      { date: new Date('2025-10-15'), amount: 450.00 },
+      { date: new Date('2025-11-15'), amount: 520.00 },
+      { date: new Date('2025-12-15'), amount: 680.00 },
+    ]
+
+    for (const div of dividendDates) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoItau.id,
+        userCategoryId: dividendosCategory?.id,
+        description: 'Dividendos - Ações',
+        amount: div.amount,
+        type: 'INCOME',
+        date: div.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Vendas (mercado livre, OLX, etc)
+    const salesDates = [
+      { date: new Date('2025-10-08'), desc: 'Venda - Notebook Antigo', amount: 1200.00 },
+      { date: new Date('2025-11-12'), desc: 'Venda - TV Samsung', amount: 800.00 },
+      { date: new Date('2025-12-05'), desc: 'Venda - iPhone 12', amount: 1500.00 },
+    ]
+
+    for (const sale of salesDates) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: mercadoPago.id,
+        userCategoryId: vendasCategory?.id,
+        description: sale.desc,
+        amount: sale.amount,
+        type: 'INCOME',
+        date: sale.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Assinaturas mensais (Netflix, Spotify, Academia, etc)
+    const subscriptions = [
+      { name: 'Netflix', amount: 55.90 },
+      { name: 'Spotify Premium', amount: 21.90 },
+      { name: 'Amazon Prime', amount: 14.90 },
+      { name: 'Academia Smart Fit', amount: 89.90 },
+      { name: 'iCloud Storage', amount: 9.90 },
+    ]
+
+    for (let month = 0; month < 3; month++) { // Out, Nov, Dez
+      for (const sub of subscriptions) {
+        const date = new Date('2025-10-01')
+        date.setMonth(date.getMonth() + month)
+        date.setDate(3)
+
+        transactions.push({
+          userId: sandboxUser.id,
+          accountId: bancoInter.id,
+          userCategoryId: assinaturasCategory?.id,
+          description: sub.name,
+          amount: sub.amount,
+          type: 'EXPENSE',
+          date,
+          status: 'COMPLETED',
+        })
+      }
+    }
+
+    // Impostos (IPTU, IPVA)
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: impostosCategory?.id,
+      description: 'IPTU - Parcela 10/10',
+      amount: 320.00,
+      type: 'EXPENSE',
+      date: new Date('2025-10-10'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: impostosCategory?.id,
+      description: 'IPVA 2026 - Parcela 1/3',
+      amount: 650.00,
+      type: 'EXPENSE',
+      date: new Date('2025-12-15'),
+      status: 'COMPLETED',
+    })
+
+    // Pet (veterinário, ração, etc)
+    const petExpenses = [
+      { date: new Date('2025-10-12'), desc: 'Ração Premium 15kg', amount: 280.00 },
+      { date: new Date('2025-10-20'), desc: 'Veterinário - Consulta', amount: 150.00 },
+      { date: new Date('2025-11-15'), desc: 'Ração Premium 15kg', amount: 280.00 },
+      { date: new Date('2025-11-28'), desc: 'Pet Shop - Banho e Tosa', amount: 90.00 },
+      { date: new Date('2025-12-18'), desc: 'Ração Premium 15kg', amount: 280.00 },
+      { date: new Date('2025-12-22'), desc: 'Veterinário - Vacinas', amount: 220.00 },
+    ]
+
+    for (const pet of petExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: carteira.id,
+        userCategoryId: petCategory?.id,
+        description: pet.desc,
+        amount: pet.amount,
+        type: 'EXPENSE',
+        date: pet.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Vestuário (compras de roupas)
+    const clothingExpenses = [
+      { date: new Date('2025-10-25'), desc: 'Zara - Roupas de Trabalho', amount: 450.00 },
+      { date: new Date('2025-11-22'), desc: 'Nike - Tênis Running', amount: 380.00 },
+      { date: new Date('2025-12-10'), desc: 'Renner - Roupas de Verão', amount: 320.00 },
+      { date: new Date('2025-12-23'), desc: 'C&A - Presentes de Natal', amount: 280.00 },
+    ]
+
+    for (const clothing of clothingExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoInter.id,
+        userCategoryId: vestuarioCategory?.id,
+        description: clothing.desc,
+        amount: clothing.amount,
+        type: 'EXPENSE',
+        date: clothing.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Viagens
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: viagensCategory?.id,
+      description: 'Passagem Aérea - São Paulo',
+      amount: 680.00,
+      type: 'EXPENSE',
+      date: new Date('2025-11-05'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: viagensCategory?.id,
+      description: 'Hotel - 3 diárias',
+      amount: 890.00,
+      type: 'EXPENSE',
+      date: new Date('2025-11-10'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoInter.id,
+      userCategoryId: viagensCategory?.id,
+      description: 'Viagem Fim de Ano - Búzios',
+      amount: 2400.00,
+      type: 'EXPENSE',
+      date: new Date('2025-12-28'),
+      status: 'COMPLETED',
+    })
+
+    // Seguros
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: segurosCategory?.id,
+      description: 'Seguro Auto - Parcela 10/12',
+      amount: 180.00,
+      type: 'EXPENSE',
+      date: new Date('2025-10-05'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: segurosCategory?.id,
+      description: 'Seguro Auto - Parcela 11/12',
+      amount: 180.00,
+      type: 'EXPENSE',
+      date: new Date('2025-11-05'),
+      status: 'COMPLETED',
+    })
+
+    transactions.push({
+      userId: sandboxUser.id,
+      accountId: bancoCaixa.id,
+      userCategoryId: segurosCategory?.id,
+      description: 'Seguro Auto - Parcela 12/12',
+      amount: 180.00,
+      type: 'EXPENSE',
+      date: new Date('2025-12-05'),
+      status: 'COMPLETED',
+    })
+
+    // Manutenção (casa, carro)
+    const maintenanceExpenses = [
+      { date: new Date('2025-10-18'), desc: 'Troca de Óleo - Carro', amount: 280.00 },
+      { date: new Date('2025-11-08'), desc: 'Eletricista - Reparo', amount: 350.00 },
+      { date: new Date('2025-12-12'), desc: 'Revisão Carro - 10.000km', amount: 850.00 },
+    ]
+
+    for (const maint of maintenanceExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoInter.id,
+        userCategoryId: manutencaoCategory?.id,
+        description: maint.desc,
+        amount: maint.amount,
+        type: 'EXPENSE',
+        date: maint.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Saúde (consultas, medicamentos)
+    const healthExpenses = [
+      { date: new Date('2025-10-14'), desc: 'Consulta Dentista', amount: 250.00 },
+      { date: new Date('2025-10-22'), desc: 'Farmácia - Medicamentos', amount: 180.00 },
+      { date: new Date('2025-11-18'), desc: 'Exames de Rotina', amount: 420.00 },
+      { date: new Date('2025-12-08'), desc: 'Consulta Oftalmologista', amount: 300.00 },
+      { date: new Date('2025-12-15'), desc: 'Óculos Novo', amount: 650.00 },
+    ]
+
+    for (const health of healthExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoInter.id,
+        userCategoryId: saudeCategory?.id,
+        description: health.desc,
+        amount: health.amount,
+        type: 'EXPENSE',
+        date: health.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Educação (cursos, livros)
+    const educationExpenses = [
+      { date: new Date('2025-10-05'), desc: 'Curso Udemy - React Avançado', amount: 89.90 },
+      { date: new Date('2025-11-12'), desc: 'Livros Técnicos - Amazon', amount: 220.00 },
+      { date: new Date('2025-12-03'), desc: 'Curso Alura - 12 meses', amount: 1200.00 },
+    ]
+
+    for (const edu of educationExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoInter.id,
+        userCategoryId: educacaoCategory?.id,
+        description: edu.desc,
+        amount: edu.amount,
+        type: 'EXPENSE',
+        date: edu.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Compras diversas (eletrônicos, presentes)
+    const shoppingExpenses = [
+      { date: new Date('2025-10-28'), desc: 'Amazon - Fone Bluetooth', amount: 280.00 },
+      { date: new Date('2025-11-20'), desc: 'Magazine Luiza - Air Fryer', amount: 450.00 },
+      { date: new Date('2025-12-15'), desc: 'Presentes de Natal', amount: 850.00 },
+      { date: new Date('2025-12-22'), desc: 'Amazon - Monitor 27"', amount: 1200.00 },
+    ]
+
+    for (const shopping of shoppingExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: bancoInter.id,
+        userCategoryId: comprasCategory?.id,
+        description: shopping.desc,
+        amount: shopping.amount,
+        type: 'EXPENSE',
+        date: shopping.date,
+        status: 'COMPLETED',
+      })
+    }
+
+    // Alimentação extra para Out/Nov/Dez (restaurantes especiais, delivery)
+    const extraFoodExpenses = [
+      { date: new Date('2025-10-31'), desc: 'Jantar Halloween - Outback', amount: 180.00 },
+      { date: new Date('2025-11-15'), desc: 'Aniversário - Restaurante', amount: 320.00 },
+      { date: new Date('2025-12-24'), desc: 'Ceia de Natal - Supermercado', amount: 680.00 },
+      { date: new Date('2025-12-31'), desc: 'Jantar Réveillon', amount: 450.00 },
+    ]
+
+    for (const food of extraFoodExpenses) {
+      transactions.push({
+        userId: sandboxUser.id,
+        accountId: carteira.id,
+        userCategoryId: alimentacaoCategory?.id,
+        description: food.desc,
+        amount: food.amount,
+        type: 'EXPENSE',
+        date: food.date,
+        status: 'COMPLETED',
+      })
     }
 
     // Inserir todas as transações
