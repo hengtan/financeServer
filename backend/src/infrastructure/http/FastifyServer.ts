@@ -7,6 +7,7 @@ import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import redisPlugin from '@fastify/redis'
 import { RedisService } from '../cache/RedisService'
+import jwtPlugin from '../auth/JWTPlugin'
 
 export class FastifyServer {
   private app: FastifyInstance
@@ -35,6 +36,9 @@ export class FastifyServer {
   }
 
   private async setupPlugins(): Promise<void> {
+    // Register JWT plugin first
+    await this.app.register(jwtPlugin)
+
     await this.app.register(helmet, {
       contentSecurityPolicy: {
         directives: {
