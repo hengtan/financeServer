@@ -82,7 +82,7 @@ export const NewAccountModal = ({ isOpen, onClose, onSave }: NewAccountModalProp
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              className="w-full bg-white dark:bg-gray-800"
+              className="w-full !bg-white dark:!bg-gray-800"
             />
           </div>
 
@@ -138,7 +138,7 @@ export const NewAccountModal = ({ isOpen, onClose, onSave }: NewAccountModalProp
                 placeholder="0,00"
                 value={formData.initialBalance}
                 onChange={(e) => setFormData({ ...formData, initialBalance: parseFloat(e.target.value) || 0 })}
-                className="pl-10 bg-white dark:bg-gray-800"
+                className="pl-10 !bg-white dark:!bg-gray-800"
               />
             </div>
           </div>
@@ -171,7 +171,7 @@ export const NewAccountModal = ({ isOpen, onClose, onSave }: NewAccountModalProp
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 bg-white dark:bg-gray-800"
+              className="flex-1 !bg-white dark:!bg-gray-800 hover:!bg-gray-50 dark:hover:!bg-gray-700"
             >
               Cancelar
             </Button>
