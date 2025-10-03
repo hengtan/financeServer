@@ -10,6 +10,7 @@ import {
   AlertCircle,
   CheckCircle2
 } from 'lucide-react'
+import { NewCardModal } from '@/components/NewCardModal'
 
 interface CreditCard {
   id: string
@@ -31,6 +32,7 @@ interface CreditCard {
 export const CardsPage = () => {
   usePageTitle('Cartões')
   const [selectedFilter, setSelectedFilter] = useState<'open' | 'closed'>('open')
+  const [showNewCardModal, setShowNewCardModal] = useState(false)
 
   // Mock data - substituir por dados da API
   const cards: CreditCard[] = [
@@ -174,12 +176,6 @@ export const CardsPage = () => {
           >
             Faturas fechadas
           </Button>
-          <Button
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Novo cartão
-          </Button>
         </div>
 
         {/* Summary Cards */}
@@ -220,6 +216,23 @@ export const CardsPage = () => {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Add New Card */}
+          <Card
+            className="border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer group"
+            onClick={() => setShowNewCardModal(true)}
+          >
+            <CardContent className="p-6 flex flex-col items-center justify-center min-h-[240px] text-center">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Plus className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Novo cartão</h3>
+              <p className="text-sm text-muted-foreground">
+                Adicione um novo cartão de crédito para gerenciar suas faturas
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Credit Cards */}
           {displayCards.map((card) => {
             const statusInfo = getStatusInfo(card.invoice.status)
             const usagePercentage = getUsagePercentage(card.used, card.limit)
@@ -349,6 +362,16 @@ export const CardsPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* New Card Modal */}
+      <NewCardModal
+        isOpen={showNewCardModal}
+        onClose={() => setShowNewCardModal(false)}
+        onSave={(newCard) => {
+          console.log('Novo cartão criado:', newCard)
+          // TODO: Salvar cartão via API
+        }}
+      />
     </div>
   )
 }
