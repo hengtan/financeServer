@@ -102,6 +102,13 @@ services:
         source: /*
         destination: /index.html
 
+  # Redis Cache
+  - type: redis
+    name: finance-redis
+    region: oregon
+    plan: free
+    ipAllowList: []
+
 databases:
   # PostgreSQL Database
   - name: finance-postgres
@@ -109,8 +116,3 @@ databases:
     region: oregon
     plan: free # Free tier: 90 days, then $7/month
     ipAllowList: [] # Allow all IPs
-
-  # Redis Cache
-  - name: finance-redis
-    region: oregon
-    plan: free # Free tier available
