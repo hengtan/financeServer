@@ -131,8 +131,8 @@ export const QuickExpenseModal = ({
             Valor
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-red-600">
-              -
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">
+              R$
             </span>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">
               BRL
@@ -148,7 +148,7 @@ export const QuickExpenseModal = ({
                   setAmountString(onlyNumbers)
                 }
               }}
-              className="w-full pl-8 pr-16 py-3 border-2 border-red-300 text-red-700 dark:text-red-300 dark:border-red-600 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-800 text-lg font-semibold"
+              className="w-full pl-12 pr-16 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 text-lg font-semibold"
               placeholder="0,00"
               required
             />
