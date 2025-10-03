@@ -7,7 +7,7 @@ import { NewAccountModal } from '@/components/NewAccountModal'
 import { QuickExpenseModal } from '@/components/QuickExpenseModal'
 import { userCategoriesService } from '@/services/userCategories'
 import { transactionsService } from '@/services/transactions'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/hooks/useToast'
 import {
   Building2,
   Wallet,
