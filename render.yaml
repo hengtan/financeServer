@@ -9,8 +9,9 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd backend && npm install --legacy-peer-deps && npm run build
-    startCommand: cd backend && npx prisma migrate deploy && npm start
+    rootDirectory: backend
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    startCommand: npx prisma migrate deploy && npm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -73,8 +74,9 @@ services:
   - type: web
     name: finance-frontend
     runtime: static
-    buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
-    staticPublishPath: ./frontend/dist
+    rootDirectory: frontend
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./dist
     envVars:
       # API URL - Will be updated after backend is deployed
       - key: VITE_API_BASE_URL
