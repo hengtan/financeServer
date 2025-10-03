@@ -76,7 +76,7 @@ export class TransactionService {
       userCategoryId: data.userCategoryId, // 🚀 New architecture (optional)
       accountId: data.accountId,
       toAccountId: data.toAccountId,
-      status: TransactionStatus.PENDING,
+      status: data.status || TransactionStatus.PENDING, // Use provided status or default to PENDING
       date: data.date,
       reference: data.reference,
       metadata: data.metadata
