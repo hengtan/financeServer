@@ -9,7 +9,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: cd backend && npm install --legacy-peer-deps && npx prisma generate && npm run build
+    buildCommand: cd backend && npm install --legacy-peer-deps && npm run build
     startCommand: cd backend && npx prisma migrate deploy && npm start
     envVars:
       - key: NODE_ENV
