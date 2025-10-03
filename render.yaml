@@ -1,0 +1,118 @@
+# Render Blueprint for FinanceServer
+# Deploy: https://render.com
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API Service
+  - type: web
+    name: finance-backend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install && npm run build && npx prisma generate
+    startCommand: cd backend && npx prisma migrate deploy && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: info
+
+      # Database URL (will be auto-populated by Render from postgres service)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finance-postgres
+          property: connectionString
+
+      # Redis URL (will be auto-populated by Render from redis service)
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: finance-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: finance-redis
+          property: port
+      - key: REDIS_PASSWORD
+        value: ""
+      - key: REDIS_DB
+        value: 0
+
+      # Security - IMPORTANT: Change these in production!
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+      # CORS - Update after frontend deployment
+      - key: CORS_ORIGIN
+        sync: false # You'll need to update this manually after frontend is deployed
+
+      # Rate Limiting
+      - key: RATE_LIMIT_MAX
+        value: 100
+      - key: RATE_LIMIT_WINDOW
+        value: 60000
+
+      # Features
+      - key: SWAGGER_ENABLED
+        value: true
+      - key: ENABLE_RATE_LIMITING
+        value: true
+      - key: ENABLE_AUDIT_LOG
+        value: true
+
+    healthCheckPath: /health
+
+  # Frontend Static Site
+  - type: web
+    name: finance-frontend
+    runtime: static
+    region: oregon
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      # API URL - Will be updated after backend is deployed
+      - key: VITE_API_BASE_URL
+        sync: false # Update this manually to your backend URL
+
+      - key: VITE_USE_REAL_API
+        value: true
+      - key: VITE_ENABLE_OFFLINE_MODE
+        value: false
+      - key: VITE_ENABLE_CACHING
+        value: true
+      - key: VITE_APP_ENV
+        value: production
+      - key: VITE_APP_NAME
+        value: FinanceServer
+      - key: VITE_APP_VERSION
+        value: 1.0.0
+
+    # Custom domain configuration
+    # domains:
+    #   - finance.mocktstudio.com
+
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  # PostgreSQL Database
+  - name: finance-postgres
+    databaseName: financeserver
+    region: oregon
+    plan: free # Free tier: 90 days, then $7/month
+    ipAllowList: [] # Allow all IPs
+
+  # Redis Cache
+  - name: finance-redis
+    region: oregon
+    plan: free # Free tier available
+    maxmemoryPolicy: allkeys-lru
