@@ -31,6 +31,7 @@ import { MultiDashboardPage } from '@/pages/MultiDashboardPage'
 import { AlertsPage } from '@/pages/AlertsPage'
 import { CalculatorsPage } from '@/pages/CalculatorsPage'
 import { AccountsPage } from '@/pages/AccountsPage'
+import { CardsPage } from '@/pages/CardsPage'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth()
@@ -180,6 +181,14 @@ function App() {
             <ProtectedRoute>
               <AppLayout showFooter={false} showSidebar={true}>
                 <AccountsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/cartoes" element={
+            <ProtectedRoute>
+              <AppLayout showFooter={false} showSidebar={true}>
+                <CardsPage />
               </AppLayout>
             </ProtectedRoute>
           } />
