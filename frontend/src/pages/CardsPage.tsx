@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/useToast'
 import {
   CreditCard,
   Plus,
@@ -11,6 +12,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { NewCardModal } from '@/components/NewCardModal'
+import { PayInvoiceModal } from '@/components/PayInvoiceModal'
 
 interface CreditCard {
   id: string
@@ -31,11 +33,23 @@ interface CreditCard {
 
 export const CardsPage = () => {
   usePageTitle('Cartões')
+  const { toast } = useToast()
   const [selectedFilter, setSelectedFilter] = useState<'open' | 'closed'>('open')
   const [showNewCardModal, setShowNewCardModal] = useState(false)
+  const [showPayInvoiceModal, setShowPayInvoiceModal] = useState(false)
+  const [selectedCardForPayment, setSelectedCardForPayment] = useState<CreditCard | null>(null)
 
-  // Mock data - substituir por dados da API
-  const cards: CreditCard[] = [
+  // Mock data - Contas disponíveis para pagamento
+  const [accounts, setAccounts] = useState([
+    { id: '1', name: 'Banco Caixa', balance: 3500.50, icon: 'bank' as const, color: '#0066CC' },
+    { id: '2', name: 'Banco Inter', balance: 1200.00, icon: 'bank' as const, color: '#FF7A00' },
+    { id: '3', name: 'Banco Itau', balance: 5800.75, icon: 'bank' as const, color: '#EC7000' },
+    { id: '4', name: 'Carteira', balance: 350.00, icon: 'wallet' as const, color: '#10b981' },
+    { id: '5', name: 'Mercado Pago', balance: 890.25, icon: 'digital' as const, color: '#00AAFF' }
+  ])
+
+  // Mock data - Cartões de crédito
+  const [cards, setCards] = useState<CreditCard[]>([
     {
       id: '1',
       name: 'Cartao Inter',
@@ -82,7 +96,54 @@ export const CardsPage = () => {
         paymentDate: '2025-09-10'
       }
     }
-  ]
+  ])
+
+  // Função para pagar fatura
+  const handlePayInvoice = (accountId: string) => {
+    if (!selectedCardForPayment) return
+
+    const account = accounts.find(acc => acc.id === accountId)
+    if (!account) return
+
+    const invoiceAmount = selectedCardForPayment.invoice.amount
+
+    // Atualizar saldo da conta
+    setAccounts(accounts.map(acc =>
+      acc.id === accountId
+        ? { ...acc, balance: acc.balance - invoiceAmount }
+        : acc
+    ))
+
+    // Atualizar status da fatura para paga
+    const today = new Date().toISOString().split('T')[0]
+    setCards(cards.map(card =>
+      card.id === selectedCardForPayment.id
+        ? {
+            ...card,
+            used: 0, // Zera valores usados
+            available: card.limit, // Restaura limite disponível
+            invoice: {
+              ...card.invoice,
+              status: 'paid' as const,
+              paymentDate: today,
+              amount: invoiceAmount // Mantém valor pago
+            }
+          }
+        : card
+    ))
+
+    toast({
+      title: 'Fatura paga com sucesso!',
+      description: `Pagamento de ${formatCurrency(invoiceAmount)} realizado com ${account.name}`,
+    })
+
+    setSelectedCardForPayment(null)
+  }
+
+  const handleOpenPayInvoice = (card: CreditCard) => {
+    setSelectedCardForPayment(card)
+    setShowPayInvoiceModal(true)
+  }
 
   const openCards = cards.filter(card => card.invoice.status !== 'paid')
   const closedCards = cards.filter(card => card.invoice.status === 'paid')
@@ -341,6 +402,7 @@ export const CardsPage = () => {
                     ) : (
                       <Button
                         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                        onClick={() => handleOpenPayInvoice(card)}
                       >
                         PAGAR FATURA
                       </Button>
@@ -372,6 +434,21 @@ export const CardsPage = () => {
           // TODO: Salvar cartão via API
         }}
       />
+
+      {/* Pay Invoice Modal */}
+      {selectedCardForPayment && (
+        <PayInvoiceModal
+          isOpen={showPayInvoiceModal}
+          onClose={() => {
+            setShowPayInvoiceModal(false)
+            setSelectedCardForPayment(null)
+          }}
+          onPay={handlePayInvoice}
+          cardName={selectedCardForPayment.name}
+          invoiceAmount={selectedCardForPayment.invoice.amount}
+          accounts={accounts}
+        />
+      )}
     </div>
   )
 }
