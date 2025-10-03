@@ -134,11 +134,11 @@ export default async function dashboardRoutes(
 
       // Análise de gastos por categoria (últimos 30 dias)
       const categoryExpenses = expenseTransactions.reduce((acc: any, transaction: any) => {
-        const categoryId = transaction.categoryId || 'uncategorized'
+        const categoryId = transaction.userCategoryId || transaction.categoryId || 'uncategorized'
         if (!acc[categoryId]) {
           acc[categoryId] = {
             categoryId,
-            categoryName: transaction.category?.name || 'Sem categoria',
+            categoryName: transaction.userCategory?.name || transaction.category?.name || 'Sem categoria',
             total: 0,
             count: 0
           }
@@ -151,6 +151,13 @@ export default async function dashboardRoutes(
       const topExpenseCategories = Object.values(categoryExpenses)
         .sort((a: any, b: any) => b.total - a.total)
         .slice(0, 5)
+        .map((cat: any) => ({
+          ...cat,
+          total: Number(cat.total.toFixed(2)),
+          percentage: expenseTransactions.length > 0
+            ? Number(((cat.total / totalExpenses) * 100).toFixed(1))
+            : 0
+        }))
 
       // Tendência de gastos (últimos 7 dias vs 7 dias anteriores)
       const last7Days = new Date(endDate)
@@ -198,30 +205,36 @@ export default async function dashboardRoutes(
           accounts: {
             total: accounts.length,
             active: accounts.filter((acc: any) => acc.status === 'ACTIVE').length,
-            totalBalance: accountsBalance
+            totalBalance: accountsBalance,
+            isEmpty: accounts.length === 0
           },
           transactions: {
             total: transactions?.length || 0,
             income: incomeTransactions.length,
             expenses: expenseTransactions.length,
             avgTransactionAmount: transactions?.length > 0 ?
-              Math.abs(totalExpenses + totalIncome) / transactions.length : 0
+              Math.abs(totalExpenses + totalIncome) / transactions.length : 0,
+            isEmpty: (transactions?.length || 0) === 0
           },
           goals: {
             total: goals.length,
             averageProgress: goalsProgress.length > 0 ?
               goalsProgress.reduce((sum, g) => sum + g.progress, 0) / goalsProgress.length : 0,
             completedGoals: goalsProgress.filter(g => g.progress >= 100).length,
-            activeGoals: goalsProgress
+            activeGoals: goalsProgress,
+            isEmpty: goals.length === 0
           },
           budgets: {
             total: budgets.length,
             exceeded: budgetsStatus.filter(b => b.status === 'EXCEEDED').length,
             warning: budgetsStatus.filter(b => b.status === 'WARNING').length,
-            activeBudgets: budgetsStatus
+            activeBudgets: budgetsStatus,
+            isEmpty: budgets.length === 0
           },
           analytics: {
             topExpenseCategories,
+            hasExpenseData: expenseTransactions.length > 0,
+            hasIncomeData: incomeTransactions.length > 0,
             monthlyTrend: expenseTrend,
             financialHealth: {
               score: calculateFinancialHealthScore({

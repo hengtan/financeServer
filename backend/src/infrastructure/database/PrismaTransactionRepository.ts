@@ -199,6 +199,7 @@ export class PrismaTransactionRepository implements ITransactionRepository {
       },
       include: {
         category: true,
+        userCategory: true, // 🚀 Include new userCategory relation
         account: true,
         toAccount: true
       }
