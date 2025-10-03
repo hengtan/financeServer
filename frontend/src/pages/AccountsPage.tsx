@@ -82,14 +82,14 @@ export const AccountsPage = () => {
   const totalCurrent = accounts.reduce((sum, acc) => sum + acc.currentBalance, 0)
   const totalPredicted = accounts.reduce((sum, acc) => sum + acc.predictedBalance, 0)
 
-  // Buscar categorias de despesa
+  // Buscar categorias de despesa do usuário
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await userCategoriesService.getUserCategories()
-        if (response.success && response.data) {
-          // Filtrar apenas categorias de despesa
-          const expenseCats = response.data.filter((cat: any) => cat.type === 'EXPENSE')
+        if (response.success && response.data?.categories) {
+          // Filtrar apenas categorias de despesa da tabela UserCategory do usuário
+          const expenseCats = response.data.categories.filter((cat: any) => cat.type === 'EXPENSE')
           setExpenseCategories(expenseCats)
         }
       } catch (error) {
