@@ -53,7 +53,7 @@ export const AddValueModal = ({ isOpen, onClose, goalTitle, onSubmit }: AddValue
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600">
+          <Button type="button" onClick={onClose} className="flex-1 bg-red-600 hover:bg-red-700 text-white">
             Cancelar
           </Button>
           <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white">
