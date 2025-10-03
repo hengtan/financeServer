@@ -34,6 +34,8 @@ export interface TransactionFormData {
   date: string
   notes?: string
   isIncome?: boolean // Indica se é receita (true) ou despesa (false)
+  status?: 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'FAILED' // Status da transação
+  attachment?: File // Arquivo anexo (comprovante)
 }
 
 export interface TransactionLabels {
@@ -176,6 +178,24 @@ export const NewTransactionModal = ({
   const [newCategoryType, setNewCategoryType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE')
   const [isCreatingCategory, setIsCreatingCategory] = useState(false)
 
+  // Novos estados para funcionalidades adicionais
+  const [isPaid, setIsPaid] = useState(true) // Se a transação já foi paga/realizada
+  const [ignoreTransaction, setIgnoreTransaction] = useState(false) // Se deve ignorar no saldo
+  const [dateQuickSelect, setDateQuickSelect] = useState<'today' | 'yesterday' | 'custom'>('today')
+  const [attachment, setAttachment] = useState<File | null>(null)
+
+  // Atualizar data quando muda quick select
+  React.useEffect(() => {
+    const now = new Date()
+    if (dateQuickSelect === 'today') {
+      setFormData(prev => ({ ...prev, date: now.toISOString().split('T')[0] }))
+    } else if (dateQuickSelect === 'yesterday') {
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+      setFormData(prev => ({ ...prev, date: yesterday.toISOString().split('T')[0] }))
+    }
+  }, [dateQuickSelect])
+
   // Função para criar nova categoria
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -242,6 +262,9 @@ export const NewTransactionModal = ({
     const centavos = parseInt(amountString) || 0
     const finalAmount = Math.abs(centavos / 100) // Sempre positivo
 
+    // Determinar status: se foi paga → COMPLETED (atualiza saldo), se não → PENDING (não atualiza)
+    const transactionStatus = isPaid ? 'COMPLETED' : 'PENDING'
+
     const transaction: TransactionFormData = {
       description: formData.description,
       amount: finalAmount,
@@ -249,7 +272,9 @@ export const NewTransactionModal = ({
       accountId: formData.accountId,
       typeId: formData.typeId,
       date: formData.date,
-      isIncome: isIncome, // Passar informação de receita/despesa
+      isIncome: isIncome,
+      status: transactionStatus, // NOVO: enviar status baseado em "Foi paga"
+      attachment: attachment || undefined, // NOVO: anexo de arquivo
       ...(showNotes && { notes: formData.notes })
     }
 
@@ -269,6 +294,9 @@ export const NewTransactionModal = ({
 
     setFormData(resetData)
     setAmountString('')
+    setIsPaid(true)
+    setDateQuickSelect('today')
+    setAttachment(null)
   }
 
   const formatCurrency = (value: number) => {
@@ -366,14 +394,73 @@ export const NewTransactionModal = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {finalLabels.date}
             </label>
+            {/* Botões de seleção rápida de data */}
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setDateQuickSelect('today')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  dateQuickSelect === 'today'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Hoje
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateQuickSelect('yesterday')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  dateQuickSelect === 'yesterday'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Ontem
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateQuickSelect('custom')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  dateQuickSelect === 'custom'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Outros...
+              </button>
+            </div>
             <input
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, date: e.target.value })
+                setDateQuickSelect('custom')
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
               required
+              disabled={dateQuickSelect !== 'custom'}
             />
           </div>
+        </div>
+
+        {/* Checkbox: Foi paga */}
+        <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+          <input
+            type="checkbox"
+            id="isPaid"
+            checked={isPaid}
+            onChange={(e) => setIsPaid(e.target.checked)}
+            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+          />
+          <label htmlFor="isPaid" className="flex-1 cursor-pointer">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Foi paga
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {isPaid ? '✓ O saldo será atualizado automaticamente' : 'Apenas registrar (não afeta o saldo)'}
+            </div>
+          </label>
         </div>
 
         <div>
@@ -455,6 +542,40 @@ export const NewTransactionModal = ({
                 </Card>
               </label>
             ))}
+          </div>
+        </div>
+
+        {/* Anexar Arquivo */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Anexar Comprovante (opcional)
+          </label>
+          <div className="flex items-center gap-3">
+            <label className="flex-1 cursor-pointer">
+              <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+                <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {attachment ? attachment.name : 'Clique para anexar arquivo'}
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+            </label>
+            {attachment && (
+              <button
+                type="button"
+                onClick={() => setAttachment(null)}
+                className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+              >
+                Remover
+              </button>
+            )}
           </div>
         </div>
 
