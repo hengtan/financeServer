@@ -2,9 +2,11 @@ import 'reflect-metadata'
 import { Container } from 'typedi'
 import { FastifyServer } from './infrastructure/http/FastifyServer'
 import { setupContainer } from './infrastructure/di/Container'
+import { DatabaseInitializer } from './infrastructure/database/DatabaseInitializer'
 
 class Application {
   private server: FastifyServer
+  private dbInitializer: DatabaseInitializer
   // private redisService: RedisService
   // private queueService: QueueService
   // private metricsService: MetricsService
@@ -13,11 +15,15 @@ class Application {
     // Setup dependency injection
     setupContainer()
     this.server = new FastifyServer()
+    this.dbInitializer = new DatabaseInitializer()
   }
 
   async start(): Promise<void> {
     try {
       console.log('🚀 Starting FinanceServer Enterprise Backend...')
+
+      // Initialize database (migrations + sandbox user)
+      await this.dbInitializer.initialize()
 
       // Setup metrics endpoint (temporarily disabled)
       // this.server.getInstance().get('/metrics', async (request, reply) => {
@@ -193,6 +199,7 @@ class Application {
     try {
       // await this.queueService.shutdown()
       await this.server.stop()
+      await this.dbInitializer.disconnect()
       console.log('✅ Application stopped gracefully')
     } catch (error) {
       console.error('❌ Error during shutdown:', error)
