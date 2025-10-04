@@ -12,20 +12,24 @@ export class RedisService {
 
     this.client = redisUrl
       ? new Redis(redisUrl, {
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: 1,
           lazyConnect: true,
           connectTimeout: 10000,
-          commandTimeout: 5000
+          commandTimeout: 5000,
+          retryStrategy: () => null, // Don't retry - fail fast
+          enableOfflineQueue: false
         })
       : new Redis({
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
           password: process.env.REDIS_PASSWORD,
           db: parseInt(process.env.REDIS_DB || '0'),
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: 1,
           lazyConnect: true,
           connectTimeout: 10000,
-          commandTimeout: 5000
+          commandTimeout: 5000,
+          retryStrategy: () => null,
+          enableOfflineQueue: false
         })
 
     this.client.on('connect', () => {
@@ -33,7 +37,8 @@ export class RedisService {
     })
 
     this.client.on('error', (error) => {
-      console.error('❌ Redis connection error:', error)
+      console.error('❌ Redis connection error:', error.message)
+      // Don't crash - just log the error
     })
 
     this.client.on('reconnecting', () => {
