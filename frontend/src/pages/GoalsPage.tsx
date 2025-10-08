@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { NewGoalModal } from '@/components/NewGoalModal'
 import { AddValueModal } from '@/components/AddValueModal'
+import { GoalAIInsight } from '@/components/GoalAIInsight'
 import {
   Target,
   Plus,
@@ -14,10 +15,13 @@ import {
   Award,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Brain
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { goalsService, Goal, GoalsSummary } from '@/services/goals'
+import { useAtRiskGoals, useGoalsDashboard } from '@/hooks/useGoalsAI'
+import { formatCurrency } from '@/utils/currency'
 
 export const GoalsPage = () => {
   usePageTitle('Metas')
@@ -30,6 +34,10 @@ export const GoalsPage = () => {
   const [summary, setSummary] = useState<GoalsSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // AI Hooks
+  const { atRiskGoals } = useAtRiskGoals()
+  const { dashboard } = useGoalsDashboard()
 
   useEffect(() => {
     loadGoals()
@@ -190,7 +198,7 @@ export const GoalsPage = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Economizado</p>
                   <p className="text-2xl font-bold text-green-600">
-                    R$ {totalSaved.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {formatCurrency(totalSaved)}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500" />
@@ -304,7 +312,7 @@ export const GoalsPage = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-2 gap-4 text-center">
                           <div>
                             <p className="text-sm text-gray-600">Restante</p>
                             <p className="font-medium">
@@ -317,16 +325,15 @@ export const GoalsPage = () => {
                               {timeLeft}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Meta Mensal</p>
-                            <p className="font-medium">
-                              R$ {goal.monthlyTarget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                          </div>
                         </div>
 
+                        {/* AI Insights */}
+                        {goal.status === 'ACTIVE' && (
+                          <GoalAIInsight goalId={goal.id} />
+                        )}
+
                         {goal.status === 'active' && (
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 mt-4">
                             <Button
                               size="sm"
                               className="flex-1"
@@ -419,22 +426,55 @@ export const GoalsPage = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Dicas Inteligentes</CardTitle>
+                <CardTitle className="flex items-center">
+                  <Brain className="h-5 w-5 mr-2 text-purple-600" />
+                  Insights de IA
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-medium text-blue-900 mb-1">💡 Dica de Economia</p>
-                    <p className="text-sm text-blue-700">
-                      Você pode atingir sua meta de viagem 2 meses antes se economizar R$ 50 a mais por mês
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-medium text-green-900 mb-1">🎯 Meta Sugerida</p>
-                    <p className="text-sm text-green-700">
-                      Que tal criar uma meta para um fundo de investimento? Baseado no seu perfil, recomendamos R$ 500/mês
-                    </p>
-                  </div>
+                  {dashboard && dashboard.insights && dashboard.insights.length > 0 ? (
+                    dashboard.insights.map((insight, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border ${
+                          insight.priority === 'high'
+                            ? 'bg-red-50 border-red-200'
+                            : insight.priority === 'medium'
+                            ? 'bg-yellow-50 border-yellow-200'
+                            : 'bg-blue-50 border-blue-200'
+                        }`}
+                      >
+                        <p className={`text-sm font-medium mb-1 ${
+                          insight.priority === 'high'
+                            ? 'text-red-900'
+                            : insight.priority === 'medium'
+                            ? 'text-yellow-900'
+                            : 'text-blue-900'
+                        }`}>
+                          {insight.type === 'warning' && '⚠️ '}
+                          {insight.type === 'recommendation' && '💡 '}
+                          {insight.type === 'success' && '✅ '}
+                          Insight IA
+                        </p>
+                        <p className={`text-sm ${
+                          insight.priority === 'high'
+                            ? 'text-red-700'
+                            : insight.priority === 'medium'
+                            ? 'text-yellow-700'
+                            : 'text-blue-700'
+                        }`}>
+                          {insight.message}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                      <p className="text-sm text-gray-600">
+                        Analisando suas metas com IA...
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

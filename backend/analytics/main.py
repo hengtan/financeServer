@@ -6,9 +6,15 @@ Runs on port 8000 alongside Node.js backend (port 3001).
 """
 import sys
 import os
+from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Load environment variables from parent .env file
+from dotenv import load_dotenv
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +23,7 @@ import uvicorn
 from loguru import logger
 
 from analytics.config import get_settings
-from analytics.routers import reports, insights, health
+from analytics.routers import reports, insights, health, goals
 
 # Initialize settings
 settings = get_settings()
@@ -64,6 +70,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router, prefix="/analytics", tags=["Health"])
 app.include_router(reports.router, prefix="/analytics/reports", tags=["Reports"])
 app.include_router(insights.router, prefix="/analytics/insights", tags=["Insights"])
+app.include_router(goals.router, prefix="/analytics/goals", tags=["Goals AI"])
 
 @app.on_event("startup")
 async def startup_event():

@@ -14,14 +14,21 @@ import {
   Eye,
   ArrowUpRight,
   ArrowDownLeft,
-  DollarSign
+  DollarSign,
+  Sparkles,
+  Send,
+  PiggyBank
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { reportsService, MonthlyTrend, ExpenseByCategory, IncomeBySource } from '@/services/reports'
 import { accountsService, Account } from '@/services/accounts'
+import { Input } from '@/components/ui/input'
+import { useAuth } from '@/contexts/AuthContext'
+import { AIReportViewer } from '@/components/reports/AIReportViewer'
 
 export const ReportsPage = () => {
   usePageTitle('Relatórios')
+  const { user } = useAuth()
 
   const [selectedPeriod, setSelectedPeriod] = useState('mensal')
   const [loading, setLoading] = useState(true)
@@ -31,6 +38,14 @@ export const ReportsPage = () => {
   const [incomeBreakdown, setIncomeBreakdown] = useState<IncomeBySource[]>([])
   const [accountBalances, setAccountBalances] = useState<Account[]>([])
   const [insights, setInsights] = useState<any[]>([])
+
+  // AI Reports states
+  const [aiQuery, setAiQuery] = useState('')
+  const [aiReport, setAiReport] = useState<any | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [selectedAIReportType, setSelectedAIReportType] = useState<'monthly' | 'category' | 'goals' | 'cash_flow'>('monthly')
+  const [aiPeriod, setAiPeriod] = useState('30d')
+  const [standardAIReport, setStandardAIReport] = useState<any | null>(null)
 
   useEffect(() => {
     loadReportsData()
@@ -141,6 +156,58 @@ export const ReportsPage = () => {
     window.URL.revokeObjectURL(url)
   }
 
+  const handleGenerateStandardAIReport = async () => {
+    if (!user) {
+      alert('Usuário não autenticado')
+      return
+    }
+
+    try {
+      setAiLoading(true)
+      const response = await reportsService.generateAIReport(user.id.toString(), selectedAIReportType, aiPeriod)
+
+      if (response.success) {
+        setStandardAIReport(response.data)
+      } else {
+        alert('Erro ao gerar relatório: ' + (response.error || 'Erro desconhecido'))
+      }
+    } catch (error) {
+      console.error('Erro ao gerar relatório com IA:', error)
+      alert('Erro ao gerar relatório. Verifique se o serviço de Analytics está rodando.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleGenerateCustomAIReport = async () => {
+    if (!user) {
+      alert('Usuário não autenticado')
+      return
+    }
+
+    if (!aiQuery.trim()) {
+      alert('Por favor, digite uma pergunta para a IA.')
+      return
+    }
+
+    try {
+      setAiLoading(true)
+      setAiReport(null)
+      const response = await reportsService.generateCustomAIReport(user.id.toString(), aiQuery, aiPeriod)
+
+      if (response.success) {
+        setAiReport(response.data)
+      } else {
+        alert('Erro ao gerar relatório: ' + (response.error || 'Erro desconhecido'))
+      }
+    } catch (error) {
+      console.error('Erro ao gerar relatório personalizado:', error)
+      alert('Erro ao gerar relatório. Verifique se o serviço de Analytics está rodando.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto px-4 py-8">
@@ -167,8 +234,12 @@ export const ReportsPage = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="ai-reports">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Relatórios IA
+            </TabsTrigger>
             <TabsTrigger value="comparison">Comparação</TabsTrigger>
             <TabsTrigger value="breakdown">Detalhamento</TabsTrigger>
             <TabsTrigger value="forecasts">Previsões</TabsTrigger>
@@ -439,6 +510,152 @@ export const ReportsPage = () => {
                       Criar Meta
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ai-reports" className="space-y-6">
+            {/* Relatórios Padrões com IA */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
+                  Relatórios Padrões com IA
+                </CardTitle>
+                <CardDescription>
+                  Relatórios estruturados com análises inteligentes geradas por IA
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Tipo de Relatório</label>
+                      <select
+                        value={selectedAIReportType}
+                        onChange={(e) => setSelectedAIReportType(e.target.value as any)}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="monthly">Relatório Mensal</option>
+                        <option value="category">Análise por Categoria</option>
+                        <option value="goals">Progresso das Metas</option>
+                        <option value="cash_flow">Fluxo de Caixa</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Período</label>
+                      <select
+                        value={aiPeriod}
+                        onChange={(e) => setAiPeriod(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="7d">Últimos 7 dias</option>
+                        <option value="30d">Últimos 30 dias</option>
+                        <option value="90d">Últimos 90 dias</option>
+                        <option value="1y">Último ano</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={handleGenerateStandardAIReport}
+                        disabled={aiLoading}
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        {aiLoading ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Gerando...
+                          </div>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Gerar Relatório
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {standardAIReport && user && (
+                    <AIReportViewer report={standardAIReport} userName={user.name} />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Perguntas Personalizadas com ChatGPT */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2 text-blue-600" />
+                  Pergunte à IA sobre suas Finanças
+                </CardTitle>
+                <CardDescription>
+                  Faça perguntas personalizadas e receba análises detalhadas geradas por ChatGPT
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ex: Quanto estou gastando com alimentação? Como posso economizar mais?"
+                      value={aiQuery}
+                      onChange={(e) => setAiQuery(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleGenerateCustomAIReport()
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <select
+                      value={aiPeriod}
+                      onChange={(e) => setAiPeriod(e.target.value)}
+                      className="px-4 py-2 border rounded-lg"
+                    >
+                      <option value="7d">7 dias</option>
+                      <option value="30d">30 dias</option>
+                      <option value="90d">90 dias</option>
+                      <option value="1y">1 ano</option>
+                    </select>
+                    <Button
+                      onClick={handleGenerateCustomAIReport}
+                      disabled={aiLoading || !aiQuery.trim()}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {aiLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <p className="text-sm text-muted-foreground w-full">Exemplos de perguntas:</p>
+                    {[
+                      'Quanto estou gastando com alimentação este mês?',
+                      'Qual categoria tem os maiores gastos?',
+                      'Estou economizando o suficiente para minhas metas?',
+                      'Como está meu fluxo de caixa comparado ao mês passado?',
+                      'Onde posso cortar gastos para economizar mais?'
+                    ].map((example, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAiQuery(example)}
+                        className="text-xs"
+                      >
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {aiReport && user && (
+                    <AIReportViewer report={aiReport} userName={user.name} />
+                  )}
                 </div>
               </CardContent>
             </Card>

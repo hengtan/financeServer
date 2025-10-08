@@ -17,6 +17,8 @@ import { userRoutes } from './routes/users'
 import { transactionRoutes } from './routes/transactions'
 import { categoryRoutes } from './routes/categories'
 import { goalRoutes } from './routes/goals'
+import { reportsRoutes } from './routes/reports'
+import { analyticsProxyRoutes } from './routes/analytics-proxy'
 
 // Carregar variáveis de ambiente
 dotenv.config()
@@ -72,6 +74,8 @@ app.use('/api/users', userRoutes)
 app.use('/api/transactions', transactionRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/goals', goalRoutes)
+app.use('/api/reports', reportsRoutes)
+app.use('/api/analytics', analyticsProxyRoutes)
 
 // Middleware para rotas não encontradas
 app.use(notFoundHandler)

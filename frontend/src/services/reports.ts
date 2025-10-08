@@ -285,6 +285,37 @@ class ReportsService {
       params: budgetId ? { budgetId } : {}
     })
   }
+
+  // AI-Powered Reports
+  async generateAIReport(
+    userId: string,
+    reportType: 'monthly' | 'category' | 'goals' | 'cash_flow',
+    period: string = '30d'
+  ): Promise<ApiResponse<any>> {
+    const response = await apiService.get(`/analytics/reports/generate`, {
+      params: { user_id: userId, report_type: reportType, period }
+    })
+    // Python service doesn't return {success, data} format, wrap it
+    return {
+      success: true,
+      data: response
+    } as ApiResponse<any>
+  }
+
+  async generateCustomAIReport(
+    userId: string,
+    query: string,
+    period: string = '30d'
+  ): Promise<ApiResponse<any>> {
+    const response = await apiService.post(`/analytics/reports/custom`, {}, {
+      params: { user_id: userId, query, period }
+    })
+    // Python service doesn't return {success, data} format, wrap it
+    return {
+      success: true,
+      data: response
+    } as ApiResponse<any>
+  }
 }
 
 export const reportsService = new ReportsService()

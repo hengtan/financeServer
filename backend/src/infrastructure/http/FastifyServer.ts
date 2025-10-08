@@ -110,7 +110,7 @@ export class FastifyServer {
     // Register API routes
     const transactionRoutes = await import('../../routes/fastify/transactions')
     const authRoutes = await import('../../routes/fastify/auth')
-    // const reportRoutes = await import('../../routes/fastify/reports')
+    const reportRoutes = await import('../../routes/fastify/reports')
     const alertRoutes = await import('../../routes/fastify/alerts_new')
     const accountRoutes = await import('../../routes/fastify/accounts')
     const categoryRoutes = await import('../../routes/fastify/categories')
@@ -123,7 +123,7 @@ export class FastifyServer {
 
     await this.app.register(transactionRoutes.default)
     await this.app.register(authRoutes.default)
-    // await this.app.register(reportRoutes.default)
+    await this.app.register(reportRoutes.default)
     await this.app.register(alertRoutes.default)
     await this.app.register(accountRoutes.default)
     await this.app.register(categoryRoutes.default)

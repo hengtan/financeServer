@@ -17,7 +17,8 @@ import {
   Plus,
   LogOut,
   Building2,
-  ArrowDownUp
+  ArrowDownUp,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -84,8 +85,8 @@ export const Sidebar = () => {
     { id: 'accounts', label: 'Contas', icon: <Building2 className="h-5 w-5" />, href: '/contas' },
     { id: 'cards', label: 'Cartões', icon: <CreditCard className="h-5 w-5" />, href: '/cartoes' },
     { id: 'transactions', label: 'Transações', icon: <Receipt className="h-5 w-5" />, href: '/transacoes' },
-    { id: 'reports', label: 'Gráficos', icon: <BarChart3 className="h-5 w-5" />, href: '/relatorios' },
     { id: 'goals', label: 'Metas', icon: <Target className="h-5 w-5" />, href: '/metas' },
+    { id: 'reports', label: 'Relatórios', icon: <FileText className="h-5 w-5" />, href: '/relatorios' },
     { id: 'alerts', label: 'Alertas', icon: <Bell className="h-5 w-5" />, href: '/alertas' },
     { id: 'calculators', label: 'Calculadoras', icon: <Calculator className="h-5 w-5" />, href: '/calculadoras' }
   ]
