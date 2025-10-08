@@ -89,3 +89,41 @@ jobs:
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-secret
           NODE_ENV: test
+
+  auto-promote-to-homol:
+    name: Auto-promote to Homol
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request to Homol
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: dev
+          base: homol
+          title: "🚀 Auto-promote Backend DEV → HOMOL"
+          body: |
+            ## ✅ Backend DEV passou em todos os testes!
+
+            ### Testes executados:
+            - ✅ Build TypeScript
+            - ✅ Prisma Migrations
+            - ✅ Unit Tests
+
+            ### Próximos passos:
+            1. Review automático da pipeline HOMOL
+            2. Security Scan (npm audit + Snyk)
+            3. Se passar → Auto-promote para MAIN
+
+            **Criado automaticamente pela pipeline CI/CD**
+          labels: |
+            auto-promote
+            backend
+            homol
