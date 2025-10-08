@@ -15,7 +15,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install Node.js dependencies
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy Python requirements
 COPY requirements.txt ./
