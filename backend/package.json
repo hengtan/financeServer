@@ -5,8 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:python": "python3 -m uvicorn analytics.main:app --reload --port 8000",
+    "dev:hybrid": "concurrently \"npm run dev\" \"npm run dev:python\"",
     "build": "prisma generate && tsc",
     "start": "node dist/main.js",
+    "start:hybrid": "node start-hybrid.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test": "echo \"Tests temporarily removed for refactoring\"",

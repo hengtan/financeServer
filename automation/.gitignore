@@ -1,0 +1,15 @@
+# Arquivos de sessão (contém cookies e autenticação)
+prodesp-session.json
+montreal-session.json
+
+# Dados sensíveis
+daily-times.json
+horarios-do-dia.txt
+execution-log.json
+
+# Logs
+logs/
+*.log
+
+# Node modules
+node_modules/

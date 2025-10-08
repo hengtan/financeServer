@@ -1,0 +1,53 @@
+{
+  "system": {
+    "enabled": true,
+    "skipToday": false
+  },
+  "schedule": {
+    "entryStart": "08:45",
+    "entryEnd": "09:30",
+    "exitStart": "18:00",
+    "exitEnd": "18:30"
+  },
+  "workHours": {
+    "totalMinutes": 540,
+    "lunchDurationMin": 60,
+    "lunchDurationMax": 60
+  },
+  "randomization": {
+    "entryMinHour": 8,
+    "entryMinMinute": 50,
+    "entryMaxHour": 9,
+    "entryMaxMinute": 5,
+    "lunchStartMinHour": 12,
+    "lunchStartMinMinute": 20,
+    "lunchStartMaxHour": 12,
+    "lunchStartMaxMinute": 30
+  },
+  "credentials": {
+    "microsoft": {
+      "username": "tjheng@apoioprodesp.sp.gov.br",
+      "password": "65ASqw56!!."
+    },
+    "prodesp": {
+      "username": "23294651813",
+      "password": "65ASqw56!."
+    },
+    "montreal": {
+      "username": "23294651813",
+      "password": "65ASqw56!@."
+    }
+  },
+  "logging": {
+    "enabled": true,
+    "level": "info",
+    "maxFileSizeMB": 10,
+    "keepDays": 30
+  },
+  "email": {
+    "enabled": true,
+    "from": "henglords7@gmail.com",
+    "password": "tuhogkxtwmknjpwa",
+    "to": "hengtan@live.com"
+  }
+}

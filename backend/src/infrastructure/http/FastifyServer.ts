@@ -119,6 +119,7 @@ export class FastifyServer {
     const budgetRoutes = await import('../../routes/fastify/budgets')
     const dashboardRoutes = await import('../../routes/fastify/dashboard')
     const sandboxRoutes = await import('../../routes/fastify/sandbox')
+    const analyticsProxyRoutes = await import('../../routes/fastify/analytics-proxy') // 🐍 Python proxy
 
     await this.app.register(transactionRoutes.default)
     await this.app.register(authRoutes.default)
@@ -131,8 +132,10 @@ export class FastifyServer {
     await this.app.register(budgetRoutes.default)
     await this.app.register(dashboardRoutes.default)
     await this.app.register(sandboxRoutes.default)
+    await this.app.register(analyticsProxyRoutes.default) // 🐍 Proxy to Python analytics
 
     this.app.log.info('✅ API routes registered successfully')
+    this.app.log.info('🐍 Analytics proxy registered (Python FastAPI)')
   }
 
   private setupRoutes(): void {

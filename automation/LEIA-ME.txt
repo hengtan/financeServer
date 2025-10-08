@@ -1,0 +1,76 @@
+═══════════════════════════════════════════════════════════════
+   SISTEMA DE AUTOMAÇÃO DE PONTO
+   Prodesp + Montreal
+═══════════════════════════════════════════════════════════════
+
+🚀 INSTALAÇÃO ULTRA RÁPIDA (Windows):
+
+   1. Copie a pasta "automation" para o Windows
+   2. Clique direito em: INSTALAR.bat
+   3. Escolha: "Executar como administrador"
+   4. Aguarde - o instalador faz TUDO sozinho!
+
+   ✅ Instala Node.js automaticamente
+   ✅ Instala dependências
+   ✅ Configura login (você aprova 2FA no celular 1x)
+   ✅ Cria agendamentos no Windows
+
+   Tempo: ~5-10 minutos
+
+═══════════════════════════════════════════════════════════════
+
+📧 BÔNUS: Notificações por Email (GRATUITO!)
+   - Receba email quando o ponto for batido
+   - Veja: CONFIGURAR-EMAIL.md
+
+═══════════════════════════════════════════════════════════════
+
+O instalador faz TUDO automaticamente:
+✅ Instala Node.js (se não tiver)
+✅ Instala dependências
+✅ Verifica sistema
+✅ Configura login e 2FA
+✅ Cria agendamento automático
+
+═══════════════════════════════════════════════════════════════
+
+📚 DOCUMENTAÇÃO:
+
+   COMECE-AQUI.md          → Guia rápido
+   INSTALL-WINDOWS.md      → Instalação manual detalhada
+   RESUMO-SISTEMA.md       → Documentação técnica completa
+   CHECKLIST-INSTALACAO.txt → Lista de verificação
+
+═══════════════════════════════════════════════════════════════
+
+🔧 APÓS INSTALAR:
+
+   O sistema executará automaticamente:
+   - 8:50 (seg-sex) - Entrada
+   - 18:00 (seg-sex) - Saída + Montreal
+
+   Logs em: logs\
+
+═══════════════════════════════════════════════════════════════
+
+⚙️ CONTROLES:
+
+   Desabilitar por 1 dia:
+   - Abra config.json
+   - Mude "skipToday" para true
+
+   Desabilitar permanente:
+   - Abra config.json
+   - Mude "enabled" para false
+
+═══════════════════════════════════════════════════════════════
+
+❓ DÚVIDAS?
+
+   Abra: COMECE-AQUI.md
+
+═══════════════════════════════════════════════════════════════
+
+✅ COMECE PELO ARQUIVO: INSTALAR.bat
+
+═══════════════════════════════════════════════════════════════

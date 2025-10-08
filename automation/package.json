@@ -1,0 +1,16 @@
+{
+  "name": "automation-tracker",
+  "version": "1.0.0",
+  "description": "Scripts de automação para portais",
+  "main": "index.js",
+  "scripts": {
+    "track:prodesp": "node prodesp-tracker.js",
+    "track:montreal": "node montreal-tracker.js",
+    "auto:montreal": "node montreal-auto.js",
+    "auto:prodesp": "node prodesp-auto.js"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.7",
+    "playwright": "^1.40.0"
+  }
+}

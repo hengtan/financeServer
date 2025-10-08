@@ -1,11 +1,14 @@
 [phases.setup]
-nixPkgs = ["nodejs", "python3"]
+nixPkgs = ["nodejs", "python311", "python311Packages.pip"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = [
+  "npm install",
+  "pip install -r requirements.txt"
+]
 
 [phases.build]
 cmds = ["npx prisma generate", "npm run build"]
 
 [start]
-cmd = "node dist/main.js"
+cmd = "npm run start:hybrid"

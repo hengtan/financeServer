@@ -174,4 +174,7 @@ tmp/
 .nuxt/
 .output/
 .vite/
-storybook-static/
+storybook-static/venv/
+*.pyc
+__pycache__/
+.pytest_cache/

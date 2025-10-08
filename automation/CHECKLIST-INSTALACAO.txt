@@ -1,0 +1,169 @@
+═══════════════════════════════════════════════════════════════
+   CHECKLIST DE INSTALAÇÃO - WINDOWS
+   Sistema de Automação de Ponto
+═══════════════════════════════════════════════════════════════
+
+IMPORTANTE: Siga esta ordem! Marque [X] conforme completar.
+
+═══════════════════════════════════════════════════════════════
+   PARTE 1: INSTALAÇÃO DE PRÉ-REQUISITOS
+═══════════════════════════════════════════════════════════════
+
+[ ] 1. Baixar e instalar Node.js
+    URL: https://nodejs.org/
+    Versão: v20 LTS (recomendado)
+    ⚠️  IMPORTANTE: Marcar "Add to PATH" durante instalação
+
+[ ] 2. Verificar instalação
+    Abrir PowerShell e executar:
+    node --version
+    npm --version
+
+    Deve mostrar versões (ex: v20.x.x)
+
+[ ] 3. Copiar pasta 'automation' para Windows
+    Exemplo: C:\Users\SeuUsuario\automation\
+
+═══════════════════════════════════════════════════════════════
+   PARTE 2: INSTALAÇÃO DE DEPENDÊNCIAS
+═══════════════════════════════════════════════════════════════
+
+[ ] 4. Abrir PowerShell na pasta automation
+    cd C:\Users\SeuUsuario\automation
+
+[ ] 5. Instalar dependências Node
+    npm install
+
+    ⏱️  Aguarde ~3-5 minutos
+
+[ ] 6. Instalar Playwright
+    npx playwright install chromium
+
+    ⏱️  Aguarde ~2-3 minutos (download ~100MB)
+
+═══════════════════════════════════════════════════════════════
+   PARTE 3: VERIFICAÇÃO DO SISTEMA
+═══════════════════════════════════════════════════════════════
+
+[ ] 7. Verificar sistema
+    node verify-system.js
+
+    ✅ Deve mostrar: "SISTEMA PRONTO PARA USO!"
+    ❌ Se mostrar erros, corrija antes de continuar
+
+═══════════════════════════════════════════════════════════════
+   PARTE 4: CONFIGURAÇÃO INICIAL (IMPORTANTE!)
+═══════════════════════════════════════════════════════════════
+
+[ ] 8. Salvar sessão Microsoft (EXECUTAR APENAS 1 VEZ!)
+    node prodesp-save-session.js
+
+    O que vai acontecer:
+    1. Navegador abre automaticamente
+    2. Faz login Microsoft
+    3. 🔔 VOCÊ PRECISA APROVAR 2FA NO CELULAR
+    4. Faz login Prodesp
+    5. Salva sessão
+
+    ⚠️  Aguarde até ver "Sessão salva com sucesso!"
+    ⚠️  Após isso, não precisará mais de 2FA!
+
+[ ] 9. Verificar feriados
+    node manage-holidays.js list 2025
+
+    Veja se os feriados estão corretos
+
+[ ] 10. (Opcional) Adicionar feriados personalizados
+     node manage-holidays.js add 2025-12-24 "Véspera de Natal"
+
+═══════════════════════════════════════════════════════════════
+   PARTE 5: CONFIGURAÇÃO DE AGENDAMENTO AUTOMÁTICO
+═══════════════════════════════════════════════════════════════
+
+[ ] 11. Executar PowerShell como ADMINISTRADOR
+     Clique direito → "Executar como Administrador"
+     cd C:\Users\SeuUsuario\automation
+
+[ ] 12. Criar tarefas agendadas
+     node setup-windows-tasks.js
+
+     Isso cria 2 tarefas:
+     - Entrada: 8:50 (seg-sex)
+     - Saída: 18:00 (seg-sex)
+
+[ ] 13. Verificar tarefas criadas
+     1. Abrir "Agendador de Tarefas" (Task Scheduler)
+     2. Procurar "Ponto Automático - Entrada"
+     3. Procurar "Ponto Automático - Saída"
+     4. Status deve estar "Pronto" (Ready)
+
+═══════════════════════════════════════════════════════════════
+   PARTE 6: TESTE MANUAL
+═══════════════════════════════════════════════════════════════
+
+[ ] 14. Testar execução manual
+     node run-timesheet.js
+
+     O que deve acontecer:
+     - Verifica pré-requisitos ✓
+     - Verifica se é dia útil ✓
+     - Se hoje é domingo (05/10): Não executa (correto!)
+     - Se amanhã (06/10): Verifica horário
+
+[ ] 15. Verificar logs gerados
+     Pasta: logs\
+     Arquivo: timesheet-2025-10-XX.log
+
+     Deve conter logs da execução
+
+═══════════════════════════════════════════════════════════════
+   PARTE 7: VERIFICAÇÃO FINAL
+═══════════════════════════════════════════════════════════════
+
+[ ] 16. Revisar config.json
+     Abrir com Bloco de Notas
+     Verificar:
+     - "enabled": true ✓
+     - "skipToday": false ✓
+
+[ ] 17. Verificar arquivos sensíveis criados
+     Devem existir:
+     ✓ prodesp-session.json (NÃO DELETAR!)
+     ✓ config.json
+     ✓ holidays.json
+     ✓ logs\ (pasta)
+
+═══════════════════════════════════════════════════════════════
+   ✅ INSTALAÇÃO COMPLETA!
+═══════════════════════════════════════════════════════════════
+
+O sistema está pronto! A partir de amanhã (segunda-feira), o sistema
+executará automaticamente às 8:50 e 18:00.
+
+MONITORAMENTO:
+- Logs em: logs\timesheet-YYYY-MM-DD.log
+- Erros em: logs\errors-YYYY-MM-DD.log
+
+DESABILITAR TEMPORARIAMENTE:
+- Edite config.json
+- Mude "skipToday": false para "skipToday": true
+- No dia seguinte, volte para false
+
+DESABILITAR PERMANENTEMENTE:
+- Edite config.json
+- Mude "enabled": true para "enabled": false
+
+REMOVER TAREFAS AGENDADAS:
+- Task Scheduler
+- Clique direito → Deletar
+
+═══════════════════════════════════════════════════════════════
+   PRÓXIMA EXECUÇÃO
+═══════════════════════════════════════════════════════════════
+
+Segunda-feira, 06/10/2025, 8:50 - Batida de ENTRADA
+Segunda-feira, 06/10/2025, 18:00 - Batida de SAÍDA + Montreal
+
+Fique atento aos logs na primeira execução!
+
+═══════════════════════════════════════════════════════════════
