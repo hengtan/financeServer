@@ -44,22 +44,3 @@ jobs:
         run: npm test --if-present
         env:
           CI: true
-
-  deploy-dev:
-    name: Deploy to Railway (Dev)
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: fe-financeServer-dev
-        env:
-          RAILWAY_ENVIRONMENT: development
-          VITE_API_URL: https://api-dev.mocktstudio.com.br

@@ -60,22 +60,3 @@ jobs:
           configPath: './frontend/lighthouserc.json'
           uploadArtifacts: true
           temporaryPublicStorage: true
-
-  deploy-homol:
-    name: Deploy to Railway (Homol)
-    runs-on: ubuntu-latest
-    needs: [test, lighthouse]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/homol'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: fe-financeServer-homol
-        env:
-          RAILWAY_ENVIRONMENT: staging
-          VITE_API_URL: https://api-homol.mocktstudio.com.br

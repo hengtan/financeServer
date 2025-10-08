@@ -124,25 +124,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create deployment notification
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: context.payload.deployment.id,
-              state: 'in_progress',
-              description: 'Deploying to production...'
-            })
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: be-financeServer
+      - name: Deploy Backend to Railway
+        run: railway up --service be-financeServer
         env:
-          RAILWAY_ENVIRONMENT: production
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Verify deployment
         run: |
@@ -154,33 +142,6 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          VERSION="v$(date +'%Y.%m.%d')-${GITHUB_SHA::7}"
-          git tag -a "$VERSION" -m "Production release $VERSION"
+          VERSION="backend-v$(date +'%Y.%m.%d')-${GITHUB_SHA::7}"
+          git tag -a "$VERSION" -m "Backend production release $VERSION"
           git push origin "$VERSION"
-
-      - name: Notify deployment success
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: context.payload.deployment.id,
-              state: 'success',
-              description: 'Production deployment successful',
-              environment_url: 'https://api.mocktstudio.com.br'
-            })
-
-      - name: Notify deployment failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: context.payload.deployment.id,
-              state: 'failure',
-              description: 'Production deployment failed'
-            })

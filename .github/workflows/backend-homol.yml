@@ -112,21 +112,3 @@ jobs:
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-  deploy-homol:
-    name: Deploy to Railway (Homol)
-    runs-on: ubuntu-latest
-    needs: [test, security-scan]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/homol'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: be-financeServer-homol
-        env:
-          RAILWAY_ENVIRONMENT: staging
