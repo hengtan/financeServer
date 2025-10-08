@@ -78,8 +78,7 @@ jobs:
           2. Lighthouse Performance Audit
           3. Se passar → Auto-promote para MAIN
 
-          **Criado automaticamente pela pipeline CI/CD**" \
-              --label "auto-promote,frontend,homol"
+          **Criado automaticamente pela pipeline CI/CD**"
             echo "✅ PR created successfully!"
           else
             echo "ℹ️ PR #$existing_pr already exists"

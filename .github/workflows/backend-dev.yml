@@ -124,8 +124,7 @@ jobs:
           2. Security Scan (npm audit + Snyk)
           3. Se passar → Auto-promote para MAIN
 
-          **Criado automaticamente pela pipeline CI/CD**" \
-              --label "auto-promote,backend,homol"
+          **Criado automaticamente pela pipeline CI/CD**"
             echo "✅ PR created successfully!"
           else
             echo "ℹ️ PR #$existing_pr already exists"

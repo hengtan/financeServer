@@ -100,8 +100,7 @@ jobs:
           4. 🚀 Railway fará deploy automático para produção
           5. 🏷️ Release tag será criada automaticamente
 
-          **Criado automaticamente pela pipeline CI/CD**" \
-              --label "auto-promote,frontend,production,ready-for-review"
+          **Criado automaticamente pela pipeline CI/CD**"
             echo "✅ PR created successfully!"
           else
             echo "ℹ️ PR #$existing_pr already exists"
