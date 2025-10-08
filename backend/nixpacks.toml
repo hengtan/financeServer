@@ -12,3 +12,8 @@ cmds = ["npx prisma generate", "npm run build"]
 
 [start]
 cmd = "npm run start:hybrid"
+
+[variables]
+PYTHONPATH = "/app"
+PYTHON_SERVICE_URL = "http://localhost:8000"
+NODE_ENV = "production"

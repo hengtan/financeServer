@@ -15,6 +15,12 @@ console.log('🚀 Starting FinanceServer Hybrid Backend...\n');
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
+
+// Set PYTHONPATH for Railway
+if (isRailway && !process.env.PYTHONPATH) {
+  process.env.PYTHONPATH = __dirname;
+}
 
 // Start Python analytics service
 console.log('🐍 Starting Python Analytics Service (port 8000)...');
@@ -28,7 +34,10 @@ const pythonProcess = spawn('python3', [
 ], {
   cwd: __dirname,
   stdio: 'inherit',
-  env: { ...process.env }
+  env: {
+    ...process.env,
+    PYTHONPATH: process.env.PYTHONPATH || __dirname
+  }
 });
 
 pythonProcess.on('error', (error) => {
