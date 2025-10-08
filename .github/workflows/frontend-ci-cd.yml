@@ -39,7 +39,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 🔍 Run ESLint
         working-directory: frontend
@@ -73,7 +73,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 📝 Check TypeScript Types
         working-directory: frontend
@@ -100,7 +100,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 🧪 Run Unit Tests
         working-directory: frontend
@@ -142,7 +142,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 📥 Install Playwright
         working-directory: frontend
@@ -186,7 +186,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 🏗️ Build Application
         working-directory: frontend
@@ -247,7 +247,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install
 
       - name: 🏗️ Build for ${{ matrix.environment }}
         working-directory: frontend

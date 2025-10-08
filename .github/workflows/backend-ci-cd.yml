@@ -39,7 +39,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: backend
-        run: npm ci
+        run: npm install
 
       - name: 🔍 Run ESLint
         working-directory: backend
@@ -94,7 +94,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: backend
-        run: npm ci
+        run: npm install
 
       - name: 📝 Check TypeScript Types
         working-directory: backend
@@ -121,7 +121,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: backend
-        run: npm ci
+        run: npm install
 
       - name: 🧪 Run Unit Tests
         working-directory: backend
@@ -187,7 +187,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: backend
-        run: npm ci
+        run: npm install
 
       - name: 🗄️ Setup Database
         working-directory: backend
@@ -226,7 +226,7 @@ jobs:
 
       - name: 📥 Install Dependencies
         working-directory: backend
-        run: npm ci
+        run: npm install
 
       - name: 🏗️ Build Application
         working-directory: backend
@@ -334,7 +334,7 @@ jobs:
       - name: 🗄️ Run Database Migrations
         working-directory: backend
         run: |
-          npm ci
+          npm install
           npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}

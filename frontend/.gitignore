@@ -8,7 +8,6 @@ lerna-debug.log*
 .npm
 .yarn/
 .pnpm-store/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 .pnp
