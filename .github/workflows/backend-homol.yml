@@ -122,38 +122,40 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Create Pull Request to Main
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: homol
-          base: main
-          title: "🚀 Auto-promote Backend HOMOL → MAIN (PRODUCTION)"
-          body: |
-            ## ✅ Backend HOMOL passou em todos os testes!
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          existing_pr=$(gh pr list --base main --head homol --state open --json number --jq '.[0].number' || echo "")
 
-            ### Testes executados:
-            - ✅ Build TypeScript
-            - ✅ Prisma Migrations
-            - ✅ Unit Tests
-            - ✅ Security Scan (npm audit)
-            - ✅ Snyk Security Analysis
+          if [ -z "$existing_pr" ]; then
+            gh pr create \
+              --base main \
+              --head homol \
+              --title "🚀 Auto-promote Backend HOMOL → MAIN (PRODUCTION)" \
+              --body "## ✅ Backend HOMOL passou em todos os testes!
 
-            ### ⚠️ ATENÇÃO - PRODUÇÃO
-            Este PR irá para **PRODUÇÃO** quando aprovado!
+          ### Testes executados:
+          - ✅ Build TypeScript
+          - ✅ Prisma Migrations
+          - ✅ Unit Tests
+          - ✅ Security Scan (npm audit)
+          - ✅ Snyk Security Analysis
 
-            ### O que acontece ao aprovar:
-            1. ✅ Pipeline PROD rodará todos os testes novamente
-            2. ✅ Security scan stricto (audit-level=high)
-            3. 🚀 Railway fará deploy automático para produção
-            4. 🏷️ Release tag será criada automaticamente
+          ### ⚠️ ATENÇÃO - PRODUÇÃO
+          Este PR irá para **PRODUÇÃO** quando aprovado!
 
-            **Criado automaticamente pela pipeline CI/CD**
-          labels: |
-            auto-promote
-            backend
-            production
-            ready-for-review
+          ### O que acontece ao aprovar:
+          1. ✅ Pipeline PROD rodará todos os testes novamente
+          2. ✅ Security scan stricto (audit-level=high)
+          3. 🚀 Railway fará deploy automático para produção
+          4. 🏷️ Release tag será criada automaticamente
+
+          **Criado automaticamente pela pipeline CI/CD**" \
+              --label "auto-promote,backend,production,ready-for-review"
+            echo "✅ PR created successfully!"
+          else
+            echo "ℹ️ PR #$existing_pr already exists"
+          fi

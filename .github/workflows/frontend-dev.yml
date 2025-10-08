@@ -54,30 +54,33 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Create Pull Request to Homol
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: dev
-          base: homol
-          title: "🚀 Auto-promote Frontend DEV → HOMOL"
-          body: |
-            ## ✅ Frontend DEV passou em todos os testes!
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          existing_pr=$(gh pr list --base homol --head dev --state open --json number --jq '.[0].number' || echo "")
 
-            ### Testes executados:
-            - ✅ Build Vite
-            - ✅ Unit Tests
+          if [ -z "$existing_pr" ]; then
+            gh pr create \
+              --base homol \
+              --head dev \
+              --title "🚀 Auto-promote Frontend DEV → HOMOL" \
+              --body "## ✅ Frontend DEV passou em todos os testes!
 
-            ### Próximos passos:
-            1. Review automático da pipeline HOMOL
-            2. Lighthouse Performance Audit
-            3. Se passar → Auto-promote para MAIN
+          ### Testes executados:
+          - ✅ Build Vite
+          - ✅ Unit Tests
 
-            **Criado automaticamente pela pipeline CI/CD**
-          labels: |
-            auto-promote
-            frontend
-            homol
+          ### Próximos passos:
+          1. Review automático da pipeline HOMOL
+          2. Lighthouse Performance Audit
+          3. Se passar → Auto-promote para MAIN
+
+          **Criado automaticamente pela pipeline CI/CD**" \
+              --label "auto-promote,frontend,homol"
+            echo "✅ PR created successfully!"
+          else
+            echo "ℹ️ PR #$existing_pr already exists"
+          fi
