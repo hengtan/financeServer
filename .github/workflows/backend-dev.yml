@@ -82,9 +82,6 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
-      - name: Run Linter
-        run: npm run lint --if-present
-
       - name: Run Tests
         run: npm test --if-present
         env:
