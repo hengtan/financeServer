@@ -11,6 +11,10 @@ on:
     paths:
       - 'backend/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 env:
   NODE_VERSION: '20.x'
   PYTHON_VERSION: '3.11'
