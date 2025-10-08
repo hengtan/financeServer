@@ -21,7 +21,7 @@ RUN npm install --production
 COPY requirements.txt ./
 
 # Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Generate Prisma client
 RUN npx prisma generate
