@@ -89,34 +89,17 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  deploy-prod:
-    name: Deploy to Railway (Production)
+  create-release:
+    name: Create Release Tag
     runs-on: ubuntu-latest
     needs: [test, lighthouse, security-scan]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://mocktstudio.com.br
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy Frontend to Railway
-        run: railway up --service fe-financeServer
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Verify deployment
-        run: |
-          sleep 30
-          curl --fail https://mocktstudio.com.br || exit 1
-
       - name: Create release tag
-        if: success()
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
