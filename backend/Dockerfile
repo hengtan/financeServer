@@ -14,8 +14,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install Node.js dependencies
-RUN npm install --production
+# Install ALL Node.js dependencies (including devDependencies for build)
+RUN npm install
 
 # Copy Python requirements
 COPY requirements.txt ./
@@ -23,14 +23,14 @@ COPY requirements.txt ./
 # Install Python dependencies
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
-# Generate Prisma client
-RUN npx prisma generate
-
 # Copy application code
 COPY . .
 
-# Build TypeScript
+# Build TypeScript (prisma generate is in the build script)
 RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --production
 
 # Set environment variables
 ENV NODE_ENV=production
