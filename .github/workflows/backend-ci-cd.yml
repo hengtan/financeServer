@@ -267,7 +267,7 @@ jobs:
     name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build, integration-tests]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: false  # Disabled - Railway action not available
     environment: staging
 
     steps:
@@ -317,7 +317,7 @@ jobs:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
     needs: [build, integration-tests]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: false  # Disabled - Railway action not available
     environment: production
 
     steps:
@@ -418,6 +418,7 @@ jobs:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
     needs: [build]
+    if: false  # Disabled - GitHub token permissions issue
 
     steps:
       - name: 📥 Checkout Code
