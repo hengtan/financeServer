@@ -81,7 +81,10 @@ export class PrismaAlertRepository implements IAlertRepository {
     alerts: Alert[]
     total: number
   }> {
-    const where: any = { userId }
+    const where: any = {
+      userId,
+      AND: []
+    }
 
     if (filters) {
       if (filters.type) where.type = filters.type
@@ -92,20 +95,30 @@ export class PrismaAlertRepository implements IAlertRepository {
         if (filters.dateFrom) where.triggeredAt.gte = filters.dateFrom
         if (filters.dateTo) where.triggeredAt.lte = filters.dateTo
       }
-      if (filters.isExpired !== undefined) {
-        if (filters.isExpired) {
-          where.OR = [
-            { status: 'EXPIRED' },
-            { expiresAt: { lte: new Date() } }
+      // Handle isExpired filter - filter out expired alerts unless explicitly requested
+      // Only apply if status filter is not already set
+      if (filters.isExpired !== undefined && !filters.isExpired && !filters.status) {
+        // Exclude expired alerts and only include non-expired ones
+        where.AND.push({
+          status: { not: 'EXPIRED' }
+        })
+        where.AND.push({
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
           ]
-        } else {
-          where.AND = [
-            { status: { not: 'EXPIRED' } },
-            { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }
-          ]
-        }
+        })
       }
     }
+
+    // Clean up AND if empty
+    if (where.AND.length === 0) {
+      delete where.AND
+    }
+
+    // Ensure take is a number, not a string
+    const limit = filters?.limit ? Number(filters.limit) : 50
+    const offset = filters?.offset ? Number(filters.offset) : 0
 
     const [alerts, total] = await Promise.all([
       this.prisma.alert.findMany({
@@ -122,8 +135,8 @@ export class PrismaAlertRepository implements IAlertRepository {
         orderBy: filters?.sortBy ? {
           [filters.sortBy]: filters.sortOrder || 'desc'
         } : { triggeredAt: 'desc' },
-        take: filters?.limit || 50,
-        skip: filters?.offset || 0
+        take: limit,
+        skip: offset
       }),
       this.prisma.alert.count({ where })
     ])

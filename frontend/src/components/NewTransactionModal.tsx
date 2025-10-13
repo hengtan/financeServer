@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Building2, CreditCard } from 'lucide-react'
 import { userCategoriesService } from '@/services/userCategories'
 
 export interface TransactionCategory {
@@ -106,8 +107,7 @@ export const NewTransactionModal = ({
 
   const defaultTransactionTypes: TransactionType[] = [
     { id: 'debit', name: 'Débito' },
-    { id: 'credit', name: 'Crédito' },
-    { id: 'pix', name: 'PIX' }
+    { id: 'credit', name: 'Crédito' }
   ]
 
   const defaultLabels: TransactionLabels = {
@@ -125,20 +125,28 @@ export const NewTransactionModal = ({
     amountPlaceholder: '0,00'
   }
 
+  // Debug logging (only when modal opens)
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('🔍 Modal Opened: Received accounts prop:', accounts)
+      console.log('🔍 Modal Opened: Received categories prop:', categories)
+      console.log('🔍 Modal Opened: Default values:', defaultValues)
+    }
+  }, [isOpen])
+
   // Use provided data or fallback to defaults
   const finalCategories = categories.length > 0 ? categories : defaultCategories
   const finalAccounts = accounts.length > 0 ? accounts : defaultAccounts
   const finalTransactionTypes = transactionTypes.length > 0 ? transactionTypes : defaultTransactionTypes
   const finalLabels = { ...defaultLabels, ...labels }
 
-  // Debug logging (only when modal opens)
+  // Debug final values
   React.useEffect(() => {
     if (isOpen) {
-      console.log('🔍 Modal Opened: Received accounts:', accounts)
-      console.log('🔍 Modal Opened: Final accounts:', finalAccounts)
-      console.log('🔍 Modal Opened: Default values:', defaultValues)
+      console.log('📊 Final accounts being used:', finalAccounts)
+      console.log('📊 Final categories being used:', finalCategories)
     }
-  }, [isOpen])
+  }, [isOpen, finalAccounts, finalCategories])
 
   const [formData, setFormData] = useState({
     description: defaultValues.description || '',
@@ -172,11 +180,18 @@ export const NewTransactionModal = ({
   // Estado para indicar se é receita ou despesa
   const [isIncome, setIsIncome] = useState(false)
 
+  // Estado para escolher entre conta ou cartão
+  const [paymentMethod, setPaymentMethod] = useState<'account' | 'card'>('account')
+
   // Estado para o modal de criar categoria
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryType, setNewCategoryType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE')
   const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+
+  // Estados para modais de criar conta/cartão
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false)
+  const [showCreateCardModal, setShowCreateCardModal] = useState(false)
 
   // Novos estados para funcionalidades adicionais
   const [isPaid, setIsPaid] = useState(true) // Se a transação já foi paga/realizada
@@ -195,6 +210,44 @@ export const NewTransactionModal = ({
       setFormData(prev => ({ ...prev, date: yesterday.toISOString().split('T')[0] }))
     }
   }, [dateQuickSelect])
+
+  // Filtrar contas baseado no método de pagamento selecionado
+  const getFilteredAccounts = (): TransactionAccount[] => {
+    // Se for "card" (Cartão), mostrar apenas cartões de crédito
+    if (paymentMethod === 'card') {
+      return finalAccounts.filter(acc => acc.type === 'credit')
+    }
+
+    // Se for "account" (Conta), mostrar apenas contas corrente e poupança
+    if (paymentMethod === 'account') {
+      return finalAccounts.filter(acc => acc.type === 'checking' || acc.type === 'savings')
+    }
+
+    // Padrão: mostrar todas as contas
+    return finalAccounts
+  }
+
+  const filteredAccounts = getFilteredAccounts()
+
+  // Auto-selecionar a primeira conta válida quando o método de pagamento mudar
+  React.useEffect(() => {
+    const filtered = getFilteredAccounts()
+
+    // Se a conta atual não está na lista filtrada, selecionar a primeira disponível
+    const currentAccountValid = filtered.some(acc => acc.id === formData.accountId)
+
+    if (!currentAccountValid && filtered.length > 0) {
+      console.log('🔄 Payment method changed, auto-selecting first valid account:', filtered[0])
+      setFormData(prev => ({ ...prev, accountId: filtered[0].id }))
+    }
+  }, [paymentMethod, finalAccounts])
+
+  // Atualizar o typeId baseado no método de pagamento
+  React.useEffect(() => {
+    // Se for cartão, definir como 'credit', se for conta, definir como 'debit'
+    const newTypeId = paymentMethod === 'card' ? 'credit' : 'debit'
+    setFormData(prev => ({ ...prev, typeId: newTypeId }))
+  }, [paymentMethod])
 
   // Função para criar nova categoria
   const handleCreateCategory = async () => {
@@ -495,54 +548,93 @@ export const NewTransactionModal = ({
           </select>
         </div>
 
+        {/* Método de Pagamento: Conta ou Cartão */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {finalLabels.account}
+            Método de Pagamento
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="cursor-pointer">
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="account"
+                checked={paymentMethod === 'account'}
+                onChange={() => setPaymentMethod('account')}
+                className="sr-only"
+              />
+              <Card className={`p-3 text-center transition-all ${paymentMethod === 'account' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'}`}>
+                <CardContent className="p-0">
+                  <div className="text-sm font-medium">💳 Pago por Conta</div>
+                </CardContent>
+              </Card>
+            </label>
+
+            <label className="cursor-pointer">
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="card"
+                checked={paymentMethod === 'card'}
+                onChange={() => setPaymentMethod('card')}
+                className="sr-only"
+              />
+              <Card className={`p-3 text-center transition-all ${paymentMethod === 'card' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'}`}>
+                <CardContent className="p-0">
+                  <div className="text-sm font-medium">💳 Pago por Cartão</div>
+                </CardContent>
+              </Card>
+            </label>
+          </div>
+        </div>
+
+        {/* Seleção de Conta filtrada */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {paymentMethod === 'account' ? 'Selecione a Conta' : 'Selecione o Cartão'}
           </label>
           <select
             value={formData.accountId}
-            onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+            onChange={(e) => {
+              if (e.target.value === '__create_new_account__') {
+                setShowCreateAccountModal(true)
+                // Resetar para a conta/cartão anterior
+                setTimeout(() => {
+                  if (filteredAccounts[0]?.id) {
+                    setFormData({ ...formData, accountId: filteredAccounts[0].id })
+                  }
+                }, 0)
+              } else if (e.target.value === '__create_new_card__') {
+                setShowCreateCardModal(true)
+                // Resetar para a conta/cartão anterior
+                setTimeout(() => {
+                  if (filteredAccounts[0]?.id) {
+                    setFormData({ ...formData, accountId: filteredAccounts[0].id })
+                  }
+                }, 0)
+              } else {
+                setFormData({ ...formData, accountId: e.target.value })
+              }
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
           >
-            {finalAccounts.map(acc => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name} ({acc.type})
+            {filteredAccounts.length > 0 ? (
+              <>
+                {filteredAccounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+                <option value={paymentMethod === 'account' ? '__create_new_account__' : '__create_new_card__'} className="font-semibold text-blue-600">
+                  + {paymentMethod === 'account' ? 'Adicionar Nova Conta' : 'Adicionar Novo Cartão'}
+                </option>
+              </>
+            ) : (
+              <option value={paymentMethod === 'account' ? '__create_new_account__' : '__create_new_card__'} className="font-semibold text-blue-600">
+                + {paymentMethod === 'account' ? 'Adicionar Nova Conta' : 'Adicionar Novo Cartão'}
               </option>
-            ))}
+            )}
           </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {finalLabels.type}
-          </label>
-          <div className={`grid gap-2 ${finalTransactionTypes.length <= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            {finalTransactionTypes.map(type => (
-              <label key={type.id} className="cursor-pointer">
-                <input
-                  type="radio"
-                  name="type"
-                  value={type.id}
-                  checked={formData.typeId === type.id}
-                  onChange={(e) => setFormData({ ...formData, typeId: e.target.value })}
-                  className="sr-only"
-                />
-                <Card className={`p-3 text-center transition-all ${formData.typeId === type.id ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/20'}`}>
-                  <CardContent className="p-0">
-                    <div className="text-sm font-medium">
-                      {type.icon && <span className="mr-1">{type.icon}</span>}
-                      {type.name}
-                    </div>
-                    {type.description && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {type.description}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </label>
-            ))}
-          </div>
         </div>
 
         {/* Anexar Arquivo */}
@@ -684,6 +776,86 @@ export const NewTransactionModal = ({
               disabled={isCreatingCategory || !newCategoryName.trim()}
             >
               {isCreatingCategory ? 'Criando...' : 'Criar'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal informativo para adicionar conta */}
+      <Modal
+        isOpen={showCreateAccountModal}
+        onClose={() => setShowCreateAccountModal(false)}
+        title="Adicionar Nova Conta"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="text-center p-6">
+            <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+              <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 mb-3">
+              Para adicionar uma nova conta, acesse a página de <strong>Contas</strong>.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Lá você poderá cadastrar contas corrente, poupança e outros tipos de contas.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              onClick={() => setShowCreateAccountModal(false)}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white"
+            >
+              Fechar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                window.location.href = '/contas'
+              }}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Ir para Contas
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal informativo para adicionar cartão */}
+      <Modal
+        isOpen={showCreateCardModal}
+        onClose={() => setShowCreateCardModal(false)}
+        title="Adicionar Novo Cartão"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="text-center p-6">
+            <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+              <CreditCard className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 mb-3">
+              Para adicionar um novo cartão de crédito, acesse a página de <strong>Cartões</strong>.
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Lá você poderá cadastrar todos os seus cartões de crédito e gerenciar faturas.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              onClick={() => setShowCreateCardModal(false)}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white"
+            >
+              Fechar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                window.location.href = '/cartoes'
+              }}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              Ir para Cartões
             </Button>
           </div>
         </div>

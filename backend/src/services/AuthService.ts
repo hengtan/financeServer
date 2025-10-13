@@ -176,8 +176,9 @@ export class AuthService {
       // 1. Create default UserCategories from templates
       await this.createDefaultUserCategories(userId)
 
-      // 2. Create default Account
-      await this.createDefaultAccount(userId)
+      // 2. Create default Account - DISABLED
+      // User will create their own accounts as needed
+      // await this.createDefaultAccount(userId)
 
       console.log(`✅ Resources initialized successfully for user ${userId}`)
     } catch (error) {

@@ -4,6 +4,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { useAuth } from '@/contexts/AuthContext'
 import { DashboardWithRealData } from '@/components/DashboardWithRealData'
 import { useDailyExpenses } from '@/hooks/useDailyExpenses'
+import { CreditCardAlerts } from '@/components/CreditCardAlerts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -209,6 +210,9 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
             onDateChange={setSelectedDate}
           />
         </div>
+
+        {/* Credit Card Alerts */}
+        <CreditCardAlerts />
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
