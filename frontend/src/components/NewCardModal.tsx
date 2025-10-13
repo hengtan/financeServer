@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CreditCard, DollarSign } from 'lucide-react'
 
 interface NewCardModalProps {
   isOpen: boolean
@@ -38,9 +37,33 @@ export const NewCardModal = ({ isOpen, onClose, onSave }: NewCardModalProps) => 
     dueDay: 10
   })
 
+  const [limitString, setLimitString] = useState('')
+
+  // Função para formatar o valor em centavos para display (ex: 100000 → 1.000,00)
+  const formatAmountDisplay = (centavos: string): string => {
+    if (!centavos) return '0,00'
+    const num = parseInt(centavos) || 0
+    const reais = Math.floor(num / 100)
+    const cents = num % 100
+    // Adicionar separador de milhares
+    const reaisFormatted = reais.toLocaleString('pt-BR')
+    return `${reaisFormatted},${cents.toString().padStart(2, '0')}`
+  }
+
+  // Valor formatado para exibição
+  const displayLimit = formatAmountDisplay(limitString)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+
+    // Converter centavos para reais (ex: 1000 centavos → 10.00 reais)
+    const centavos = parseInt(limitString) || 0
+    const finalLimit = Math.abs(centavos / 100) // Sempre positivo
+
+    onSave({
+      ...formData,
+      limit: finalLimit
+    })
     onClose()
     // Reset form
     setFormData({
@@ -51,6 +74,7 @@ export const NewCardModal = ({ isOpen, onClose, onSave }: NewCardModalProps) => 
       closingDay: 1,
       dueDay: 10
     })
+    setLimitString('')
   }
 
   return (
@@ -117,15 +141,26 @@ export const NewCardModal = ({ isOpen, onClose, onSave }: NewCardModalProps) => 
           <div className="space-y-2">
             <Label htmlFor="limit">Limite de crédito</Label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="limit"
-                type="number"
-                step="0.01"
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-blue-600">
+                R$
+              </span>
+              <input
+                type="text"
+                value={displayLimit}
+                onChange={(e) => {
+                  // Remover tudo exceto dígitos
+                  const onlyNumbers = e.target.value.replace(/\D/g, '')
+                  // Limitar a 1 bilhão (100.000.000.000 centavos)
+                  const maxValue = 100000000000 // 1 bilhão em centavos
+                  const numValue = parseInt(onlyNumbers) || 0
+                  if (numValue <= maxValue) {
+                    setLimitString(onlyNumbers)
+                    // Atualizar formData com o valor em reais
+                    setFormData({ ...formData, limit: numValue / 100 })
+                  }
+                }}
+                className="w-full pl-11 pr-3 py-2 border-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-600"
                 placeholder="0,00"
-                value={formData.limit}
-                onChange={(e) => setFormData({ ...formData, limit: parseFloat(e.target.value) || 0 })}
-                className="pl-10 !bg-white dark:!bg-gray-800"
                 required
               />
             </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,10 +9,12 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react'
 import { NewCardModal } from '@/components/NewCardModal'
 import { PayInvoiceModal } from '@/components/PayInvoiceModal'
+import { apiService } from '@/services/api'
 
 interface CreditCard {
   id: string
@@ -23,80 +25,149 @@ interface CreditCard {
   used: number
   available: number
   color: string
+  closingDay: number
+  dueDay: number
   invoice: {
-    status: 'open' | 'overdue' | 'paid'
+    status: 'current' | 'due_soon' | 'overdue' // current = fatura do mês, due_soon = vence em breve, overdue = vencida
     amount: number
     dueDate: string
-    paymentDate?: string
+    closingDate: string
+    daysUntilDue: number
   }
 }
 
 export const CardsPage = () => {
   usePageTitle('Cartões')
   const { toast } = useToast()
-  const [selectedFilter, setSelectedFilter] = useState<'open' | 'closed'>('open')
   const [showNewCardModal, setShowNewCardModal] = useState(false)
   const [showPayInvoiceModal, setShowPayInvoiceModal] = useState(false)
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<CreditCard | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Mock data - Contas disponíveis para pagamento
-  const [accounts, setAccounts] = useState([
-    { id: '1', name: 'Banco Caixa', balance: 3500.50, icon: 'bank' as const, color: '#0066CC' },
-    { id: '2', name: 'Banco Inter', balance: 1200.00, icon: 'bank' as const, color: '#FF7A00' },
-    { id: '3', name: 'Banco Itau', balance: 5800.75, icon: 'bank' as const, color: '#EC7000' },
-    { id: '4', name: 'Carteira', balance: 350.00, icon: 'wallet' as const, color: '#10b981' },
-    { id: '5', name: 'Mercado Pago', balance: 890.25, icon: 'digital' as const, color: '#00AAFF' }
-  ])
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [cards, setCards] = useState<CreditCard[]>([])
 
-  // Mock data - Cartões de crédito
-  const [cards, setCards] = useState<CreditCard[]>([
-    {
-      id: '1',
-      name: 'Cartao Inter',
-      brand: 'Mastercard',
-      lastDigits: '4532',
-      limit: 1100.00,
-      used: 284.05,
-      available: 815.95,
-      color: '#FF7A00',
-      invoice: {
-        status: 'overdue',
-        amount: 153.01,
-        dueDate: '2025-09-25'
+  // Carregar cartões e transações
+  useEffect(() => {
+    loadCards()
+  }, [])
+
+  const loadCards = async () => {
+    try {
+      setIsLoading(true)
+
+      // Buscar todas as contas do usuário
+      const accountsResponse = await apiService.get('/accounts')
+      if (!accountsResponse.success) {
+        throw new Error('Erro ao carregar contas')
       }
-    },
-    {
-      id: '2',
-      name: 'Pao de Acucar',
-      brand: 'Visa',
-      lastDigits: '8765',
-      limit: 1829.00,
-      used: 1477.53,
-      available: 351.47,
-      color: '#00AA00',
-      invoice: {
-        status: 'overdue',
-        amount: 633.12,
-        dueDate: '2025-10-02'
-      }
-    },
-    {
-      id: '3',
-      name: 'Personallite Black',
-      brand: 'Mastercard',
-      lastDigits: '9012',
-      limit: 54050.00,
-      used: 2312.73,
-      available: 51737.27,
-      color: '#000000',
-      invoice: {
-        status: 'paid',
-        amount: 1987.73,
-        dueDate: '2025-09-10',
-        paymentDate: '2025-09-10'
-      }
+
+      const allAccounts = accountsResponse.data || []
+      console.log('📊 Total accounts loaded:', allAccounts.length, allAccounts)
+      setAccounts(allAccounts)
+
+      // Filtrar apenas cartões de crédito
+      const creditCardAccounts = allAccounts.filter((acc: any) => acc.type === 'CREDIT_CARD')
+      console.log('💳 Credit card accounts:', creditCardAccounts.length, creditCardAccounts)
+
+      // Buscar transações para calcular os valores
+      const transactionsResponse = await apiService.get('/transactions')
+      // A resposta vem com { data: { transactions: [...], pagination: {...} } }
+      const allTransactions = transactionsResponse.data?.transactions || []
+
+      // Calcular dados de cada cartão
+      const cardsData: CreditCard[] = creditCardAccounts.map((account: any) => {
+        const metadata = account.metadata || {}
+        const creditLimit = parseFloat(account.creditLimit || '0')
+
+        const now = new Date()
+        const closingDay = metadata.closingDay || 5
+        const dueDay = metadata.dueDay || 10
+
+        // Calcular período da fatura atual (entre fechamento anterior e próximo fechamento)
+        // Exemplo: Se hoje é 15/10 e fecha dia 5, a fatura vai de 06/09 a 05/10
+        let closingDate = new Date(now.getFullYear(), now.getMonth(), closingDay)
+        if (now.getDate() > closingDay) {
+          // Já passou do fechamento deste mês, então a próxima fatura fecha no próximo mês
+          closingDate.setMonth(closingDate.getMonth() + 1)
+        }
+
+        // Data de vencimento é alguns dias após o fechamento
+        const dueDate = new Date(closingDate)
+        dueDate.setDate(dueDay)
+        if (dueDay < closingDay) {
+          dueDate.setMonth(dueDate.getMonth() + 1)
+        }
+
+        // Período da fatura: do fechamento anterior até o próximo fechamento
+        const previousClosing = new Date(closingDate)
+        previousClosing.setMonth(previousClosing.getMonth() - 1)
+
+        // Buscar transações do período da fatura
+        const cardTransactions = allTransactions.filter((t: any) => {
+          const transDate = new Date(t.date)
+          return (
+            t.accountId === account.id &&
+            t.type === 'EXPENSE' &&
+            transDate > previousClosing &&
+            transDate <= closingDate
+          )
+        })
+
+        // Calcular total usado
+        const totalUsed = cardTransactions.reduce((sum: number, t: any) => {
+          return sum + Math.abs(parseFloat(t.amount || '0'))
+        }, 0)
+
+        // Calcular disponível
+        const available = creditLimit - totalUsed
+
+        // Calcular dias até o vencimento
+        const diffTime = dueDate.getTime() - now.getTime()
+        const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+        // Determinar status da fatura
+        let status: 'current' | 'due_soon' | 'overdue' = 'current'
+        if (daysUntilDue < 0) {
+          status = 'overdue' // Vencida
+        } else if (daysUntilDue <= 10) {
+          status = 'due_soon' // Vence em breve (10 dias ou menos)
+        }
+
+        return {
+          id: account.id,
+          name: account.name,
+          brand: metadata.brand || account.bankName || 'Visa',
+          lastDigits: metadata.lastDigits || account.accountNumber?.slice(-4) || '0000',
+          limit: creditLimit,
+          used: totalUsed,
+          available: available,
+          color: account.color || '#3b82f6',
+          closingDay,
+          dueDay,
+          invoice: {
+            status,
+            amount: totalUsed,
+            dueDate: dueDate.toISOString().split('T')[0],
+            closingDate: closingDate.toISOString().split('T')[0],
+            daysUntilDue
+          }
+        }
+      })
+
+      console.log('💳 Final cards data:', cardsData.length, cardsData)
+      setCards(cardsData)
+    } catch (error) {
+      console.error('Erro ao carregar cartões:', error)
+      toast({
+        title: 'Erro ao carregar cartões',
+        description: error instanceof Error ? error.message : 'Tente novamente',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsLoading(false)
     }
-  ])
+  }
 
   // Função para pagar fatura
   const handlePayInvoice = (accountId: string) => {
@@ -145,9 +216,8 @@ export const CardsPage = () => {
     setShowPayInvoiceModal(true)
   }
 
-  const openCards = cards.filter(card => card.invoice.status !== 'paid')
-  const closedCards = cards.filter(card => card.invoice.status === 'paid')
-  const displayCards = selectedFilter === 'open' ? openCards : closedCards
+  // Sempre exibir todos os cartões
+  const displayCards = cards
 
   const totalLimit = cards.reduce((sum, card) => sum + card.limit, 0)
   const totalUsed = cards.reduce((sum, card) => sum + card.used, 0)
@@ -169,37 +239,54 @@ export const CardsPage = () => {
     return ((used / limit) * 100).toFixed(2)
   }
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (card: CreditCard) => {
+    const { status, daysUntilDue } = card.invoice
+
     switch (status) {
       case 'overdue':
         return {
           label: 'Fatura vencida',
+          sublabel: `Venceu há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) > 1 ? 's' : ''}`,
           color: 'text-red-600 dark:text-red-400',
           bgColor: 'bg-red-50 dark:bg-red-950/20',
           icon: <AlertCircle className="h-5 w-5" />
         }
-      case 'open':
+      case 'due_soon':
         return {
-          label: 'Fatura aberta',
+          label: `Vence em ${daysUntilDue} dia${daysUntilDue > 1 ? 's' : ''}`,
+          sublabel: daysUntilDue <= 2 ? '⚠️ Atenção!' : daysUntilDue <= 5 ? '📅 Em breve' : '',
+          color: 'text-orange-600 dark:text-orange-400',
+          bgColor: 'bg-orange-50 dark:bg-orange-950/20',
+          icon: <AlertCircle className="h-5 w-5" />
+        }
+      case 'current':
+        return {
+          label: 'Fatura atual',
+          sublabel: `Vence em ${daysUntilDue} dia${daysUntilDue > 1 ? 's' : ''}`,
           color: 'text-blue-600 dark:text-blue-400',
           bgColor: 'bg-blue-50 dark:bg-blue-950/20',
           icon: <CreditCard className="h-5 w-5" />
         }
-      case 'paid':
-        return {
-          label: 'Fatura paga',
-          color: 'text-green-600 dark:text-green-400',
-          bgColor: 'bg-green-50 dark:bg-green-950/20',
-          icon: <CheckCircle2 className="h-5 w-5" />
-        }
       default:
         return {
-          label: 'Fatura aberta',
+          label: 'Fatura atual',
+          sublabel: '',
           color: 'text-blue-600 dark:text-blue-400',
           bgColor: 'bg-blue-50 dark:bg-blue-950/20',
           icon: <CreditCard className="h-5 w-5" />
         }
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg text-muted-foreground">Carregando cartões...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -215,29 +302,6 @@ export const CardsPage = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-3">
-          <Button
-            onClick={() => setSelectedFilter('open')}
-            className={`${
-              selectedFilter === 'open'
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            Faturas abertas
-          </Button>
-          <Button
-            onClick={() => setSelectedFilter('closed')}
-            className={`${
-              selectedFilter === 'closed'
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            Faturas fechadas
-          </Button>
-        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -295,7 +359,7 @@ export const CardsPage = () => {
 
           {/* Credit Cards */}
           {displayCards.map((card) => {
-            const statusInfo = getStatusInfo(card.invoice.status)
+            const statusInfo = getStatusInfo(card)
             const usagePercentage = getUsagePercentage(card.used, card.limit)
 
             return (
@@ -331,29 +395,36 @@ export const CardsPage = () => {
                       <p className={`text-sm font-semibold ${statusInfo.color}`}>
                         {statusInfo.label}
                       </p>
+                      {statusInfo.sublabel && (
+                        <p className={`text-xs ${statusInfo.color}`}>
+                          {statusInfo.sublabel}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   {/* Valor da Fatura */}
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      {card.invoice.status === 'paid' ? 'Valor pago' : 'Valor total'}
-                    </p>
+                    <p className="text-sm text-muted-foreground">Valor da fatura</p>
                     <p className="text-2xl font-bold text-foreground">
                       {formatCurrency(card.invoice.amount)}
                     </p>
                   </div>
 
                   {/* Data */}
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      {card.invoice.status === 'paid' ? 'Data do pagamento' : 'Venceu em'}
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {formatDate(card.invoice.status === 'paid' && card.invoice.paymentDate
-                        ? card.invoice.paymentDate
-                        : card.invoice.dueDate)}
-                    </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Fecha em</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {formatDate(card.invoice.closingDate)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Vence em</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {formatDate(card.invoice.dueDate)}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Usage Progress */}
@@ -391,22 +462,18 @@ export const CardsPage = () => {
 
                   {/* Action Button */}
                   <div className="pt-2">
-                    {card.invoice.status === 'paid' ? (
-                      <Button
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        disabled
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        FATURA PAGA
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                        onClick={() => handleOpenPayInvoice(card)}
-                      >
-                        PAGAR FATURA
-                      </Button>
-                    )}
+                    <Button
+                      className={`w-full text-white ${
+                        card.invoice.status === 'overdue'
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : card.invoice.status === 'due_soon'
+                          ? 'bg-orange-600 hover:bg-orange-700'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                      }`}
+                      onClick={() => handleOpenPayInvoice(card)}
+                    >
+                      {card.invoice.status === 'overdue' ? '⚠️ PAGAR AGORA' : 'PAGAR FATURA'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -429,9 +496,44 @@ export const CardsPage = () => {
       <NewCardModal
         isOpen={showNewCardModal}
         onClose={() => setShowNewCardModal(false)}
-        onSave={(newCard) => {
-          console.log('Novo cartão criado:', newCard)
-          // TODO: Salvar cartão via API
+        onSave={async (newCard) => {
+          try {
+            // Criar conta do tipo CREDIT_CARD via API
+            const response = await apiService.post('/accounts', {
+              name: newCard.name,
+              type: 'CREDIT_CARD',
+              balance: 0, // Cartões iniciam zerados
+              creditLimit: newCard.limit,
+              bankName: newCard.brand,
+              accountNumber: newCard.lastDigits,
+              description: `Cartão ${newCard.brand} - Fecha dia ${newCard.closingDay}, vence dia ${newCard.dueDay}`,
+              color: '#' + Math.floor(Math.random()*16777215).toString(16), // Cor aleatória
+              metadata: {
+                lastDigits: newCard.lastDigits,
+                brand: newCard.brand,
+                closingDay: newCard.closingDay,
+                dueDay: newCard.dueDay
+              }
+            })
+
+            if (response.success) {
+              toast({
+                title: 'Cartão criado com sucesso!',
+                description: `Cartão ${newCard.name} foi adicionado à sua conta`,
+              })
+              // Recarregar dados dos cartões
+              await loadCards()
+            } else {
+              throw new Error(response.message || 'Erro ao criar cartão')
+            }
+          } catch (error) {
+            console.error('Erro ao criar cartão:', error)
+            toast({
+              title: 'Erro ao criar cartão',
+              description: error instanceof Error ? error.message : 'Tente novamente',
+              variant: 'destructive'
+            })
+          }
         }}
       />
 

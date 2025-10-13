@@ -1,6 +1,6 @@
 {
   "name": "financeserver-be",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Backend API para o FinanceServer - Sistema de Gestão Financeira",
   "main": "dist/index.js",
   "scripts": {

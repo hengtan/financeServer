@@ -112,6 +112,13 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
           }
         })
 
+      // Verificar se há dados com valores maiores que zero
+      const hasNonZeroData = formatted.some(item => item.value > 0)
+      if (!hasNonZeroData) {
+        console.warn('⚠️ All monthly data values are zero')
+        return []
+      }
+
       console.log('📊 Chart data formatted (monthly):', formatted)
       return formatted
     }
@@ -127,11 +134,18 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
       }
     })
 
+    // Verificar se há dados com valores maiores que zero
+    const hasNonZeroData = formatted.some(item => item.value > 0)
+    if (!hasNonZeroData) {
+      console.warn('⚠️ All daily data values are zero')
+      return []
+    }
+
     console.log('📊 Chart data formatted (daily):', formatted)
     return formatted
   }, [dailyExpensesData, spendingPeriod])
 
-  // Usar dados da API ou fallback se não existirem
+  // Usar dados da API ou valores zerados se não existirem
   const dashboardData = apiData || {
     balance: 0,
     income: 0,
@@ -139,79 +153,14 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
     creditCards: 0,
     monthlyBalance: {
       income: 0,
-      expenses: 2581.45,
-      balance: -2581.45
+      expenses: 0,
+      balance: 0
     },
-    expensesByCategory: [
-      { name: 'Alimentação', value: 850.45, color: '#ef4444', percentage: 32.9 },
-      { name: 'Transporte', value: 567.89, color: '#3b82f6', percentage: 22.0 },
-      { name: 'Lazer', value: 445.50, color: '#8b5cf6', percentage: 17.3 },
-      { name: 'Moradia', value: 400.00, color: '#10b981', percentage: 15.5 },
-      { name: 'Saúde', value: 234.61, color: '#f59e0b', percentage: 9.1 },
-      { name: 'Outros', value: 83.00, color: '#6b7280', percentage: 3.2 }
-    ],
-    spendingFrequency: [
-      { name: '25 set', value: 120.50 },
-      { name: '26 set', value: 85.30 },
-      { name: '27 set', value: 145.20 },
-      { name: '28 set', value: 67.80 },
-      { name: '29 set', value: 0 },
-      { name: '30 set', value: 234.50 },
-      { name: '01 out', value: 156.90 }
-    ],
+    expensesByCategory: [],
+    spendingFrequency: [],
     incomeByCategory: [],
-    last6MonthsBalance: [
-      { name: '5/2025', value: -1200 },
-      { name: '6/2025', value: 800 },
-      { name: '7/2025', value: -500 },
-      { name: '8/2025', value: 1500 },
-      { name: '9/2025', value: -800 },
-      { name: '10/2025', value: -2581.45 }
-    ],
-    creditCardsList: [
-      {
-        id: 1,
-        name: 'Cartao Inter',
-        status: 'overdue',
-        amount: 153.01,
-        dueDate: '2025-09-15',
-        limit: 969.96,
-        used: 153.01,
-        percentage: 25.82,
-        isPaid: false
-      },
-      {
-        id: 2,
-        name: 'Pao de Acucar',
-        status: 'open',
-        amount: 633.12,
-        dueDate: '2025-10-02',
-        limit: 984.59,
-        used: 633.12,
-        percentage: 80.78,
-        isPaid: false
-      },
-      {
-        id: 3,
-        name: 'Personallite Black',
-        status: 'paid',
-        amount: 1987.73,
-        limit: 53725.00,
-        used: 1987.73,
-        percentage: 4.28,
-        isPaid: true
-      },
-      {
-        id: 4,
-        name: 'Latam Black',
-        status: 'paid',
-        amount: 2182.76,
-        limit: 14903.90,
-        used: 2182.76,
-        percentage: 20.59,
-        isPaid: true
-      }
-    ],
+    last6MonthsBalance: [],
+    creditCardsList: [],
     monthlySavings: 0,
     savingsPercentage: 0
   }
@@ -366,13 +315,26 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col lg:flex-row items-center gap-8">
-                {/* Donut Chart with Gradient and Shadow */}
-                <div className="relative flex-shrink-0 z-10">
-                  {/* Outer glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 rounded-full blur-2xl opacity-50 -z-10" />
+              {dashboardData.expensesByCategory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <ShoppingCart className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Nenhuma despesa registrada
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Adicione suas despesas para visualizar o gráfico de gastos por categoria.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col lg:flex-row items-center gap-8">
+                  {/* Donut Chart with Gradient and Shadow */}
+                  <div className="relative flex-shrink-0 z-10">
+                    {/* Outer glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 rounded-full blur-2xl opacity-50 -z-10" />
 
-                  <ResponsiveContainer width={280} height={280}>
+                    <ResponsiveContainer width={280} height={280}>
                     <RechartsPie>
                       <defs>
                         {dashboardData.expensesByCategory.map((entry, index) => (
@@ -509,6 +471,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   ))}
                 </div>
               </div>
+              )}
             </CardContent>
           </Card>
 
@@ -545,11 +508,16 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   </div>
                 </div>
               ) : chartData.length === 0 ? (
-                <div className="h-[320px] flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Nenhum dado disponível para o período selecionado</p>
-                    <p className="text-xs text-muted-foreground">Tente selecionar outro período</p>
+                <div className="h-[320px] flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <CalendarDays className="h-10 w-10 text-muted-foreground" />
                   </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Sem gastos neste período
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Não há despesas registradas para os últimos {spendingPeriod === '7d' ? '7 dias' : spendingPeriod === '30d' ? '30 dias' : '1 ano'}. Adicione transações para visualizar a evolução dos seus gastos.
+                  </p>
                 </div>
               ) : (
                 <>
@@ -657,30 +625,44 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Receitas</span>
-                  <span className="text-lg font-semibold text-green-600">
-                    {formatCurrency(dashboardData.monthlyBalance.income)}
-                  </span>
+              {dashboardData.monthlyBalance.income === 0 && dashboardData.monthlyBalance.expenses === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <Scale className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Nenhuma movimentação este mês
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Adicione suas receitas e despesas para visualizar o balanço mensal.
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Despesas</span>
-                  <span className="text-lg font-semibold text-red-600">
-                    {formatCurrency(dashboardData.monthlyBalance.expenses)}
-                  </span>
-                </div>
-                <div className="border-t pt-4">
+              ) : (
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">Balanço</span>
-                    <span className={`text-xl font-bold ${
-                      dashboardData.monthlyBalance.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {formatCurrency(dashboardData.monthlyBalance.balance)}
+                    <span className="text-muted-foreground">Receitas</span>
+                    <span className="text-lg font-semibold text-green-600">
+                      {formatCurrency(dashboardData.monthlyBalance.income)}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Despesas</span>
+                    <span className="text-lg font-semibold text-red-600">
+                      {formatCurrency(dashboardData.monthlyBalance.expenses)}
+                    </span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-foreground">Balanço</span>
+                      <span className={`text-xl font-bold ${
+                        dashboardData.monthlyBalance.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(dashboardData.monthlyBalance.balance)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -710,23 +692,79 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
           {/* Receitas por Categoria */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Receitas por categoria</CardTitle>
+              <div>
+                <CardTitle>Receitas por categoria</CardTitle>
+                <CardDescription className="text-lg font-semibold text-foreground mt-1">
+                  {formatCurrency(dashboardData.income)}
+                  <span className="text-sm text-muted-foreground ml-2">Total</span>
+                </CardDescription>
+              </div>
               <Button variant="ghost" size="sm">
                 VER MAIS <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ArrowUpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              {dashboardData.incomeByCategory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <ArrowUpCircle className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Nenhuma receita registrada
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Adicione suas receitas para visualizar o gráfico de ganhos por categoria.
+                  </p>
                 </div>
-                <p className="text-muted-foreground mb-2">
-                  Opa! Você ainda não possui receitas este mês.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Adicione seus ganhos no mês atual através do botão (+), para ver seus gráficos.
-                </p>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {dashboardData.incomeByCategory.map((category: any, index: number) => (
+                    <div
+                      key={category.name}
+                      className="group relative overflow-hidden rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm p-3 hover:border-green-500/50 hover:bg-accent/30 transition-all duration-300 hover:shadow-lg"
+                    >
+                      <div
+                        className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"
+                        style={{
+                          background: `linear-gradient(135deg, ${category.color}20 0%, transparent 100%)`
+                        }}
+                      />
+
+                      <div className="relative flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="relative">
+                            <div
+                              className="w-5 h-5 rounded-md shadow-md transition-transform group-hover:scale-110"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <div
+                              className="absolute inset-0 rounded-md blur-sm opacity-50"
+                              style={{ backgroundColor: category.color }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{category.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right ml-3">
+                          <p className="text-sm font-bold text-green-600 dark:text-green-400">{formatCurrency(category.value)}</p>
+                          <p className="text-xs text-muted-foreground">{category.percentage}%</p>
+                        </div>
+                      </div>
+
+                      <div className="relative w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 shadow-sm"
+                          style={{
+                            width: `${category.percentage}%`,
+                            background: `linear-gradient(90deg, ${category.color} 0%, ${category.color}CC 100%)`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -739,8 +777,21 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
               </Button>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <RechartsLine data={dashboardData.last6MonthsBalance}>
+              {dashboardData.last6MonthsBalance.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <Scale className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Sem dados de balanço
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center max-w-md">
+                    Adicione transações para visualizar o histórico de balanço dos últimos 6 meses.
+                  </p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <RechartsLine data={dashboardData.last6MonthsBalance}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="name"
@@ -761,6 +812,7 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
                   />
                 </RechartsLine>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -774,17 +826,31 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
             </Button>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="open" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="open">Faturas abertas</TabsTrigger>
-                <TabsTrigger value="closed">Faturas fechadas</TabsTrigger>
-              </TabsList>
+            {dashboardData.creditCardsList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                  <CreditCard className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Nenhum cartão cadastrado
+                </h3>
+                <p className="text-sm text-muted-foreground text-center max-w-md">
+                  Cadastre seus cartões de crédito para acompanhar suas faturas e limites disponíveis.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Tabs defaultValue="open" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="open">Faturas abertas</TabsTrigger>
+                    <TabsTrigger value="closed">Faturas fechadas</TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="open">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dashboardData.creditCardsList
-                    .filter((card) => !card.isPaid)
-                    .map((card) => (
+                  <TabsContent value="open">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {dashboardData.creditCardsList
+                        .filter((card) => !card.isPaid)
+                        .map((card) => (
                       <Card
                         key={card.id}
                         className={`border-l-4 ${
@@ -878,16 +944,18 @@ const DashboardContent = ({ user, selectedDate, setSelectedDate, dashboardData: 
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground">TOTAL</span>
-                <span className="text-xl font-bold text-foreground">
-                  {formatCurrency(
-                    dashboardData.creditCardsList.reduce((sum, card) => sum + card.amount, 0)
-                  )}
-                </span>
-              </div>
-            </div>
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">TOTAL</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {formatCurrency(
+                        dashboardData.creditCardsList.reduce((sum, card) => sum + card.amount, 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

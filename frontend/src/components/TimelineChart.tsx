@@ -178,17 +178,30 @@ export const TimelineChart = ({
         )}
       </CardHeader>
       <CardContent>
-        <div className="relative">
-          {/* Chart Container */}
-          <div className="relative bg-gradient-to-b from-gray-50/30 to-white dark:from-gray-800/10 dark:to-gray-900/5 rounded-xl border border-gray-200/50 dark:border-gray-700/30 p-6">
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+              <Calendar className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Sem dados para exibir
+            </h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Adicione transações para visualizar a evolução financeira ao longo do tempo.
+            </p>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Chart Container */}
+            <div className="relative bg-gradient-to-b from-gray-50/30 to-white dark:from-gray-800/10 dark:to-gray-900/5 rounded-xl border border-gray-200/50 dark:border-gray-700/30 p-6">
 
-            {/* Horizontal Timeline */}
-            <div className="relative h-48">
-              {/* Main horizontal line */}
-              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 dark:from-gray-600 dark:via-gray-500 dark:to-gray-600 rounded-full"></div>
+              {/* Horizontal Timeline */}
+              <div className="relative h-48">
+                {/* Main horizontal line */}
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 dark:from-gray-600 dark:via-gray-500 dark:to-gray-600 rounded-full"></div>
 
-              {/* Timeline Points */}
-              {data.map((item, index) => {
+                {/* Timeline Points */}
+                {data.map((item, index) => {
                 const percentage = (item.expenses / totalExpenses) * 100
                 const leftPosition = (index / (data.length - 1)) * 100
                 const isAbove = index % 2 === 0 // Alterna entre acima e abaixo
@@ -305,7 +318,8 @@ export const TimelineChart = ({
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

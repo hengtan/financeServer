@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { SecurityProvider } from '@/contexts/SecurityContext'
+import { DashboardRefreshProvider } from '@/contexts/DashboardRefreshContext'
 import { Header } from '@/components/Header'
 import { Sidebar } from '@/components/Sidebar'
 import { Footer } from '@/components/Footer'
@@ -89,9 +90,10 @@ function App() {
       <AuthProvider>
         <SecurityProvider>
           <NotificationProvider>
-            <Router>
-              <KeyboardShortcutsProvider>
-                <ScrollToTop />
+            <DashboardRefreshProvider>
+              <Router>
+                <KeyboardShortcutsProvider>
+                  <ScrollToTop />
           <Routes>
           <Route path="/" element={
             <AppLayout>
@@ -258,10 +260,11 @@ function App() {
           } />
 
           <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-                <Toaster />
-              </KeyboardShortcutsProvider>
-            </Router>
+                  </Routes>
+                  <Toaster />
+                </KeyboardShortcutsProvider>
+              </Router>
+            </DashboardRefreshProvider>
           </NotificationProvider>
         </SecurityProvider>
       </AuthProvider>
