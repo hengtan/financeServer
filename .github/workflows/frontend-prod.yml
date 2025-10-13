@@ -72,6 +72,7 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: test
+    if: false  # Disabled - Snyk token not configured
 
     defaults:
       run:
@@ -92,7 +93,7 @@ jobs:
   create-release:
     name: Create Release Tag
     runs-on: ubuntu-latest
-    needs: [test, lighthouse, security-scan]
+    needs: [test, lighthouse]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
