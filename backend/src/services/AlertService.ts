@@ -576,8 +576,8 @@ export class AlertService {
         // Fetch transactions for this card in current invoice period
         const transactions = await this.transactionRepository.findByAccountId(card.id, {
           type: 'EXPENSE',
-          startDate: previousClosingDate,
-          endDate: closingDate
+          dateFrom: previousClosingDate,
+          dateTo: closingDate
         })
 
         // Calculate total invoice amount
