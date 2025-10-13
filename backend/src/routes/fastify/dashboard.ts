@@ -389,18 +389,27 @@ export default async function dashboardRoutes(
   // GET /api/dashboard/daily-expenses - Gastos diários agrupados
   fastify.get(`${prefix}/daily-expenses`, async (request, reply) => {
     try {
+      console.log('🎯 Daily expenses endpoint called')
       const user = await getUserFromToken(request.headers.authorization)
       if (!user) {
         return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
       }
 
+      console.log(`👤 User: ${user.email}`)
       const query = request.query as any
       const days = parseInt(query.days || '30')
+      console.log(`📅 Requested days: ${days}`)
 
-      // Calcular período
+      // Calcular período - Ajustar para usar midnight UTC
       const endDate = new Date()
+      endDate.setUTCHours(23, 59, 59, 999) // End of today
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() - days)
+      startDate.setDate(startDate.getDate() - (days - 1)) // days - 1 to include today
+      startDate.setUTCHours(0, 0, 0, 0) // Start of day
+
+      console.log(`📅 Calculating period: ${days} days`)
+      console.log(`📅 Start date: ${startDate.toISOString()}`)
+      console.log(`📅 End date: ${endDate.toISOString()}`)
 
       // Buscar transações do período
       const transactions = await transactionRepository.findByUserIdAndPeriod(
@@ -409,23 +418,45 @@ export default async function dashboardRoutes(
         endDate.toISOString()
       )
 
+      console.log(`📊 Daily expenses: Found ${transactions?.length || 0} total transactions`)
+      console.log(`📅 Period: ${startDate.toISOString()} to ${endDate.toISOString()}`)
+
       // Agrupar por dia
       const dailyExpenses: { [key: string]: number } = {}
 
       // Inicializar todos os dias com 0
+      console.log(`🔄 Initializing ${days} days starting from ${startDate.toISOString()}`)
       for (let i = 0; i < days; i++) {
         const date = new Date(startDate)
-        date.setDate(date.getDate() + i)
+        date.setUTCDate(date.getUTCDate() + i)
         const dateKey = date.toISOString().split('T')[0]
         dailyExpenses[dateKey] = 0
+        if (i < 3 || i >= days - 3) {
+          console.log(`  Day ${i}: ${dateKey}`)
+        }
       }
+      console.log(`✅ Initialized ${Object.keys(dailyExpenses).length} days`)
 
       // Somar gastos por dia
       const expenseTransactions = transactions?.filter((t: any) => t.type === 'EXPENSE') || []
+      console.log(`💸 Found ${expenseTransactions.length} EXPENSE transactions`)
+
+      // Log all available keys
+      const availableKeys = Object.keys(dailyExpenses)
+      console.log(`🔑 Available date keys (first 5):`, availableKeys.slice(0, 5))
+      console.log(`🔑 Available date keys (last 5):`, availableKeys.slice(-5))
+
       for (const transaction of expenseTransactions) {
         const dateKey = new Date(transaction.date).toISOString().split('T')[0]
+        const amount = Math.abs(parseFloat(transaction.amount?.toString() || '0'))
+        console.log(`  - Transaction date key: ${dateKey}, R$ ${amount} (${transaction.description})`)
+        console.log(`    Key exists in dailyExpenses? ${dailyExpenses[dateKey] !== undefined}`)
+        console.log(`    Current value: ${dailyExpenses[dateKey]}`)
         if (dailyExpenses[dateKey] !== undefined) {
-          dailyExpenses[dateKey] += Math.abs(parseFloat(transaction.amount?.toString() || '0'))
+          dailyExpenses[dateKey] += amount
+          console.log(`    New value: ${dailyExpenses[dateKey]}`)
+        } else {
+          console.log(`    ⚠️  KEY NOT FOUND! Transaction date ${dateKey} not in range`)
         }
       }
 
@@ -436,6 +467,13 @@ export default async function dashboardRoutes(
           total: Number(total.toFixed(2))
         }))
         .sort((a, b) => a.date.localeCompare(b.date))
+
+      // Log final data with non-zero values
+      const dataWithValues = dailyData.filter(d => d.total > 0)
+      console.log(`📤 Returning ${dailyData.length} days, ${dataWithValues.length} with values`)
+      if (dataWithValues.length > 0) {
+        console.log(`💵 Days with values:`, dataWithValues)
+      }
 
       return {
         success: true,
@@ -448,6 +486,189 @@ export default async function dashboardRoutes(
       return reply.status(500).send({
         success: false,
         message: 'Erro ao buscar gastos diários',
+        errors: [errorMessage]
+      })
+    }
+  })
+
+  // GET /api/dashboard/income-by-category - Receitas agrupadas por categoria
+  fastify.get(`${prefix}/income-by-category`, async (request, reply) => {
+    try {
+      console.log('💰 Income by category endpoint called')
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const query = request.query as any
+      let startDate: Date
+      let endDate: Date
+
+      if (query.startDate && query.endDate) {
+        startDate = new Date(query.startDate)
+        endDate = new Date(query.endDate)
+      } else {
+        // Default: current month
+        endDate = new Date()
+        endDate.setUTCHours(23, 59, 59, 999)
+        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1)
+        startDate.setUTCHours(0, 0, 0, 0)
+      }
+
+      console.log(`📅 Period: ${startDate.toISOString()} to ${endDate.toISOString()}`)
+
+      // Buscar transações de receita do período
+      const transactions = await transactionRepository.findByUserIdAndPeriod(
+        user.id,
+        startDate.toISOString(),
+        endDate.toISOString()
+      )
+
+      const incomeTransactions = transactions?.filter((t: any) => t.type === 'INCOME') || []
+      console.log(`💵 Found ${incomeTransactions.length} INCOME transactions`)
+
+      if (incomeTransactions.length === 0) {
+        return {
+          success: true,
+          data: []
+        }
+      }
+
+      // Agrupar receitas por categoria
+      const categoryIncome = incomeTransactions.reduce((acc: any, transaction: any) => {
+        const categoryId = transaction.userCategoryId || transaction.categoryId || 'uncategorized'
+        if (!acc[categoryId]) {
+          acc[categoryId] = {
+            categoryId,
+            categoryName: transaction.userCategory?.name || transaction.category?.name || 'Sem categoria',
+            total: 0,
+            count: 0
+          }
+        }
+        acc[categoryId].total += Math.abs(parseFloat(transaction.amount || '0'))
+        acc[categoryId].count += 1
+        return acc
+      }, {})
+
+      const totalIncome = incomeTransactions.reduce((sum: number, t: any) =>
+        sum + Math.abs(parseFloat(t.amount || '0')), 0)
+
+      const incomeByCategory = Object.values(categoryIncome)
+        .sort((a: any, b: any) => b.total - a.total)
+        .map((cat: any) => ({
+          ...cat,
+          total: Number(cat.total.toFixed(2)),
+          percentage: totalIncome > 0 ? Number(((cat.total / totalIncome) * 100).toFixed(1)) : 0
+        }))
+
+      console.log(`📤 Returning ${incomeByCategory.length} income categories`)
+
+      return {
+        success: true,
+        data: incomeByCategory
+      }
+    } catch (error) {
+      console.error('❌ Income by category error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro ao buscar receitas por categoria',
+        errors: [errorMessage]
+      })
+    }
+  })
+
+  // GET /api/dashboard/monthly-balance - Balanço dos últimos 6 meses
+  fastify.get(`${prefix}/monthly-balance`, async (request, reply) => {
+    try {
+      console.log('📊 Monthly balance endpoint called')
+      const user = await getUserFromToken(request.headers.authorization)
+      if (!user) {
+        return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
+      }
+
+      const query = request.query as any
+      const months = parseInt(query.months || '6')
+      console.log(`📅 Requested months: ${months}`)
+
+      // Calcular período dos últimos N meses
+      const endDate = new Date()
+      endDate.setUTCHours(23, 59, 59, 999)
+      const startDate = new Date()
+      startDate.setMonth(startDate.getMonth() - (months - 1))
+      startDate.setDate(1)
+      startDate.setUTCHours(0, 0, 0, 0)
+
+      console.log(`📅 Period: ${startDate.toISOString()} to ${endDate.toISOString()}`)
+
+      // Buscar todas as transações do período
+      const transactions = await transactionRepository.findByUserIdAndPeriod(
+        user.id,
+        startDate.toISOString(),
+        endDate.toISOString()
+      )
+
+      console.log(`📊 Found ${transactions?.length || 0} total transactions`)
+
+      // Agrupar por mês
+      const monthlyData: { [key: string]: { income: number; expenses: number } } = {}
+
+      // Inicializar todos os meses com 0
+      for (let i = 0; i < months; i++) {
+        const date = new Date(startDate)
+        date.setMonth(date.getMonth() + i)
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        monthlyData[monthKey] = { income: 0, expenses: 0 }
+      }
+
+      // Processar transações
+      for (const transaction of transactions || []) {
+        const date = new Date(transaction.date)
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+        if (monthlyData[monthKey]) {
+          const amount = Math.abs(parseFloat(transaction.amount?.toString() || '0'))
+          if (transaction.type === 'INCOME') {
+            monthlyData[monthKey].income += amount
+          } else if (transaction.type === 'EXPENSE') {
+            monthlyData[monthKey].expenses += amount
+          }
+        }
+      }
+
+      // Converter para array e calcular balanço
+      const balanceData = Object.entries(monthlyData)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([monthKey, data]) => {
+          const [year, month] = monthKey.split('-')
+          const date = new Date(parseInt(year), parseInt(month) - 1, 1)
+
+          return {
+            month: monthKey,
+            name: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+            fullDate: date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+            income: Number(data.income.toFixed(2)),
+            expenses: Number(data.expenses.toFixed(2)),
+            balance: Number((data.income - data.expenses).toFixed(2)),
+            value: Number((data.income - data.expenses).toFixed(2)) // For recharts
+          }
+        })
+
+      const monthsWithData = balanceData.filter(m => m.income > 0 || m.expenses > 0).length
+      console.log(`📤 Returning ${balanceData.length} months, ${monthsWithData} with data`)
+
+      return {
+        success: true,
+        data: balanceData
+      }
+    } catch (error) {
+      console.error('❌ Monthly balance error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
+
+      return reply.status(500).send({
+        success: false,
+        message: 'Erro ao buscar balanço mensal',
         errors: [errorMessage]
       })
     }

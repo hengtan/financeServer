@@ -28,9 +28,15 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProviderProps) => {
+  // 🔒 TEMA FORÇADO: Apenas light mode está ativo no momento
+  // Para reativar dark mode, remova este comentário e descomente as linhas abaixo
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem('finance-theme') as Theme
-    return stored || defaultTheme
+    // Força sempre o tema light
+    return 'light'
+
+    // 🚫 DARK MODE DESATIVADO - Descomente abaixo para reativar
+    // const stored = localStorage.getItem('finance-theme') as Theme
+    // return stored || defaultTheme
   })
 
   const [accentColor, setAccentColor] = useState<AccentColor>(() => {
@@ -41,6 +47,9 @@ export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProvid
   const [isDark, setIsDark] = useState(false)
 
   const toggleTheme = () => {
+    // 🚫 DARK MODE DESATIVADO - Função desabilitada temporariamente
+    // Para reativar, descomente o código abaixo:
+    /*
     if (theme === 'light') {
       setTheme('dark')
     } else if (theme === 'dark') {
@@ -48,6 +57,10 @@ export const ThemeProvider = ({ children, defaultTheme = 'system' }: ThemeProvid
     } else {
       setTheme('light')
     }
+    */
+
+    // Por enquanto, mantém sempre light mode
+    console.log('⚠️ Toggle de tema está desativado. Apenas light mode disponível.')
   }
 
   useEffect(() => {

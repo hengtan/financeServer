@@ -32,11 +32,13 @@ export default async function accountRoutes(
         return reply.status(401).send({ success: false, message: 'Usuário não autenticado' })
       }
 
-      const accounts = await accountRepository.findByUserId(user.id)
+      console.log('📋 Fetching accounts for user:', user.id)
+      const result = await accountRepository.findByUserId(user.id)
+      console.log('📋 Found accounts:', result?.accounts?.length || 0)
 
       return {
         success: true,
-        data: accounts || []
+        data: result.accounts || []
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
@@ -123,28 +125,25 @@ export default async function accountRoutes(
         status: body.status || 'ACTIVE'
       }
 
+      console.log('📝 Creating account with data:', JSON.stringify(accountData, null, 2))
+
       const account = await accountRepository.create(accountData)
+
+      console.log('✅ Account created:', account)
 
       return reply.status(201).send({
         success: true,
         data: account,
         message: 'Conta criada com sucesso'
       })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error creating account:', error)
       const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor'
 
       if (errorMessage.includes('Token') || errorMessage.includes('inválido')) {
         return reply.status(401).send({
           success: false,
           message: 'Token inválido ou expirado'
-        })
-      }
-
-      if (errorMessage.includes('already exists') || errorMessage.includes('já existe')) {
-        return reply.status(409).send({
-          success: false,
-          message: 'Conta com este nome já existe',
-          errors: ['Conta duplicada']
         })
       }
 

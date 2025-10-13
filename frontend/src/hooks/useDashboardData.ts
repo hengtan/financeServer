@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { dashboardService, DashboardOverview } from '@/services/dashboard'
+import { useDashboardRefresh } from '@/contexts/DashboardRefreshContext'
 
 interface UseDashboardDataReturn {
   data: DashboardOverview | null
@@ -12,6 +13,9 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
   const [data, setData] = useState<DashboardOverview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Listen to global refresh trigger
+  const { refreshTrigger } = useDashboardRefresh()
 
   const fetchData = async () => {
     try {
@@ -51,7 +55,7 @@ export function useDashboardData(selectedDate: Date): UseDashboardDataReturn {
 
   useEffect(() => {
     fetchData()
-  }, [selectedDate])
+  }, [selectedDate, refreshTrigger])
 
   return {
     data,

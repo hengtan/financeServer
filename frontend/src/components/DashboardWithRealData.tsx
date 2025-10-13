@@ -1,4 +1,6 @@
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { useIncomeByCategory } from '@/hooks/useIncomeByCategory'
+import { useMonthlyBalance } from '@/hooks/useMonthlyBalance'
 import { Loader2, AlertCircle, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,6 +12,8 @@ interface DashboardWithRealDataProps {
 
 export const DashboardWithRealData = ({ selectedDate, children }: DashboardWithRealDataProps) => {
   const { data: dashboardOverview, isLoading, error, refetch } = useDashboardData(selectedDate)
+  const { data: incomeByCategory } = useIncomeByCategory(selectedDate)
+  const { data: monthlyBalance } = useMonthlyBalance(6)
 
   // Loading state
   if (isLoading) {
@@ -110,8 +114,16 @@ export const DashboardWithRealData = ({ selectedDate, children }: DashboardWithR
       }
     }),
     spendingFrequency: generateSpendingFrequency(),
-    incomeByCategory: [],
-    last6MonthsBalance: [],
+    incomeByCategory: incomeByCategory.map((cat, idx) => {
+      const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280']
+      return {
+        name: cat.categoryName,
+        value: cat.total,
+        color: colors[idx % colors.length],
+        percentage: cat.percentage
+      }
+    }),
+    last6MonthsBalance: monthlyBalance,
     creditCardsList: [],
     monthlySavings: dashboardOverview.financial.netIncome > 0 ? dashboardOverview.financial.netIncome : 0,
     savingsPercentage: dashboardOverview.financial.totalIncome > 0

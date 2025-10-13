@@ -37,6 +37,7 @@ export const ThemeToggle = () => {
     }
   }
 
+  // 🚫 DARK MODE DESATIVADO - Componente renderiza apenas cores de destaque
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -45,11 +46,14 @@ export const ThemeToggle = () => {
           size="sm"
           className="w-9 h-9 p-0"
         >
-          {getThemeIcon()}
-          <span className="sr-only">Configurar tema</span>
+          <Palette className="h-4 w-4" />
+          <span className="sr-only">Configurar aparência</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        {/* 🚫 OPÇÕES DE TEMA DESATIVADAS TEMPORARIAMENTE
+        Para reativar dark mode, descomente o bloco abaixo:
+
         <DropdownMenuItem onClick={() => setTheme('light')}>
           <Sun className="h-4 w-4 mr-2" />
           Claro
@@ -67,33 +71,27 @@ export const ThemeToggle = () => {
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
+        */}
 
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Palette className="h-4 w-4 mr-2" />
-            Cor de destaque
+        {/* Mantém apenas a seleção de cor de destaque */}
+        <div className="px-2 py-1.5 text-sm font-semibold">
+          Cor de destaque
+        </div>
+        <DropdownMenuSeparator />
+        {Object.entries(accentColors).map(([key, value]) => (
+          <DropdownMenuItem
+            key={key}
+            onClick={() => setAccentColor(key as any)}
+            className="flex items-center gap-2"
+          >
             <div
-              className="w-3 h-3 rounded-full ml-auto border border-border"
-              style={{ backgroundColor: accentColors[accentColor].color }}
+              className="w-3 h-3 rounded-full border border-border"
+              style={{ backgroundColor: value.color }}
             />
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {Object.entries(accentColors).map(([key, value]) => (
-              <DropdownMenuItem
-                key={key}
-                onClick={() => setAccentColor(key as any)}
-                className="flex items-center gap-2"
-              >
-                <div
-                  className="w-3 h-3 rounded-full border border-border"
-                  style={{ backgroundColor: value.color }}
-                />
-                {value.name}
-                {accentColor === key && <span className="ml-auto">✓</span>}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+            {value.name}
+            {accentColor === key && <span className="ml-auto">✓</span>}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   )

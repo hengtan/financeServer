@@ -12,6 +12,7 @@ export interface QuickExpenseData {
   isPaid: boolean
   ignoreBalance: boolean
   attachment?: File
+  type: 'INCOME' | 'EXPENSE'
 }
 
 interface Category {
@@ -28,6 +29,7 @@ interface QuickExpenseModalProps {
   accountId: string
   accountName: string
   categories?: Category[]
+  onCreateCategory?: (name: string, type: 'INCOME' | 'EXPENSE') => Promise<string | null>
 }
 
 export const QuickExpenseModal = ({
@@ -36,8 +38,10 @@ export const QuickExpenseModal = ({
   onSubmit,
   accountId,
   accountName,
-  categories = []
+  categories = [],
+  onCreateCategory
 }: QuickExpenseModalProps) => {
+  const [transactionType, setTransactionType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE')
   const [amountString, setAmountString] = useState('')
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '')
@@ -46,6 +50,8 @@ export const QuickExpenseModal = ({
   const [dateQuickSelect, setDateQuickSelect] = useState<'today' | 'yesterday' | 'custom'>('today')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [attachment, setAttachment] = useState<File | null>(null)
+  const [showNewCategory, setShowNewCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   // Atualizar data quando muda quick select
   React.useEffect(() => {
@@ -71,7 +77,7 @@ export const QuickExpenseModal = ({
 
   const displayAmount = formatAmountDisplay(amountString)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const centavos = parseInt(amountString) || 0
@@ -82,20 +88,40 @@ export const QuickExpenseModal = ({
       return
     }
 
+    let finalCategoryId = categoryId
+
+    // Se está criando nova categoria
+    if (showNewCategory && newCategoryName.trim() && onCreateCategory) {
+      const newCatId = await onCreateCategory(newCategoryName.trim(), transactionType)
+      if (newCatId) {
+        finalCategoryId = newCatId
+      } else {
+        alert('Erro ao criar categoria. Tente novamente.')
+        return
+      }
+    }
+
+    if (!finalCategoryId) {
+      alert('Selecione uma categoria')
+      return
+    }
+
     const expense: QuickExpenseData = {
       description,
       amount: finalAmount,
-      categoryId,
+      categoryId: finalCategoryId,
       accountId,
       date,
       isPaid,
       ignoreBalance,
-      attachment: attachment || undefined
+      attachment: attachment || undefined,
+      type: transactionType
     }
 
     onSubmit(expense)
 
     // Reset form
+    setTransactionType('EXPENSE')
     setAmountString('')
     setDescription('')
     setCategoryId(categories[0]?.id || '')
@@ -103,13 +129,46 @@ export const QuickExpenseModal = ({
     setIgnoreBalance(false)
     setDateQuickSelect('today')
     setAttachment(null)
+    setShowNewCategory(false)
+    setNewCategoryName('')
 
     onClose()
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nova Despesa" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Nova Transação" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Tipo de Transação */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tipo
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setTransactionType('EXPENSE')}
+              className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                transactionType === 'EXPENSE'
+                  ? 'bg-red-600 text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              💸 Despesa
+            </button>
+            <button
+              type="button"
+              onClick={() => setTransactionType('INCOME')}
+              className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                transactionType === 'INCOME'
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              💰 Receita
+            </button>
+          </div>
+        </div>
+
         {/* Descrição */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -233,22 +292,71 @@ export const QuickExpenseModal = ({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Categoria
           </label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
-            required
-          >
-            {categories.length > 0 ? (
-              categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))
-            ) : (
-              <option value="">Carregando categorias...</option>
-            )}
-          </select>
+          {!showNewCategory ? (
+            <div className="space-y-2">
+              <select
+                value={categoryId}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === '__new__') {
+                    setShowNewCategory(true)
+                    setCategoryId('')
+                  } else {
+                    setCategoryId(value)
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600"
+                required
+              >
+                {categories.length > 0 ? (
+                  <>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                    <option value="__new__" className="font-semibold text-blue-600">
+                      ➕ Adicionar nova categoria
+                    </option>
+                  </>
+                ) : (
+                  <>
+                    <option value="">Nenhuma categoria disponível</option>
+                    <option value="__new__" className="font-semibold text-blue-600">
+                      ➕ Adicionar nova categoria
+                    </option>
+                  </>
+                )}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Nome da nova categoria"
+                  className="flex-1 px-3 py-2 border-2 border-blue-500 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 dark:bg-gray-800"
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategory(false)
+                    setNewCategoryName('')
+                    setCategoryId(categories[0]?.id || '')
+                  }}
+                  className="px-3 bg-gray-500 hover:bg-gray-600 text-white"
+                >
+                  ✕
+                </Button>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Digite o nome e clique em "Salvar e adicionar" no final para criar a categoria
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Conta (read-only) */}
@@ -309,7 +417,7 @@ export const QuickExpenseModal = ({
               Ignorar transação
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-400">
-              Esta despesa não será contabilizada no saldo
+              Esta {transactionType === 'EXPENSE' ? 'despesa' : 'receita'} não será contabilizada no saldo
             </div>
           </label>
         </div>
@@ -321,10 +429,14 @@ export const QuickExpenseModal = ({
           </Button>
           <Button
             type="submit"
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            className={`flex-1 ${
+              transactionType === 'EXPENSE'
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
             disabled={!description || parseInt(amountString) === 0}
           >
-            Adicionar Despesa
+            {transactionType === 'EXPENSE' ? '💸 Adicionar Despesa' : '💰 Adicionar Receita'}
           </Button>
         </div>
       </form>
