@@ -12,8 +12,6 @@ lerna-debug.log*
 .npm/
 .yarn/
 .pnpm-store/
-package-lock.json
-*/package-lock.json
 yarn.lock
 */yarn.lock
 pnpm-lock.yaml
