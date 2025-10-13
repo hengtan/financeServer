@@ -96,6 +96,10 @@ jobs:
         working-directory: backend
         run: npm install
 
+      - name: 🔧 Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
       - name: 📝 Check TypeScript Types
         working-directory: backend
         run: npx tsc --noEmit
@@ -122,6 +126,10 @@ jobs:
       - name: 📥 Install Dependencies
         working-directory: backend
         run: npm install
+
+      - name: 🔧 Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
 
       - name: 🧪 Run Unit Tests
         working-directory: backend
@@ -227,6 +235,10 @@ jobs:
       - name: 📥 Install Dependencies
         working-directory: backend
         run: npm install
+
+      - name: 🔧 Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
 
       - name: 🏗️ Build Application
         working-directory: backend
