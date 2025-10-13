@@ -317,6 +317,10 @@ export class AlertService {
       const goalAlerts = await this.generateGoalAlerts(userId, alertConfig)
       alerts.push(...goalAlerts)
 
+      // Credit card due date alerts
+      const creditCardAlerts = await this.generateCreditCardAlerts(userId, alertConfig)
+      alerts.push(...creditCardAlerts)
+
     } catch (error) {
       console.error('Error generating smart alerts:', error)
     }
@@ -526,6 +530,133 @@ export class AlertService {
       console.error('Error generating goal alerts:', error)
       return alerts
     }
+  }
+
+  private async generateCreditCardAlerts(userId: string, config: SmartAlertConfig): Promise<Alert[]> {
+    const alerts: Alert[] = []
+
+    try {
+      // Get all credit card accounts
+      const accountsResult = await this.accountRepository.findByUserId(userId)
+      const accounts = Array.isArray(accountsResult) ? accountsResult : (accountsResult as any).accounts || []
+      const creditCards = accounts.filter((acc: any) => acc.type === 'CREDIT_CARD')
+
+      const now = new Date()
+
+      for (const card of creditCards) {
+        const metadata = card.metadata || {}
+        const closingDay = metadata.closingDay || 1
+        const dueDay = metadata.dueDay || 10
+
+        // Calculate current invoice period
+        let closingDate = new Date(now.getFullYear(), now.getMonth(), closingDay)
+        if (now.getDate() > closingDay) {
+          closingDate.setMonth(closingDate.getMonth() + 1)
+        }
+
+        // Previous closing date (start of current invoice period)
+        const previousClosingDate = new Date(closingDate)
+        previousClosingDate.setMonth(previousClosingDate.getMonth() - 1)
+
+        // Calculate due date
+        let dueDate = new Date(closingDate.getFullYear(), closingDate.getMonth(), dueDay)
+        if (dueDay < closingDay) {
+          dueDate.setMonth(dueDate.getMonth() + 1)
+        }
+
+        // Calculate days until due
+        const timeDiff = dueDate.getTime() - now.getTime()
+        const daysUntilDue = Math.ceil(timeDiff / (1000 * 60 * 60 * 24))
+
+        // Only create alerts if within 10 days of due date or overdue
+        if (daysUntilDue > 10) {
+          continue
+        }
+
+        // Fetch transactions for this card in current invoice period
+        const transactions = await this.transactionRepository.findByAccountId(card.id, {
+          type: 'EXPENSE',
+          startDate: previousClosingDate,
+          endDate: closingDate
+        })
+
+        // Calculate total invoice amount
+        const transactionList = Array.isArray(transactions) ? transactions : (transactions as any).transactions || []
+        const invoiceAmount = transactionList.reduce((sum: number, t: any) => {
+          return sum + Math.abs(parseFloat(t.amount?.toString() || '0'))
+        }, 0)
+
+        // Determine severity based on days until due
+        let severity: AlertSeverity = AlertSeverity.LOW
+        let title = ''
+        let message = ''
+
+        if (daysUntilDue < 0) {
+          severity = AlertSeverity.CRITICAL
+          title = 'Fatura de cartão vencida'
+          message = `A fatura do cartão ${card.name} venceu há ${Math.abs(daysUntilDue)} dias. Valor: R$ ${invoiceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        } else if (daysUntilDue === 0) {
+          severity = AlertSeverity.CRITICAL
+          title = 'Fatura de cartão vence hoje'
+          message = `A fatura do cartão ${card.name} vence hoje! Valor: R$ ${invoiceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        } else if (daysUntilDue <= 2) {
+          severity = AlertSeverity.HIGH
+          title = 'Fatura de cartão vence em breve'
+          message = `A fatura do cartão ${card.name} vence em ${daysUntilDue} dias. Valor: R$ ${invoiceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        } else if (daysUntilDue <= 5) {
+          severity = AlertSeverity.MEDIUM
+          title = 'Fatura de cartão próxima'
+          message = `A fatura do cartão ${card.name} vence em ${daysUntilDue} dias. Valor: R$ ${invoiceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        } else {
+          severity = AlertSeverity.LOW
+          title = 'Lembrete: Fatura de cartão'
+          message = `A fatura do cartão ${card.name} vence em ${daysUntilDue} dias. Valor: R$ ${invoiceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        }
+
+        const alert = await this.createAlert({
+          userId,
+          type: AlertType.CREDIT_CARD_DUE,
+          severity,
+          title,
+          message,
+          description: `Data de fechamento: ${closingDate.toLocaleDateString('pt-BR')} | Data de vencimento: ${dueDate.toLocaleDateString('pt-BR')}`,
+          data: {
+            amount: invoiceAmount,
+            account: card.name,
+            metadata: {
+              cardId: card.id,
+              cardBrand: metadata.brand || 'Outro',
+              cardLastDigits: metadata.lastDigits || '****',
+              cardColor: metadata.color || '#3b82f6',
+              dueDate: dueDate.toISOString(),
+              closingDate: closingDate.toISOString(),
+              daysUntilDue
+            }
+          },
+          actionUrl: '/cards',
+          actionText: 'Ver cartões',
+          expiresInHours: daysUntilDue < 0 ? 168 : 24, // 7 days if overdue, 24h if upcoming
+          rule: {
+            name: 'Credit Card Due Date Alert',
+            conditions: [{
+              field: 'daysUntilDue',
+              operator: 'lte',
+              value: 10
+            }],
+            enabled: true,
+            channels: [AlertChannel.IN_APP],
+            cooldownHours: 24
+          }
+        })
+
+        alerts.push(alert)
+      }
+
+    } catch (error) {
+      console.error('Error generating credit card alerts:', error)
+    }
+
+    return alerts
   }
 
   private async clearUserAlertCache(userId: string): Promise<void> {

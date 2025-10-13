@@ -405,6 +405,33 @@ export default async function alertRoutes(fastify: FastifyInstance) {
     }
   })
 
+  // Get credit card alerts
+  fastify.get('/alerts/credit-cards', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      const userId = (request.user as FastifyJWTCustomPayload).userId
+
+      // Get alerts filtered by CREDIT_CARD_DUE type
+      const result = await alertService.getAlertsByUser(userId, {
+        type: AlertType.CREDIT_CARD_DUE,
+        status: AlertStatus.ACTIVE
+      })
+
+      return reply.code(200).send({
+        success: true,
+        data: result.alerts,
+        count: result.total
+      })
+    } catch (error) {
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to get credit card alerts',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  })
+
   // Search alerts
   fastify.get('/alerts/search', {
     preHandler: [fastify.authenticate],

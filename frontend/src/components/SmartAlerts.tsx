@@ -27,6 +27,7 @@ import { dashboardService } from '@/services/dashboard'
 import { transactionsService } from '@/services/transactions'
 import { goalsService } from '@/services/goals'
 import { accountsService } from '@/services/accounts'
+import { apiService } from '@/services/api'
 
 interface Alert {
   id: string
@@ -404,11 +405,65 @@ export function SmartAlerts({ className }: SmartAlertsProps) {
     const loadIntelligentAlerts = async () => {
       setIsLoading(true)
       try {
-        const intelligentAlerts = await generateIntelligentAlerts()
-        setAlerts(intelligentAlerts)
+        // First, trigger smart alert generation on backend
+        try {
+          console.log('🔄 Generating smart alerts...')
+          await apiService.post('/alerts/smart-generate', {})
+          console.log('✅ Smart alerts generated')
+        } catch (genError) {
+          console.warn('⚠️ Error generating alerts:', genError)
+        }
+
+        // Then fetch alerts from database
+        console.log('📥 Fetching alerts from database...')
+        const response = await apiService.get<{ alerts: any[], total: number }>('/alerts?status=ACTIVE&limit=50')
+
+        if (response.success && response.data?.alerts) {
+          console.log('✅ Fetched alerts from database:', response.data.alerts.length)
+          // Map backend alerts to frontend format
+          const mappedAlerts = response.data.alerts.map((alert: any) => ({
+            id: alert.id,
+            type: alert.severity === 'CRITICAL' || alert.severity === 'HIGH' ? 'danger' :
+                  alert.severity === 'MEDIUM' ? 'warning' : 'info',
+            priority: alert.severity.toLowerCase(),
+            title: alert.title,
+            description: alert.message,
+            category: alert.type.includes('BUDGET') ? 'budget' :
+                     alert.type.includes('GOAL') ? 'goal' :
+                     alert.type.includes('SPENDING') || alert.type.includes('EXPENSE') ? 'spending' :
+                     alert.type.includes('INCOME') ? 'income' :
+                     alert.type.includes('BALANCE') ? 'budget' :
+                     alert.type.includes('INVESTMENT') || alert.type.includes('SAVINGS') ? 'investment' : 'trend',
+            isActive: alert.status === 'ACTIVE',
+            isRead: alert.status === 'READ',
+            createdAt: new Date(alert.createdAt),
+            actions: alert.actionUrl ? [{
+              label: alert.actionText || 'Ver detalhes',
+              action: () => window.location.href = alert.actionUrl,
+              variant: 'outline' as const
+            }] : undefined,
+            currentValue: alert.data?.amount,
+            targetValue: alert.data?.metadata?.targetAmount
+          }))
+          setAlerts(mappedAlerts)
+        } else {
+          console.log('⚠️ No alerts from database, falling back to generated alerts')
+          // Fallback to generated alerts if API fails
+          const intelligentAlerts = await generateIntelligentAlerts()
+          setAlerts(intelligentAlerts)
+        }
+
         setAlertRules(defaultAlertRules)
       } catch (error) {
-        console.error('Erro ao carregar alertas:', error)
+        console.error('❌ Erro ao carregar alertas:', error)
+        // Fallback to generated alerts
+        try {
+          console.log('⚠️ Falling back to generated alerts')
+          const intelligentAlerts = await generateIntelligentAlerts()
+          setAlerts(intelligentAlerts)
+        } catch (fallbackError) {
+          console.error('❌ Error generating fallback alerts:', fallbackError)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -433,16 +488,44 @@ export function SmartAlerts({ className }: SmartAlertsProps) {
     }
   })
 
-  const handleMarkAsRead = (alertId: string) => {
-    setAlerts(prev => prev.map(alert =>
-      alert.id === alertId ? { ...alert, isRead: true } : alert
-    ))
-    showInfoToast('Alerta marcado como lido', '')
+  const handleMarkAsRead = async (alertId: string) => {
+    try {
+      console.log('📖 Marking alert as read:', alertId)
+      // Update in database via API
+      const response = await apiService.patch(`/alerts/${alertId}/read`, {})
+
+      if (response.success) {
+        console.log('✅ Alert marked as read:', alertId)
+        // Update local state
+        setAlerts(prev => prev.map(alert =>
+          alert.id === alertId ? { ...alert, isRead: true } : alert
+        ))
+        showInfoToast('Alerta marcado como lido', '')
+      } else {
+        console.error('❌ Failed to mark alert as read:', response)
+      }
+    } catch (error) {
+      console.error('❌ Error marking alert as read:', error)
+    }
   }
 
-  const handleDismissAlert = (alertId: string) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== alertId))
-    showInfoToast('Alerta removido', '')
+  const handleDismissAlert = async (alertId: string) => {
+    try {
+      console.log('🗑️ Dismissing alert:', alertId)
+      // Dismiss in database via API
+      const response = await apiService.patch(`/alerts/${alertId}/dismiss`, {})
+
+      if (response.success) {
+        console.log('✅ Alert dismissed:', alertId)
+        // Update local state
+        setAlerts(prev => prev.filter(alert => alert.id !== alertId))
+        showInfoToast('Alerta removido', '')
+      } else {
+        console.error('❌ Failed to dismiss alert:', response)
+      }
+    } catch (error) {
+      console.error('❌ Error dismissing alert:', error)
+    }
   }
 
   const handleToggleRule = (ruleId: string) => {

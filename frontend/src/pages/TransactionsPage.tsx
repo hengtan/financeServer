@@ -193,9 +193,16 @@ export const TransactionsPage = () => {
         setRealCategories([])
       }
 
-      if (accountsResponse.success && accountsResponse.data?.accounts) {
-        console.log('✅ Accounts loaded successfully:', accountsResponse.data.accounts)
-        setAccounts(accountsResponse.data.accounts)
+      console.log('🔍 Raw accounts response:', accountsResponse)
+
+      if (accountsResponse.success) {
+        // A resposta é { success: true, data: accounts[] }
+        // data JÁ é o array de contas, não precisa acessar data.accounts
+        const accountsData = Array.isArray(accountsResponse.data) ? accountsResponse.data : []
+        console.log('✅ Accounts data extracted:', accountsData)
+        console.log('✅ Number of accounts:', accountsData.length)
+        console.log('✅ Account names:', accountsData.map((a: any) => a.name))
+        setAccounts(accountsData)
       } else {
         console.log('❌ Failed to load accounts:', accountsResponse)
         setAccounts([])
@@ -1008,12 +1015,21 @@ export const TransactionsPage = () => {
           onClose={() => setIsNewTransactionOpen(false)}
           onSubmit={handleNewTransaction}
           accounts={(() => {
-            const mappedAccounts = accounts.map(acc => ({
-              id: acc.id,
-              name: acc.name,
-              type: acc.type?.toLowerCase() || 'checking',
-              currency: acc.currency || 'BRL'
-            }))
+            const mappedAccounts = accounts.map(acc => {
+              // Converter tipo da API para o formato esperado pelo modal
+              let type: 'checking' | 'savings' | 'credit' | 'investment' = 'checking'
+              if (acc.type === 'CHECKING') type = 'checking'
+              else if (acc.type === 'SAVINGS') type = 'savings'
+              else if (acc.type === 'CREDIT_CARD') type = 'credit'
+              else if (acc.type === 'INVESTMENT') type = 'investment'
+
+              return {
+                id: acc.id,
+                name: acc.name,
+                type: type,
+                currency: acc.currency || 'BRL'
+              }
+            })
             console.log('🔄 Passing accounts to modal:', mappedAccounts)
             return mappedAccounts
           })()}

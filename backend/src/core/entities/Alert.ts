@@ -12,6 +12,7 @@ export enum AlertType {
   INCOME_RECEIVED = 'INCOME_RECEIVED',
   EXPENSE_ANOMALY = 'EXPENSE_ANOMALY',
   SAVINGS_OPPORTUNITY = 'SAVINGS_OPPORTUNITY',
+  CREDIT_CARD_DUE = 'CREDIT_CARD_DUE',
   CUSTOM = 'CUSTOM'
 }
 
@@ -276,6 +277,8 @@ export class Alert {
         return '📈'
       case AlertType.SAVINGS_OPPORTUNITY:
         return '💡'
+      case AlertType.CREDIT_CARD_DUE:
+        return '💳'
       default:
         return '🔔'
     }
